@@ -132,8 +132,7 @@ export default function Auth() {
       });
 
       setTimeout(() => {
-        setLocation("/");
-        window.location.reload();
+        setLocation("/listings");
       }, 1000);
     } catch (error: any) {
       toast({

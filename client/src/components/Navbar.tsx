@@ -7,6 +7,15 @@ import { PawPrint } from "lucide-react";
 
 export function Navbar() {
   const { user, userData, loading } = useAuth();
+  const [location, setLocation] = useLocation();
+
+  // Redirect to auth if trying to access protected routes
+  useEffect(() => {
+    const protectedRoutes = ['/create-listing', '/profile'];
+    if (!user && protectedRoutes.includes(location)) {
+      setLocation('/auth');
+    }
+  }, [user, location]);
 
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
