@@ -34,24 +34,26 @@ export function useAuth() {
 
       try {
         const userDocRef = doc(db, "users", user.uid);
-        const userDoc = await getDoc(userDocRef);
+        const unsubscribeDoc = onSnapshot(userDocRef, (doc) => {
+          if (doc.exists()) {
+            const userData = doc.data() as AppUser;
+            setAuthState({
+              user,
+              userData: { ...userData, uid: user.uid },
+              loading: false,
+              error: null,
+            });
+          } else {
+            setAuthState({
+              user: null,
+              userData: null,
+              loading: false,
+              error: "Потребителската информация не беше намерена",
+            });
+          }
+        });
 
-        if (userDoc.exists()) {
-          const userData = userDoc.data() as AppUser;
-          setAuthState({
-            user,
-            userData: { ...userData, uid: user.uid },
-            loading: false,
-            error: null,
-          });
-        } else {
-          setAuthState({
-            user: null,
-            userData: null,
-            loading: false,
-            error: "Потребителската информация не беше намерена",
-          });
-        }
+        return () => unsubscribeDoc();
       } catch (error) {
         console.error("Error fetching user data:", error);
         setAuthState({
