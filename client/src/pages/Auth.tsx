@@ -85,17 +85,21 @@ export default function Auth() {
       // Save user data to Firestore
       await setDoc(doc(db, "users", userCredential.uid), userData);
 
-      // Show success message
+      // Show success message and handle redirection
       toast({
         title: "Успешна регистрация! 🎉",
-        description: "Изпратихме ви имейл за потвърждение. Моля, проверете пощата си и потвърдете регистрацията, след което можете да влезете в акаунта си.",
-        duration: 6000,
+        description: "Изпратихме ви имейл за потвърждение. Моля, проверете пощата си.",
+        duration: 5000,
       });
 
-      // Reset form and switch to login tab
+      // Reset form
       registerForm.reset();
-      loginForm.setValue("email", data.email);
-      setActiveTab("login");
+
+      // Wait a bit to show the toast before switching tabs
+      setTimeout(() => {
+        loginForm.setValue("email", data.email);
+        setActiveTab("login");
+      }, 1000);
 
     } catch (error: any) {
       console.error("Registration error:", error);
@@ -103,6 +107,7 @@ export default function Auth() {
         title: "Грешка при регистрация",
         description: error.message,
         variant: "destructive",
+        duration: 5000,
       });
     } finally {
       setLoading(false);

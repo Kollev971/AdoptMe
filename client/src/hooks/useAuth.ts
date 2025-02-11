@@ -8,6 +8,7 @@ type AuthState = {
   user: User | null;
   userData: AppUser | null;
   loading: boolean;
+  error: string | null;
 };
 
 export function useAuth() {
@@ -15,29 +16,49 @@ export function useAuth() {
     user: null,
     userData: null,
     loading: true,
+    error: null,
   });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
+      try {
+        if (user) {
+          // Get user data from Firestore
           const userDoc = await getDoc(doc(db, "users", user.uid));
+
           if (userDoc.exists()) {
+            const userData = userDoc.data() as AppUser;
             setAuthState({
               user,
-              userData: userDoc.data() as AppUser,
+              userData,
               loading: false,
+              error: null,
             });
           } else {
             console.error("User document not found in Firestore");
-            setAuthState({ user, userData: null, loading: false });
+            setAuthState({
+              user,
+              userData: null,
+              loading: false,
+              error: "Потребителската информация не беше намерена",
+            });
           }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-          setAuthState({ user, userData: null, loading: false });
+        } else {
+          setAuthState({
+            user: null,
+            userData: null,
+            loading: false,
+            error: null,
+          });
         }
-      } else {
-        setAuthState({ user: null, userData: null, loading: false });
+      } catch (error: any) {
+        console.error("Error fetching user data:", error);
+        setAuthState({
+          user: null,
+          userData: null,
+          loading: false,
+          error: "Грешка при зареждане на потребителската информация",
+        });
       }
     });
 
