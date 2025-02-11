@@ -35,11 +35,11 @@ export function Navbar() {
           <div className="flex items-center space-x-4">
             {!loading && (
               <>
-                {user && userData ? (
+                {userData ? (
                   <UserMenu />
                 ) : (
                   <Link href="/auth">
-                    <Button>Вход / Регистрация</Button>
+                    <Button variant="default">Вход / Регистрация</Button>
                   </Link>
                 )}
               </>
