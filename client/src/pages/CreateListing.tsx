@@ -39,8 +39,8 @@ export default function CreateListing() {
   const onSubmit = async (data: z.infer<typeof createListingSchema>) => {
     if (!user) {
       toast({
-        title: "Error",
-        description: "You must be logged in to create a listing",
+        title: "Грешка",
+        description: "Трябва да сте влезли в профила си, за да създадете обява",
         variant: "destructive",
       });
       return;
@@ -48,7 +48,7 @@ export default function CreateListing() {
 
     try {
       setLoading(true);
-      
+
       // Upload images
       const imageUrls: string[] = [];
       if (selectedFiles) {
@@ -72,14 +72,15 @@ export default function CreateListing() {
       await addDoc(collection(db, "listings"), listingData);
 
       toast({
-        title: "Success",
-        description: "Listing created successfully",
+        title: "Успех!",
+        description: "Обявата е създадена успешно",
+        duration: 5000,
       });
-      
+
       setLocation("/listings");
     } catch (error: any) {
       toast({
-        title: "Error",
+        title: "Грешка",
         description: error.message,
         variant: "destructive",
       });
@@ -91,7 +92,7 @@ export default function CreateListing() {
   return (
     <Card className="max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>Create New Listing</CardTitle>
+        <CardTitle>Създай нова обява</CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -101,50 +102,50 @@ export default function CreateListing() {
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Title</FormLabel>
+                  <FormLabel>Заглавие</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter listing title" {...field} />
+                    <Input placeholder="Въведете заглавие на обявата" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Pet Type</FormLabel>
+                  <FormLabel>Вид на любимеца</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select pet type" />
+                        <SelectValue placeholder="Изберете вид" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="dog">Dog</SelectItem>
-                      <SelectItem value="cat">Cat</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="dog">Куче</SelectItem>
+                      <SelectItem value="cat">Котка</SelectItem>
+                      <SelectItem value="other">Друго</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="age"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Age (years)</FormLabel>
+                  <FormLabel>Възраст (години)</FormLabel>
                   <FormControl>
                     <Input 
                       type="number" 
                       min="0"
                       step="0.1"
-                      placeholder="Enter pet age" 
+                      placeholder="Въведете възрастта" 
                       {...field}
                       onChange={(e) => field.onChange(parseFloat(e.target.value))}
                     />
@@ -153,16 +154,16 @@ export default function CreateListing() {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>Описание</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Describe the pet" 
+                      placeholder="Опишете любимеца" 
                       className="min-h-[100px]"
                       {...field} 
                     />
@@ -171,9 +172,9 @@ export default function CreateListing() {
                 </FormItem>
               )}
             />
-            
+
             <FormItem>
-              <FormLabel>Images</FormLabel>
+              <FormLabel>Снимки</FormLabel>
               <FormControl>
                 <Input
                   type="file"
@@ -186,7 +187,7 @@ export default function CreateListing() {
             </FormItem>
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating..." : "Create Listing"}
+              {loading ? "Създаване..." : "Създай обява"}
             </Button>
           </form>
         </Form>

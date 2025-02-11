@@ -46,16 +46,17 @@ export default function Listings() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Намери своя бъдещ любимец</h1>
         <Select value={filter} onValueChange={setFilter}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by type" />
+            <SelectValue placeholder="Филтрирай по вид" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Pets</SelectItem>
-            <SelectItem value="dog">Dogs</SelectItem>
-            <SelectItem value="cat">Cats</SelectItem>
-            <SelectItem value="other">Other</SelectItem>
+            <SelectItem value="all">Всички</SelectItem>
+            <SelectItem value="dog">Кучета</SelectItem>
+            <SelectItem value="cat">Котки</SelectItem>
+            <SelectItem value="other">Други</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -68,7 +69,7 @@ export default function Listings() {
 
       {filteredListings.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-500">No listings found</p>
+          <p className="text-gray-500">Няма намерени обяви</p>
         </div>
       )}
     </div>
