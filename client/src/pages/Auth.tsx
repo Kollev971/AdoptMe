@@ -14,13 +14,22 @@ import { db } from "@/lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { userSchema } from "@shared/schema";
 
-const registerFormSchema = userSchema.extend({
-  password: z.string().min(6, "Паролата трябва да е поне 6 символа"),
-  confirmPassword: z.string()
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Паролите не съвпадат",
-  path: ["confirmPassword"],
-});
+// First omit the auto-generated fields, then extend with password fields, then add refinement
+const registerFormSchema = userSchema
+  .omit({ 
+    uid: true, 
+    emailVerified: true, 
+    createdAt: true, 
+    photoURL: true 
+  })
+  .extend({
+    password: z.string().min(6, "Паролата трябва да е поне 6 символа"),
+    confirmPassword: z.string()
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Паролите не съвпадат",
+    path: ["confirmPassword"],
+  });
 
 const loginSchema = z.object({
   email: z.string().email("Невалиден имейл адрес"),
@@ -43,7 +52,7 @@ export default function Auth() {
       password: "",
       confirmPassword: "",
     },
-    mode: "onBlur", 
+    mode: "onChange",
   });
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
@@ -52,7 +61,7 @@ export default function Auth() {
       email: "",
       password: "",
     },
-    mode: "onBlur", 
+    mode: "onChange",
   });
 
   const onRegister = async (data: z.infer<typeof registerFormSchema>) => {
@@ -99,6 +108,13 @@ export default function Auth() {
       setLoading(false);
     }
   };
+
+  console.log("Form State:", {
+    isDirty: registerForm.formState.isDirty,
+    isValid: registerForm.formState.isValid,
+    errors: registerForm.formState.errors,
+    values: registerForm.getValues()
+  });
 
   const onLogin = async (data: z.infer<typeof loginSchema>) => {
     try {
@@ -180,16 +196,7 @@ export default function Auth() {
 
             <TabsContent value="register">
               <Form {...registerForm}>
-                <form 
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const formData = registerForm.getValues();
-                    console.log("Form submitted with values:", formData);
-                    console.log("Form state:", registerForm.formState);
-                    registerForm.handleSubmit(onRegister)(e);
-                  }} 
-                  className="space-y-4"
-                >
+                <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
                   <FormField
                     control={registerForm.control}
                     name="username"
@@ -270,8 +277,8 @@ export default function Auth() {
                   />
                   <Button 
                     type="submit" 
-                    className="w-full" 
-                    disabled={loading || !registerForm.formState.isValid}
+                    className="w-full"
+                    disabled={loading}
                   >
                     {loading ? "Регистрация..." : "Регистрирай се"}
                   </Button>
