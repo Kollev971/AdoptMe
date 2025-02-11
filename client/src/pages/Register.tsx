@@ -17,7 +17,7 @@ const registerFormSchema = userSchema.extend({
   password: z.string().min(6),
   confirmPassword: z.string()
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
+  message: "Паролите не съвпадат",
   path: ["confirmPassword"],
 });
 
@@ -42,7 +42,7 @@ export default function Register() {
     try {
       setLoading(true);
       const userCredential = await registerUser(data.email, data.password);
-      
+
       const userData = {
         uid: userCredential.uid,
         username: data.username,
@@ -56,14 +56,14 @@ export default function Register() {
       await setDoc(doc(db, "users", userCredential.uid), userData);
 
       toast({
-        title: "Registration successful",
-        description: "Please check your email for verification",
+        title: "Успешна регистрация",
+        description: "Моля, проверете вашия имейл за потвърждение",
       });
-      
+
       setLocation("/login");
     } catch (error: any) {
       toast({
-        title: "Error",
+        title: "Грешка",
         description: error.message,
         variant: "destructive",
       });
@@ -76,7 +76,7 @@ export default function Register() {
     <div className="flex justify-center items-center">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Register</CardTitle>
+          <CardTitle>Регистрация</CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -86,9 +86,9 @@ export default function Register() {
                 name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Username</FormLabel>
+                    <FormLabel>Потребителско име</FormLabel>
                     <FormControl>
-                      <Input placeholder="Choose a username" {...field} />
+                      <Input placeholder="Изберете потребителско име" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -99,9 +99,9 @@ export default function Register() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Имейл</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter your email" {...field} />
+                      <Input placeholder="Въведете вашия имейл" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -112,9 +112,9 @@ export default function Register() {
                 name="fullName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name</FormLabel>
+                    <FormLabel>Пълно име</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter your full name" {...field} />
+                      <Input placeholder="Въведете вашето пълно име" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -125,9 +125,9 @@ export default function Register() {
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone</FormLabel>
+                    <FormLabel>Телефон</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter your phone number" {...field} />
+                      <Input placeholder="Въведете вашия телефон" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -138,9 +138,9 @@ export default function Register() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel>Парола</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="Choose a password" {...field} />
+                      <Input type="password" placeholder="Изберете парола" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -151,16 +151,16 @@ export default function Register() {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Confirm Password</FormLabel>
+                    <FormLabel>Потвърдете паролата</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="Confirm your password" {...field} />
+                      <Input type="password" placeholder="Потвърдете вашата парола" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Registering..." : "Register"}
+                {loading ? "Регистрация..." : "Регистрирай се"}
               </Button>
             </form>
           </Form>

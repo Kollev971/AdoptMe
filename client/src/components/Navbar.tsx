@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { UserMenu } from "./UserMenu";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { PawPrint } from "lucide-react";
 
 export function Navbar() {
   const { user } = useAuth();
@@ -11,7 +12,8 @@ export function Navbar() {
       <div className="container flex h-14 items-center">
         <Link href="/">
           <a className="mr-6 flex items-center space-x-2">
-            <span className="font-bold">ДомЛюбимци</span>
+            <PawPrint className="h-6 w-6 text-primary" />
+            <span className="font-bold">DoggyCat</span>
           </a>
         </Link>
         <div className="flex flex-1 items-center justify-between">

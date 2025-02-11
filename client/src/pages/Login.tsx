@@ -32,20 +32,20 @@ export default function Login() {
     try {
       setLoading(true);
       const user = await loginUser(data.email, data.password);
-      
+
       if (!user.emailVerified) {
         toast({
-          title: "Email not verified",
-          description: "Please verify your email before logging in",
+          title: "Имейлът не е потвърден",
+          description: "Моля, потвърдете вашия имейл преди да влезете",
           variant: "destructive",
         });
         return;
       }
-      
+
       setLocation("/");
     } catch (error: any) {
       toast({
-        title: "Error",
+        title: "Грешка",
         description: error.message,
         variant: "destructive",
       });
@@ -58,7 +58,7 @@ export default function Login() {
     <div className="flex justify-center items-center">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Login</CardTitle>
+          <CardTitle>Вход</CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -68,9 +68,9 @@ export default function Login() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Имейл</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter your email" {...field} />
+                      <Input placeholder="Въведете вашия имейл" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -81,16 +81,16 @@ export default function Login() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel>Парола</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="Enter your password" {...field} />
+                      <Input type="password" placeholder="Въведете вашата парола" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Logging in..." : "Login"}
+                {loading ? "Влизане..." : "Влез"}
               </Button>
             </form>
           </Form>
