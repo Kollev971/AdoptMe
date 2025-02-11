@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { auth, db } from '../lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -23,21 +24,20 @@ export function useAuth() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
         if (user) {
-          // Get user data from Firestore
-          const userDoc = await getDoc(doc(db, "users", user.uid));
+          const userDocRef = doc(db, "users", user.uid);
+          const userDoc = await getDoc(userDocRef);
 
           if (userDoc.exists()) {
             const userData = userDoc.data() as AppUser;
             setAuthState({
               user,
-              userData,
+              userData: { ...userData, uid: user.uid },
               loading: false,
               error: null,
             });
           } else {
-            console.error("User document not found in Firestore");
             setAuthState({
-              user,
+              user: null,
               userData: null,
               loading: false,
               error: "Потребителската информация не беше намерена",
@@ -62,7 +62,7 @@ export function useAuth() {
       }
     });
 
-    return unsubscribe;
+    return () => unsubscribe();
   }, []);
 
   return authState;
