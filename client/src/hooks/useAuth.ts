@@ -36,6 +36,7 @@ export function useAuth() {
               error: null,
             });
           } else {
+            console.error("User document not found in Firestore");
             setAuthState({
               user: null,
               userData: null,
@@ -62,7 +63,9 @@ export function useAuth() {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   return authState;

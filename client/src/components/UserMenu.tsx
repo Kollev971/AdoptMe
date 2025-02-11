@@ -1,3 +1,4 @@
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,8 +16,12 @@ export function UserMenu() {
   const [, setLocation] = useLocation();
 
   const handleLogout = async () => {
-    await auth.signOut();
-    setLocation("/auth");
+    try {
+      await auth.signOut();
+      setLocation("/auth");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
 
   if (!user || !userData) return null;
