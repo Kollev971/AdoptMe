@@ -19,12 +19,13 @@ export function UserMenu() {
     try {
       await auth.signOut();
       setLocation("/auth");
+      window.location.reload(); // Принудително презареждане след изход
     } catch (error) {
       console.error("Error signing out:", error);
     }
   };
 
-  if (!userData) return null;
+  if (!user || !userData) return null;
 
   return (
     <DropdownMenu>
