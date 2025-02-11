@@ -24,13 +24,6 @@ export function Navbar() {
                 Намери любимец
               </a>
             </Link>
-            {user && (
-              <Link href="/create-listing">
-                <a className="text-sm font-medium transition-colors hover:text-primary">
-                  Създай обява
-                </a>
-              </Link>
-            )}
           </nav>
           <div className="flex items-center space-x-4">
             {!loading && (
@@ -38,7 +31,7 @@ export function Navbar() {
                 {user ? (
                   <>
                     <Link href="/create-listing">
-                      <Button variant="outline">Добави обява</Button>
+                      <Button>Добави обява</Button>
                     </Link>
                     <UserMenu />
                   </>
