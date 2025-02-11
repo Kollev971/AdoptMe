@@ -11,9 +11,14 @@ export default function Home() {
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-3.5rem)] p-4 text-center">
         <h1 className="text-4xl font-bold mb-4">Добре дошли в DoggyCat</h1>
         <p className="text-xl mb-8">Намерете своя перфектен домашен любимец</p>
-        <Link href="/listings">
-          <Button size="lg">Разгледай обявите</Button>
-        </Link>
+        <div className="flex gap-4">
+          <Link href="/listings">
+            <Button size="lg" variant="default">Разгледай обявите</Button>
+          </Link>
+          <Link href="/create-listing">
+            <Button size="lg" variant="outline">Добави обява</Button>
+          </Link>
+        </div>
       </div>
     );
   }

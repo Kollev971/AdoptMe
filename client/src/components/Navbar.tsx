@@ -12,17 +12,17 @@ export function Navbar() {
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
         <Link href="/">
-          <a className="mr-6 flex items-center space-x-2">
+          <div className="mr-6 flex items-center space-x-2">
             <PawPrint className="h-6 w-6 text-primary" />
             <span className="font-bold">DoggyCat</span>
-          </a>
+          </div>
         </Link>
         <div className="flex flex-1 items-center justify-between">
           <nav className="flex items-center space-x-6">
             <Link href="/listings">
-              <a className="text-sm font-medium transition-colors hover:text-primary">
+              <span className="text-sm font-medium transition-colors hover:text-primary cursor-pointer">
                 Намери любимец
-              </a>
+              </span>
             </Link>
           </nav>
           <div className="flex items-center space-x-4">
