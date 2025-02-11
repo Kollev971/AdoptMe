@@ -5,8 +5,11 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { PawPrint } from "lucide-react";
 
+import { useLocation } from "wouter";
+
 export function Navbar() {
   const { user, userData, loading } = useAuth();
+  const [, setLocation] = useLocation();
 
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

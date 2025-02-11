@@ -1,78 +1,31 @@
-
-import { useEffect, useState } from 'react';
-import { auth, db } from '../lib/firebase';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
-import type { User as AppUser } from '@shared/schema';
-
-type AuthState = {
-  user: User | null;
-  userData: AppUser | null;
-  loading: boolean;
-  error: string | null;
-};
+import { useState, useEffect } from "react";
+import { User as FirebaseUser } from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 export function useAuth() {
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    userData: null,
-    loading: true,
-    error: null,
-  });
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [userData, setUserData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let unsubscribeUser: (() => void) | null = null;
-    let unsubscribeDoc: (() => void) | null = null;
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+      setUser(firebaseUser);
 
-    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        if (unsubscribeDoc) unsubscribeDoc();
-        setAuthState({
-          user: null,
-          userData: null,
-          loading: false,
-          error: null,
-        });
-        return;
+      if (firebaseUser) {
+        const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+        if (userDoc.exists()) {
+          setUserData(userDoc.data());
+        }
+      } else {
+        setUserData(null);
       }
 
-      try {
-        const userDocRef = doc(db, "users", user.uid);
-        unsubscribeDoc = onSnapshot(userDocRef, (doc) => {
-          if (doc.exists()) {
-            const userData = doc.data() as AppUser;
-            setAuthState({
-              user,
-              userData: { ...userData, uid: user.uid },
-              loading: false,
-              error: null,
-            });
-          } else {
-            setAuthState({
-              user: null,
-              userData: null,
-              loading: false,
-              error: "Потребителската информация не беше намерена",
-            });
-          }
-        });
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-        setAuthState({
-          user: null,
-          userData: null,
-          loading: false,
-          error: "Грешка при зареждане на потребителската информация",
-        });
-      }
+      setLoading(false);
     });
 
-    return () => {
-      unsubscribeAuth();
-      if (unsubscribeDoc) unsubscribeDoc();
-      if (unsubscribeUser) unsubscribeUser();
-    };
+    return () => unsubscribe();
   }, []);
 
-  return authState;
+  return { user, userData, loading };
 }

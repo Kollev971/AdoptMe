@@ -131,9 +131,7 @@ export default function Auth() {
         description: "Добре дошли отново!",
       });
 
-      setTimeout(() => {
-        setLocation("/profile");
-      }, 1000);
+      setLocation("/profile");
     } catch (error: any) {
       toast({
         title: "Грешка при вход",
