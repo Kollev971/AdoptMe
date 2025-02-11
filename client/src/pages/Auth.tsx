@@ -41,6 +41,7 @@ export default function Auth() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("login");
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
   const registerForm = useForm<z.infer<typeof registerFormSchema>>({
     resolver: zodResolver(registerFormSchema),
@@ -67,14 +68,7 @@ export default function Auth() {
   const onRegister = async (data: z.infer<typeof registerFormSchema>) => {
     try {
       setLoading(true);
-      console.log("Starting registration process with data:", { 
-        email: data.email,
-        username: data.username,
-        fullName: data.fullName 
-      });
-
       const userCredential = await registerUser(data.email, data.password);
-      console.log("Firebase user created:", userCredential.uid);
 
       const userData = {
         uid: userCredential.uid,
@@ -86,17 +80,21 @@ export default function Auth() {
         emailVerified: false,
       };
 
-      console.log("Attempting to create user document in Firestore");
       await setDoc(doc(db, "users", userCredential.uid), userData);
-      console.log("User document created successfully");
 
       toast({
-        title: "Успешна регистрация",
-        description: "Моля, проверете вашия имейл за потвърждение",
+        title: "Успешна регистрация! 🎉",
+        description: "Моля, проверете вашия имейл за потвърждение и след това влезте в акаунта си.",
+        duration: 6000, // Show for 6 seconds
       });
 
       registerForm.reset();
+      setRegistrationSuccess(true);
       setActiveTab("login");
+
+      // Auto-fill login form with registration email
+      loginForm.setValue("email", data.email);
+
     } catch (error: any) {
       console.error("Registration error:", error);
       toast({
@@ -109,34 +107,24 @@ export default function Auth() {
     }
   };
 
-  console.log("Form State:", {
-    isDirty: registerForm.formState.isDirty,
-    isValid: registerForm.formState.isValid,
-    errors: registerForm.formState.errors,
-    values: registerForm.getValues()
-  });
-
   const onLogin = async (data: z.infer<typeof loginSchema>) => {
     try {
       setLoading(true);
-      console.log("Attempting login with:", { email: data.email });
       const user = await loginUser(data.email, data.password);
 
       if (!user.emailVerified) {
         toast({
           title: "Имейлът не е потвърден",
-          description: "Моля, потвърдете вашия имейл преди да влезете",
+          description: "Моля, потвърдете вашия имейл преди да влезете в акаунта си",
           variant: "destructive",
         });
         return;
       }
 
-      console.log("Login successful, redirecting");
       setLocation("/");
     } catch (error: any) {
-      console.error("Login error:", error);
       toast({
-        title: "Грешка",
+        title: "Грешка при вход",
         description: error.message,
         variant: "destructive",
       });
@@ -146,10 +134,12 @@ export default function Auth() {
   };
 
   return (
-    <div className="flex justify-center items-center">
+    <div className="flex justify-center items-center min-h-[calc(100vh-3.5rem)]">
       <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-center">DoggyCat</CardTitle>
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl text-center">
+            {activeTab === "login" ? "Вход" : "Регистрация"}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
