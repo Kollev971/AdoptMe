@@ -19,7 +19,6 @@ export function UserMenu() {
     try {
       await auth.signOut();
       setLocation("/auth");
-      window.location.reload(); // Принудително презареждане след изход
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -32,19 +31,14 @@ export function UserMenu() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={userData.photoURL || ''} alt={userData.fullName} />
-            <AvatarFallback>
-              {userData.fullName.charAt(0).toUpperCase()}
-            </AvatarFallback>
+            <AvatarImage src={user.photoURL || undefined} alt={userData.fullName} />
+            <AvatarFallback>{userData.fullName?.charAt(0)}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuItem className="font-medium">
-          {userData.fullName}
-        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setLocation("/profile")}>
-          Моят профил
+          Профил
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleLogout}>
           Изход
