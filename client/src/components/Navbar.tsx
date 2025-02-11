@@ -44,7 +44,7 @@ export function Navbar() {
                   </>
                 ) : (
                   <Link href="/auth">
-                    <Button variant="default">Вход / Регистрация</Button>
+                    <Button>Вход / Регистрация</Button>
                   </Link>
                 )}
               </>

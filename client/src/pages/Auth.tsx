@@ -96,10 +96,8 @@ export default function Auth() {
       registerForm.reset();
 
       // Wait a bit to show the toast before switching tabs
-      setTimeout(() => {
-        loginForm.setValue("email", data.email);
-        setActiveTab("login");
-      }, 1000);
+      loginForm.setValue("email", data.email);
+      setActiveTab("login");
 
     } catch (error: any) {
       console.error("Registration error:", error);
