@@ -41,7 +41,6 @@ export default function Auth() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("login");
-  const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
   const registerForm = useForm<z.infer<typeof registerFormSchema>>({
     resolver: zodResolver(registerFormSchema),
@@ -68,8 +67,11 @@ export default function Auth() {
   const onRegister = async (data: z.infer<typeof registerFormSchema>) => {
     try {
       setLoading(true);
+
+      // First create the Firebase auth user
       const userCredential = await registerUser(data.email, data.password);
 
+      // Prepare user data for Firestore
       const userData = {
         uid: userCredential.uid,
         username: data.username,
@@ -80,20 +82,20 @@ export default function Auth() {
         emailVerified: false,
       };
 
+      // Save user data to Firestore
       await setDoc(doc(db, "users", userCredential.uid), userData);
 
+      // Show success message
       toast({
         title: "Успешна регистрация! 🎉",
-        description: "Моля, проверете вашия имейл за потвърждение и след това влезте в акаунта си.",
-        duration: 6000, // Show for 6 seconds
+        description: "Изпратихме ви имейл за потвърждение. Моля, проверете пощата си и потвърдете регистрацията, след което можете да влезете в акаунта си.",
+        duration: 6000,
       });
 
+      // Reset form and switch to login tab
       registerForm.reset();
-      setRegistrationSuccess(true);
-      setActiveTab("login");
-
-      // Auto-fill login form with registration email
       loginForm.setValue("email", data.email);
+      setActiveTab("login");
 
     } catch (error: any) {
       console.error("Registration error:", error);
@@ -115,11 +117,16 @@ export default function Auth() {
       if (!user.emailVerified) {
         toast({
           title: "Имейлът не е потвърден",
-          description: "Моля, потвърдете вашия имейл преди да влезете в акаунта си",
+          description: "Моля, потвърдете регистрацията си чрез линка, който изпратихме на имейла ви.",
           variant: "destructive",
         });
         return;
       }
+
+      toast({
+        title: "Успешен вход",
+        description: "Добре дошли отново!",
+      });
 
       setLocation("/");
     } catch (error: any) {

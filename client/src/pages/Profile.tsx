@@ -9,24 +9,16 @@ import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
   const { toast } = useToast();
-  const [profile, setProfile] = useState<User | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
   const [adoptionRequests, setAdoptionRequests] = useState<AdoptionRequest[]>([]);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchUserContent = async () => {
       if (!user) return;
 
       try {
-        const docRef = doc(db, "users", user.uid);
-        const docSnap = await getDoc(docRef);
-        
-        if (docSnap.exists()) {
-          setProfile(docSnap.data() as User);
-        }
-
         // Fetch user's listings
         const listingsQuery = query(
           collection(db, "listings"),
@@ -53,77 +45,99 @@ export default function Profile() {
 
       } catch (error: any) {
         toast({
-          title: "Error",
-          description: "Failed to load profile data",
+          title: "Грешка",
+          description: "Възникна проблем при зареждането на данните",
           variant: "destructive",
         });
       }
     };
 
-    fetchProfile();
+    fetchUserContent();
   }, [user]);
 
-  if (!profile) return null;
+  if (!userData) return null;
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Profile Information</CardTitle>
+          <CardTitle>Информация за профила</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <div>
-            <span className="font-medium">Username:</span> {profile.username}
+            <span className="font-medium">Потребителско име:</span> {userData.username}
           </div>
           <div>
-            <span className="font-medium">Full Name:</span> {profile.fullName}
+            <span className="font-medium">Име:</span> {userData.fullName}
           </div>
           <div>
-            <span className="font-medium">Email:</span> {profile.email}
+            <span className="font-medium">Имейл:</span> {userData.email}
           </div>
           <div>
-            <span className="font-medium">Phone:</span> {profile.phone}
+            <span className="font-medium">Телефон:</span> {userData.phone}
           </div>
           <div>
-            <span className="font-medium">Member since:</span>{" "}
-            {new Date(profile.createdAt).toLocaleDateString()}
+            <span className="font-medium">Регистриран на:</span>{" "}
+            {new Date(userData.createdAt).toLocaleDateString('bg-BG')}
           </div>
         </CardContent>
       </Card>
 
       <Tabs defaultValue="listings">
         <TabsList>
-          <TabsTrigger value="listings">My Listings</TabsTrigger>
-          <TabsTrigger value="requests">Adoption Requests</TabsTrigger>
+          <TabsTrigger value="listings">Моите обяви</TabsTrigger>
+          <TabsTrigger value="requests">Заявки за осиновяване</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="listings">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {listings.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
-            ))}
-          </div>
+          {listings.length > 0 ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {listings.map((listing) => (
+                <ListingCard key={listing.id} listing={listing} />
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-center text-gray-500">Все още нямате публикувани обяви</p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="requests">
-          <div className="space-y-4">
-            {adoptionRequests.map((request) => (
-              <Card key={request.id}>
-                <CardContent className="pt-6">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">Request for listing: {request.listingId}</p>
-                      <p className="text-sm text-gray-500">Status: {request.status}</p>
-                      <p className="text-sm mt-2">{request.message}</p>
+          {adoptionRequests.length > 0 ? (
+            <div className="space-y-4">
+              {adoptionRequests.map((request) => (
+                <Card key={request.id}>
+                  <CardContent className="pt-6">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium">Заявка за осиновяване: {request.listingId}</p>
+                        <p className="text-sm text-gray-500">
+                          Статус: {
+                            request.status === 'pending' ? 'Изчакваща' :
+                            request.status === 'approved' ? 'Одобрена' :
+                            'Отхвърлена'
+                          }
+                        </p>
+                        <p className="text-sm mt-2">{request.message}</p>
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {new Date(request.createdAt).toLocaleDateString('bg-BG')}
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-500">
-                      {new Date(request.createdAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-center text-gray-500">Все още нямате заявки за осиновяване</p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>

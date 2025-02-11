@@ -11,32 +11,37 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 
 export function UserMenu() {
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
   const [, setLocation] = useLocation();
 
   const handleLogout = async () => {
     await auth.signOut();
-    setLocation("/");
+    setLocation("/auth");
   };
+
+  if (!user || !userData) return null;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={user?.photoURL || ''} alt={user?.email || ''} />
+            <AvatarImage src={userData.photoURL || ''} alt={userData.fullName} />
             <AvatarFallback>
-              {user?.email?.charAt(0).toUpperCase()}
+              {userData.fullName.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
+        <DropdownMenuItem className="font-medium">
+          {userData.fullName}
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setLocation("/profile")}>
-          Profile
+          Моят профил
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleLogout}>
-          Logout
+          Изход
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
