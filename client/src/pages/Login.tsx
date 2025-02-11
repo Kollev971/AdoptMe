@@ -43,6 +43,7 @@ export default function Login() {
       }
 
       setLocation("/");
+      window.location.reload();
     } catch (error: any) {
       toast({
         title: "Грешка",

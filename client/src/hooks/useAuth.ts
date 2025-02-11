@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { auth, db } from '../lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import type { User as AppUser } from '@shared/schema';
 
 type AuthState = {
@@ -21,8 +21,12 @@ export function useAuth() {
   });
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    let unsubscribeUser: (() => void) | null = null;
+    let unsubscribeDoc: (() => void) | null = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (!user) {
+        if (unsubscribeDoc) unsubscribeDoc();
         setAuthState({
           user: null,
           userData: null,
@@ -34,7 +38,7 @@ export function useAuth() {
 
       try {
         const userDocRef = doc(db, "users", user.uid);
-        const unsubscribeDoc = onSnapshot(userDocRef, (doc) => {
+        unsubscribeDoc = onSnapshot(userDocRef, (doc) => {
           if (doc.exists()) {
             const userData = doc.data() as AppUser;
             setAuthState({
@@ -52,8 +56,6 @@ export function useAuth() {
             });
           }
         });
-
-        return () => unsubscribeDoc();
       } catch (error) {
         console.error("Error fetching user data:", error);
         setAuthState({
@@ -65,7 +67,11 @@ export function useAuth() {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeDoc) unsubscribeDoc();
+      if (unsubscribeUser) unsubscribeUser();
+    };
   }, []);
 
   return authState;
