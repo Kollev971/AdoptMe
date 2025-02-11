@@ -49,7 +49,7 @@ export function useAuth() {
             user: null,
             userData: null,
             loading: false,
-            error: "Потребителската информация не беше намерена",
+            error: "User data not found",
           });
         }
       } catch (error) {
@@ -58,7 +58,7 @@ export function useAuth() {
           user: null,
           userData: null,
           loading: false,
-          error: "Грешка при зареждане на потребителската информация",
+          error: "Error loading user data",
         });
       }
     });

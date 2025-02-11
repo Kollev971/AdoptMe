@@ -1,18 +1,18 @@
 
+import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { auth } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
-import { useLocation } from "wouter";
+import { auth } from "@/lib/firebase";
 
 export function UserMenu() {
-  const { user, userData } = useAuth();
+  const { userData } = useAuth();
   const [, setLocation] = useLocation();
 
   const handleLogout = async () => {
@@ -24,7 +24,7 @@ export function UserMenu() {
     }
   };
 
-  if (!user || !userData) return null;
+  if (!userData) return null;
 
   return (
     <DropdownMenu>
@@ -33,12 +33,12 @@ export function UserMenu() {
           <Avatar className="h-8 w-8">
             <AvatarImage src={userData.photoURL || ''} alt={userData.fullName} />
             <AvatarFallback>
-              {userData.fullName.charAt(0).toUpperCase()}
+              {userData.fullName?.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
+      <DropdownMenuContent className="w-56" align="end">
         <DropdownMenuItem className="font-medium">
           {userData.fullName}
         </DropdownMenuItem>
