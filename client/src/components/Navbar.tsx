@@ -1,3 +1,4 @@
+
 import { Link } from "wouter";
 import { UserMenu } from "./UserMenu";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { PawPrint } from "lucide-react";
 
 export function Navbar() {
-  const { user, userData } = useAuth();
+  const { user, userData, loading } = useAuth();
 
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -32,12 +33,16 @@ export function Navbar() {
             )}
           </nav>
           <div className="flex items-center space-x-4">
-            {user && userData ? (
-              <UserMenu />
-            ) : (
-              <Link href="/auth">
-                <Button>Вход / Регистрация</Button>
-              </Link>
+            {!loading && (
+              <>
+                {user && userData ? (
+                  <UserMenu />
+                ) : (
+                  <Link href="/auth">
+                    <Button>Вход / Регистрация</Button>
+                  </Link>
+                )}
+              </>
             )}
           </div>
         </div>

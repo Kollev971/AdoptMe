@@ -22,37 +22,37 @@ export function useAuth() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      try {
-        if (user) {
-          const userDocRef = doc(db, "users", user.uid);
-          const userDoc = await getDoc(userDocRef);
+      if (!user) {
+        setAuthState({
+          user: null,
+          userData: null,
+          loading: false,
+          error: null,
+        });
+        return;
+      }
 
-          if (userDoc.exists()) {
-            const userData = userDoc.data() as AppUser;
-            setAuthState({
-              user,
-              userData: { ...userData, uid: user.uid },
-              loading: false,
-              error: null,
-            });
-          } else {
-            console.error("User document not found in Firestore");
-            setAuthState({
-              user: null,
-              userData: null,
-              loading: false,
-              error: "Потребителската информация не беше намерена",
-            });
-          }
+      try {
+        const userDocRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userDocRef);
+
+        if (userDoc.exists()) {
+          const userData = userDoc.data() as AppUser;
+          setAuthState({
+            user,
+            userData: { ...userData, uid: user.uid },
+            loading: false,
+            error: null,
+          });
         } else {
           setAuthState({
             user: null,
             userData: null,
             loading: false,
-            error: null,
+            error: "Потребителската информация не беше намерена",
           });
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error("Error fetching user data:", error);
         setAuthState({
           user: null,
@@ -63,9 +63,7 @@ export function useAuth() {
       }
     });
 
-    return () => {
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, []);
 
   return authState;
