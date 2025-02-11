@@ -8,23 +8,23 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] text-center">
       <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl">
-        Find Your Perfect
+        Намери своя перфектен
         <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent"> 
-          Pet Companion
+          домашен любимец
         </span>
       </h1>
-      
+
       <p className="mx-auto mt-4 max-w-[700px] text-gray-500 md:text-xl">
-        Give a loving home to pets in need. Browse available pets or list one for adoption.
+        Дай дом на животни в нужда. Разгледай наличните любимци или публикувай обява за осиновяване.
       </p>
 
       <div className="mt-8 flex gap-4">
         <Link href="/listings">
-          <Button size="lg">Browse Pets</Button>
+          <Button size="lg">Разгледай любимци</Button>
         </Link>
         {!user && (
           <Link href="/register">
-            <Button variant="outline" size="lg">Register Now</Button>
+            <Button variant="outline" size="lg">Регистрирай се</Button>
           </Link>
         )}
       </div>
