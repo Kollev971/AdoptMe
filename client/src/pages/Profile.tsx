@@ -1,8 +1,9 @@
+
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs, onSnapshot, orderBy } from "firebase/firestore";
 import type { User, Listing, AdoptionRequest } from "@shared/schema";
 import { ListingCard } from "@/components/ListingCard";
 import { useToast } from "@/hooks/use-toast";
@@ -17,48 +18,46 @@ export default function Profile() {
   useEffect(() => {
     if (!user) return;
 
-    const listingsRef = collection(db, "listings");
-    const q = query(
-      listingsRef,
-      where("userId", "==", user.uid),
-      orderBy("createdAt", "desc")
-    );
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const listingsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Listing[];
-      setListings(listingsData);
-    });
-
-    // Fetch user's adoption requests
-    const fetchRequests = async () => {
-      const requestsQuery = query(
-        collection(db, "adoptionRequests"),
-        where("userId", "==", user.uid)
+    try {
+      const listingsRef = collection(db, "listings");
+      const q = query(
+        listingsRef,
+        where("userId", "==", user.uid),
+        orderBy("createdAt", "desc")
       );
-      const requestsSnapshot = await getDocs(requestsQuery);
-      const requestsData = requestsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as AdoptionRequest[];
-      setAdoptionRequests(requestsData);
-    };
+      
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const listingsData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Listing[];
+        setListings(listingsData);
+      });
 
-    fetchRequests();
-    return () => unsubscribe();
+      // Fetch user's adoption requests
+      const fetchRequests = async () => {
+        const requestsQuery = query(
+          collection(db, "adoptionRequests"),
+          where("userId", "==", user.uid)
+        );
+        const requestsSnapshot = await getDocs(requestsQuery);
+        const requestsData = requestsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as AdoptionRequest[];
+        setAdoptionRequests(requestsData);
+      };
 
-      } catch (error: any) {
-        toast({
-          title: "Грешка",
-          description: "Възникна проблем при зареждането на данните",
-          variant: "destructive",
-        });
-      }
-    };
+      fetchRequests();
+      return () => unsubscribe();
 
-    fetchUserContent();
+    } catch (error: any) {
+      toast({
+        title: "Грешка",
+        description: "Възникна проблем при зареждането на данните",
+        variant: "destructive",
+      });
+    }
   }, [user]);
 
   if (!userData) return null;
