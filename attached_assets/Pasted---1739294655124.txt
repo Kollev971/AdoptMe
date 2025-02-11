@@ -1,0 +1,97 @@
+Проблемът, който описваш, изглежда свързан с актуализирането на състоянието на потребителя след успешен вход. Когато потребителят се логне, в момента вероятно не се нотифицира компонентът, който показва навигацията и състоянието на входа. Това означава, че страницата не се обновява автоматично, за да отрази промените в състоянието на потребителя.
+
+Предлагам няколко възможни решения:
+
+Принудително обновяване на състоянието след логване: Увери се, че компонентът, който обработва логин функционалността, актуализира състоянието на потребителя. Това може да се постигне чрез обновяване на състоянието или редирект към главната страница след успешен вход.
+
+Използване на Context за глобално състояние: Може да използваш Context, за да държиш информацията за текущия потребител на глобално ниво, така че всички компоненти да могат да следят актуалното състояние на входа.
+
+Как можеш да решиш проблема:
+В момента, когато потребителят се логва, трябва да се увериш, че навигационният компонент се обновява. Един начин да го постигнеш е да добавиш някаква форма на автоматично обновяване на състоянието в useAuth() или да използваш някакъв вид глобален state мениджър.
+Ето как може да изглежда променената версия на useAuth и обработката на състоянието:
+
+tsx
+Copy
+Edit
+import { useState, useEffect } from 'react';
+
+// Примерен хук useAuth, който използва глобално състояние (context или localStorage)
+export function useAuth() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Тук можеш да извикаш API за проверка на сесията или да вземеш данни от localStorage
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+    setLoading(false);
+  }, []);
+
+  const login = (userData) => {
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('user');
+  };
+
+  return { user, loading, login, logout };
+}
+След това в компонента Navbar ще използваш useAuth и ще проверяваш за промените:
+
+tsx
+Copy
+Edit
+import { useAuth } from "@/hooks/useAuth";
+
+export function Navbar() {
+  const { user, loading, login, logout } = useAuth();
+
+  return (
+    <nav className="border-b bg-background/95 backdrop-blur">
+      <div className="container flex h-14 items-center">
+        <Link href="/">
+          <div className="mr-6 flex items-center space-x-2">
+            <PawPrint className="h-6 w-6 text-primary" />
+            <span className="font-bold">DoggyCat</span>
+          </div>
+        </Link>
+        <div className="flex flex-1 items-center justify-between">
+          <nav className="flex items-center space-x-6">
+            <Link href="/listings">
+              <span className="text-sm font-medium transition-colors hover:text-primary cursor-pointer">
+                Намери любимец
+              </span>
+            </Link>
+          </nav>
+          <div className="flex items-center space-x-4">
+            {!loading && (
+              <>
+                {user ? (
+                  <>
+                    <Link href="/create-listing">
+                      <Button>Добави обява</Button>
+                    </Link>
+                    <UserMenu />
+                  </>
+                ) : (
+                  <Link href="/auth">
+                    <Button>Вход / Регистрация</Button>
+                  </Link>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+}
+Какво прави този код:
+В useAuth се добавя логика за запазване на състоянието на потребителя в localStorage. Когато потребителят се логва, това се актуализира в състоянието, което в последствие ще бъде използвано от компонентите, като Navbar.
+След като потребителят се логне или излезе, компонентите, които използват useAuth, ще бъдат автоматично обновени.
+С този подход всеки път, когато потребителят се логва или излиза, състоянието ще се обновява и потребителският интерфейс ще се променя съответно.
