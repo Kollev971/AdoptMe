@@ -43,6 +43,7 @@ export default function Auth() {
       password: "",
       confirmPassword: "",
     },
+    mode: "onBlur", 
   });
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
@@ -51,12 +52,20 @@ export default function Auth() {
       email: "",
       password: "",
     },
+    mode: "onBlur", 
   });
 
   const onRegister = async (data: z.infer<typeof registerFormSchema>) => {
     try {
       setLoading(true);
+      console.log("Starting registration process with data:", { 
+        email: data.email,
+        username: data.username,
+        fullName: data.fullName 
+      });
+
       const userCredential = await registerUser(data.email, data.password);
+      console.log("Firebase user created:", userCredential.uid);
 
       const userData = {
         uid: userCredential.uid,
@@ -68,17 +77,21 @@ export default function Auth() {
         emailVerified: false,
       };
 
+      console.log("Attempting to create user document in Firestore");
       await setDoc(doc(db, "users", userCredential.uid), userData);
+      console.log("User document created successfully");
 
       toast({
         title: "Успешна регистрация",
         description: "Моля, проверете вашия имейл за потвърждение",
       });
 
+      registerForm.reset();
       setActiveTab("login");
     } catch (error: any) {
+      console.error("Registration error:", error);
       toast({
-        title: "Грешка",
+        title: "Грешка при регистрация",
         description: error.message,
         variant: "destructive",
       });
@@ -90,6 +103,7 @@ export default function Auth() {
   const onLogin = async (data: z.infer<typeof loginSchema>) => {
     try {
       setLoading(true);
+      console.log("Attempting login with:", { email: data.email });
       const user = await loginUser(data.email, data.password);
 
       if (!user.emailVerified) {
@@ -101,8 +115,10 @@ export default function Auth() {
         return;
       }
 
+      console.log("Login successful, redirecting");
       setLocation("/");
     } catch (error: any) {
+      console.error("Login error:", error);
       toast({
         title: "Грешка",
         description: error.message,
@@ -164,7 +180,16 @@ export default function Auth() {
 
             <TabsContent value="register">
               <Form {...registerForm}>
-                <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const formData = registerForm.getValues();
+                    console.log("Form submitted with values:", formData);
+                    console.log("Form state:", registerForm.formState);
+                    registerForm.handleSubmit(onRegister)(e);
+                  }} 
+                  className="space-y-4"
+                >
                   <FormField
                     control={registerForm.control}
                     name="username"
@@ -243,7 +268,11 @@ export default function Auth() {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={loading || !registerForm.formState.isValid}
+                  >
                     {loading ? "Регистрация..." : "Регистрирай се"}
                   </Button>
                 </form>
