@@ -50,10 +50,10 @@ export default function Register() {
         fullName: data.fullName,
         phone: data.phone,
         createdAt: new Date().toISOString(),
-        emailVerified: false,
+        emailVerified: userCredential.user.emailVerified,
       };
 
-      await setDoc(doc(db, "users", userCredential.uid), userData);
+      await setDoc(doc(db, "users", userCredential.uid), userData, { merge: true });
 
       toast({
         title: "Успешна регистрация",
