@@ -25,7 +25,7 @@ export function UserMenu() {
     }
   };
 
-  if (!user || !userData) return null;
+  if (!user) return null;
 
   return (
     <DropdownMenu>

@@ -35,7 +35,7 @@ export function Navbar() {
           <div className="flex items-center space-x-4">
             {!loading && (
               <>
-                {user && userData ? (
+                {user ? (
                   <>
                     <Link href="/create-listing">
                       <Button variant="outline">Добави обява</Button>
