@@ -131,7 +131,10 @@ export default function Auth() {
         description: "Добре дошли отново!",
       });
 
-      setLocation("/");
+      setTimeout(() => {
+        setLocation("/");
+        window.location.reload();
+      }, 1000);
     } catch (error: any) {
       toast({
         title: "Грешка при вход",

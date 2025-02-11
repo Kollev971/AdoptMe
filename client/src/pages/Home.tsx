@@ -23,7 +23,7 @@ export default function Home() {
           <Button size="lg">Разгледай любимци</Button>
         </Link>
         {!user && (
-          <Link href="/register">
+          <Link href="/auth">
             <Button variant="outline" size="lg">Регистрирай се</Button>
           </Link>
         )}
