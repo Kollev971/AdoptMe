@@ -1,0 +1,159 @@
+Разбирам! Нека да направим стъпка по стъпка, за да имаш точно това поведение.
+
+Проблем:
+Когато не си логнат, трябва да има бутони за Вход/Регистрация и не трябва да можеш да добавяш обяви.
+Когато си логнат, трябва да се показва иконка с профила ти и да можеш да добавяш обяви.
+Когато се зареждат данни за потребителя, трябва да се показва състояние "зареждане", докато не са получени и обработени.
+Решение:
+Ще се уверим, че логиката за показване на състоянието на потребителя е ясна.
+Ще добавим състояние "зареждане", което ще показва, че данните се зареждат.
+Ще коригираме Navbar компонента, за да показва правилните бутони и информация в зависимост от това дали потребителят е логнат или не.
+Как да го направим:
+1. Обновяване на useAuth hook:
+Ще добавим loading състояние, което да показва "зареждане", докато не получим информация за потребителя. В нашия случай ще използваме useState и useEffect, за да обработим асинхронното зареждане.
+
+tsx
+Copy
+Edit
+import { useState, useEffect } from "react";
+
+// Примерен хук useAuth, който използва глобално състояние (context или localStorage)
+export function useAuth() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Симулираме асинхронен процес за зареждане на потребителя
+    setTimeout(() => {
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+      }
+      setLoading(false);
+    }, 1000); // симулация на 1 секунда за зареждане
+  }, []);
+
+  const login = (userData) => {
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('user');
+  };
+
+  return { user, loading, login, logout };
+}
+2. Обновяване на Navbar компонента:
+Тук ще направим следните промени:
+
+Ще проверим дали сме в състояние на "зареждане".
+Ако не сме логнати, ще покажем бутон за Вход/Регистрация.
+Ако сме логнати, ще покажем профил и бутон за добавяне на обява.
+tsx
+Copy
+Edit
+import { Link } from "wouter";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { PawPrint } from "lucide-react";
+import { UserMenu } from "./UserMenu";
+
+export function Navbar() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <nav className="border-b bg-background/95 backdrop-blur">
+        <div className="container flex h-14 items-center justify-between">
+          <span>Зареждане...</span>
+        </div>
+      </nav>
+    );
+  }
+
+  return (
+    <nav className="border-b bg-background/95 backdrop-blur">
+      <div className="container flex h-14 items-center justify-between">
+        <Link href="/">
+          <div className="mr-6 flex items-center space-x-2">
+            <PawPrint className="h-6 w-6 text-primary" />
+            <span className="font-bold">DoggyCat</span>
+          </div>
+        </Link>
+
+        <div className="flex items-center space-x-4">
+          {/* Ако потребителят не е логнат */}
+          {!user ? (
+            <Link href="/auth">
+              <Button>Вход / Регистрация</Button>
+            </Link>
+          ) : (
+            <>
+              {/* Ако потребителят е логнат */}
+              <Link href="/create-listing">
+                <Button>Добави обява</Button>
+              </Link>
+              <UserMenu />
+            </>
+          )}
+        </div>
+      </div>
+    </nav>
+  );
+}
+3. Обновяване на Home компонента:
+В този компонент ще променим логиката, за да се показват правилните бутони според състоянието на входа.
+
+tsx
+Copy
+Edit
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
+
+export default function Home() {
+  const { user } = useAuth();
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-3.5rem)] p-4 text-center">
+      {user ? (
+        <>
+          <h1 className="text-4xl font-bold mb-4">Добре дошли в DoggyCat</h1>
+          <p className="text-xl mb-8">Намерете своя перфектен домашен любимец</p>
+          <div className="flex gap-4">
+            <Link href="/listings">
+              <Button size="lg" variant="default">Разгледай обявите</Button>
+            </Link>
+            <Link href="/create-listing">
+              <Button size="lg" variant="outline">Добави обява</Button>
+            </Link>
+          </div>
+        </>
+      ) : (
+        <>
+          <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl">
+            Намери своя перфектен
+            <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent"> 
+              домашен любимец
+            </span>
+          </h1>
+          <p className="mx-auto mt-4 max-w-[700px] text-gray-500 md:text-xl">
+            Дай дом на животни в нужда. Разгледай наличните любимци или публикувай обява за осиновяване.
+          </p>
+          <div className="mt-8">
+            <Link href="/auth">
+              <Button size="lg">Вход / Регистрация</Button>
+            </Link>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+Какво прави този код:
+Зареждане: Докато състоянието на loading е true, ще се показва текст "Зареждане..." в навигацията.
+Navbar компонент: Когато потребителят е логнат, ще се показват бутоните за "Добави обява" и профил (с UserMenu), ако не е логнат, ще се показва бутон за Вход/Регистрация.
+Home компонент: Когато потребителят е логнат, ще може да разглежда обяви и да добавя нови. Ако не е логнат, ще се показва бутон за вход.
+Така с тези промени, интерфейсът трябва да реагира на състоянието на потребителя и да показва съответно състоянието на входа.
