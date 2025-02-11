@@ -24,7 +24,7 @@ export function Navbar() {
                 Намери любимец
               </a>
             </Link>
-            {user && userData && (
+            {user && (
               <Link href="/create-listing">
                 <a className="text-sm font-medium transition-colors hover:text-primary">
                   Създай обява
@@ -39,7 +39,7 @@ export function Navbar() {
                   <UserMenu />
                 ) : (
                   <Link href="/auth">
-                    <Button variant="default">Вход / Регистрация</Button>
+                    <Button>Вход / Регистрация</Button>
                   </Link>
                 )}
               </>
