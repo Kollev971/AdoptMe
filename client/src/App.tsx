@@ -4,8 +4,7 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { Navbar } from "./components/Navbar";
 import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import CreateListing from "./pages/CreateListing";
 import Listings from "./pages/Listings";
@@ -20,8 +19,7 @@ function App() {
         <main className="container py-6">
           <Switch>
             <Route path="/" component={Home} />
-            <Route path="/login" component={Login} />
-            <Route path="/register" component={Register} />
+            <Route path="/auth" component={Auth} />
             <Route path="/profile" component={Profile} />
             <Route path="/create-listing" component={CreateListing} />
             <Route path="/listings" component={Listings} />

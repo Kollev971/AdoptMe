@@ -35,14 +35,9 @@ export function Navbar() {
             {user ? (
               <UserMenu />
             ) : (
-              <>
-                <Link href="/login">
-                  <Button variant="ghost">Вход</Button>
-                </Link>
-                <Link href="/register">
-                  <Button>Регистрация</Button>
-                </Link>
-              </>
+              <Link href="/auth">
+                <Button>Вход / Регистрация</Button>
+              </Link>
             )}
           </div>
         </div>
