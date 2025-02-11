@@ -32,19 +32,22 @@ export default function Profile() {
       setListings(listingsData);
     });
 
-    return () => unsubscribe();
+    // Fetch user's adoption requests
+    const fetchRequests = async () => {
+      const requestsQuery = query(
+        collection(db, "adoptionRequests"),
+        where("userId", "==", user.uid)
+      );
+      const requestsSnapshot = await getDocs(requestsQuery);
+      const requestsData = requestsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as AdoptionRequest[];
+      setAdoptionRequests(requestsData);
+    };
 
-        // Fetch user's adoption requests
-        const requestsQuery = query(
-          collection(db, "adoptionRequests"),
-          where("userId", "==", user.uid)
-        );
-        const requestsSnapshot = await getDocs(requestsQuery);
-        const requestsData = requestsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as AdoptionRequest[];
-        setAdoptionRequests(requestsData);
+    fetchRequests();
+    return () => unsubscribe();
 
       } catch (error: any) {
         toast({
