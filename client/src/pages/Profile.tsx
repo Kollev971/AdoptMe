@@ -15,21 +15,24 @@ export default function Profile() {
   const [adoptionRequests, setAdoptionRequests] = useState<AdoptionRequest[]>([]);
 
   useEffect(() => {
-    const fetchUserContent = async () => {
-      if (!user) return;
+    if (!user) return;
 
-      try {
-        // Fetch user's listings
-        const listingsQuery = query(
-          collection(db, "listings"),
-          where("userId", "==", user.uid)
-        );
-        const listingsSnapshot = await getDocs(listingsQuery);
-        const listingsData = listingsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Listing[];
-        setListings(listingsData);
+    const listingsRef = collection(db, "listings");
+    const q = query(
+      listingsRef,
+      where("userId", "==", user.uid),
+      orderBy("createdAt", "desc")
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const listingsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Listing[];
+      setListings(listingsData);
+    });
+
+    return () => unsubscribe();
 
         // Fetch user's adoption requests
         const requestsQuery = query(

@@ -11,23 +11,22 @@ export default function Listings() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchListings = async () => {
-      try {
-        const q = query(collection(db, "listings"));
-        const querySnapshot = await getDocs(q);
-        const listingsData = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Listing[];
-        setListings(listingsData);
-      } catch (error) {
-        console.error("Error fetching listings:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    const listingsRef = collection(db, "listings");
+    const q = query(listingsRef, orderBy("createdAt", "desc"));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const listingsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Listing[];
+      setListings(listingsData);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching listings:", error);
+      setLoading(false);
+    });
 
-    fetchListings();
+    return () => unsubscribe();
   }, []);
 
   const filteredListings = listings.filter(listing => 

@@ -69,7 +69,16 @@ export default function CreateListing() {
         createdAt: new Date().toISOString(),
       };
 
-      await addDoc(collection(db, "listings"), listingData);
+      const listingRef = await addDoc(collection(db, "listings"), {
+        ...listingData,
+        userId: user.uid,
+        createdAt: new Date().toISOString()
+      });
+
+      toast({
+        title: "Успешно създадена обява",
+        description: "Вашата обява беше публикувана успешно"
+      });
 
       toast({
         title: "Успех!",

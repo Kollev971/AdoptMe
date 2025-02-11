@@ -53,7 +53,11 @@ export default function Register() {
         emailVerified: userCredential.user.emailVerified,
       };
 
-      await setDoc(doc(db, "users", userCredential.uid), userData, { merge: true });
+      await setDoc(doc(db, "users", userCredential.uid), {
+        ...userData,
+        createdAt: new Date().toISOString(),
+        emailVerified: userCredential.user.emailVerified,
+      });
 
       toast({
         title: "Успешна регистрация",
