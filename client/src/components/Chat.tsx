@@ -11,10 +11,9 @@ import { Loader2 } from "lucide-react";
 
 interface Message {
   id: string;
-  text: string;
-  senderId: string;
+  userId: string;
+  message: string;
   timestamp: number;
-  type?: 'system' | 'user';
 }
 
 interface ChatProps {
@@ -47,7 +46,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
           ...childSnapshot.val()
         });
       });
-      setMessages(messagesData.sort((a, b) => a.timestamp - b.timestamp));
+      setMessages(messagesData);
       scrollToBottom();
     });
 
@@ -63,10 +62,9 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
       const messagesRef = ref(database, `chats/${chatId}/messages`);
       const newMessageRef = push(messagesRef);
       const messageData = {
-        text: newMessage,
-        senderId: user.uid,
-        timestamp: Date.now(),
-        type: 'user'
+        userId: user.uid,
+        message: newMessage,
+        timestamp: Date.now()
       };
 
       await set(newMessageRef, messageData);
@@ -98,16 +96,16 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
           {messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex ${msg.senderId === user?.uid ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${msg.userId === user?.uid ? 'justify-end' : 'justify-start'}`}
             >
               <div
                 className={`max-w-[70%] rounded-lg p-3 ${
-                  msg.senderId === user?.uid
+                  msg.userId === user?.uid
                     ? 'bg-primary text-primary-foreground ml-auto'
                     : 'bg-muted'
                 }`}
               >
-                <p className="text-sm break-words">{msg.text}</p>
+                <p className="text-sm break-words">{msg.message}</p>
                 <span className="text-xs opacity-70">
                   {new Date(msg.timestamp).toLocaleTimeString()}
                 </span>

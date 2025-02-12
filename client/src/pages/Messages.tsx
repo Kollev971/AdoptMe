@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { collection, query, where, orderBy, onSnapshot, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { database } from "@/lib/firebase";
+import { ref, query, orderByChild, onValue } from "firebase/database";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation } from "wouter";
 import { Loader2, MessageCircle } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface Chat {
   id: string;
@@ -13,12 +13,9 @@ interface Chat {
   lastMessage?: {
     text: string;
     senderId: string;
-    timestamp: string;
+    timestamp: number;
   };
-  otherUser?: {
-    id: string;
-    email: string;
-  };
+  participantEmails?: Record<string, string>;
 }
 
 export default function Messages() {
@@ -30,37 +27,26 @@ export default function Messages() {
   useEffect(() => {
     if (!user) return;
 
-    const chatsRef = collection(db, "chats");
-    const q = query(
-      chatsRef,
-      where(`participants.${user.uid}`, "==", true),
-      orderBy("lastMessage.timestamp", "desc")
-    );
+    const chatsRef = ref(database, 'chats');
+    const chatsQuery = query(chatsRef, orderByChild(`participants/${user.uid}`));
 
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      const chatsPromises = snapshot.docs.map(async (doc) => {
-        const chatData = doc.data();
-        const otherUserId = Object.keys(chatData.participants).find(id => id !== user.uid);
-
-        if (otherUserId) {
-          const userDoc = await getDocs(query(collection(db, "users"), where("uid", "==", otherUserId)));
-          if (!userDoc.empty) {
-            const userData = userDoc.docs[0].data();
-            return {
-              id: doc.id,
-              ...chatData,
-              otherUser: {
-                id: otherUserId,
-                email: userData.email,
-              }
-            } as Chat;
-          }
+    const unsubscribe = onValue(chatsQuery, (snapshot) => {
+      const chatsData: Chat[] = [];
+      snapshot.forEach((childSnapshot) => {
+        const chatData = childSnapshot.val();
+        if (chatData.participants[user.uid]) {
+          chatsData.push({
+            id: childSnapshot.key!,
+            ...chatData
+          });
         }
-        return { id: doc.id, ...chatData } as Chat;
       });
 
-      const resolvedChats = await Promise.all(chatsPromises);
-      setChats(resolvedChats);
+      setChats(chatsData.sort((a, b) => {
+        const timeA = a.lastMessage?.timestamp || 0;
+        const timeB = b.lastMessage?.timestamp || 0;
+        return timeB - timeA;
+      }));
       setLoading(false);
     });
 
@@ -86,36 +72,41 @@ export default function Messages() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {chats.map((chat) => (
-              <Card 
-                key={chat.id}
-                className="cursor-pointer hover:bg-muted/50"
-                onClick={() => setLocation(`/chat/${chat.id}`)}
-              >
-                <CardContent className="p-4 flex items-center gap-4">
-                  <Avatar>
-                    <AvatarFallback>
-                      {chat.otherUser?.email?.charAt(0).toUpperCase() || '?'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <p className="font-medium">{chat.otherUser?.email || 'Потребител'}</p>
-                    {chat.lastMessage ? (
-                      <>
-                        <p className="text-sm text-muted-foreground line-clamp-1">
-                          {chat.lastMessage.text}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(chat.lastMessage.timestamp).toLocaleString()}
-                        </p>
-                      </>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">Няма съобщения</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            {chats.map((chat) => {
+              const otherUserId = Object.keys(chat.participants).find(id => id !== user?.uid);
+              const otherUserEmail = otherUserId ? chat.participantEmails?.[otherUserId] : 'Unknown User';
+
+              return (
+                <Card 
+                  key={chat.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => setLocation(`/chat/${chat.id}`)}
+                >
+                  <CardContent className="p-4 flex items-center gap-4">
+                    <Avatar>
+                      <AvatarFallback>
+                        {otherUserEmail?.charAt(0).toUpperCase() || '?'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <p className="font-medium">{otherUserEmail}</p>
+                      {chat.lastMessage ? (
+                        <>
+                          <p className="text-sm text-muted-foreground line-clamp-1">
+                            {chat.lastMessage.text}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {new Date(chat.lastMessage.timestamp).toLocaleString()}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Няма съобщения</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
             {chats.length === 0 && (
               <p className="text-center text-muted-foreground py-8">Нямате съобщения</p>
             )}
