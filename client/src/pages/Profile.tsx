@@ -52,10 +52,11 @@ export default function Profile() {
     return () => unsubscribe();
   }, [user]);
 
-  // Fetch received adoption requests
+  // Fetch received adoption requests with index on ownerId and createdAt
   useEffect(() => {
     if (!user) return;
 
+    // Create compound query using the index
     const q = query(
       collection(db, "adoptionRequests"),
       where("ownerId", "==", user.uid),
@@ -67,6 +68,8 @@ export default function Profile() {
         const requestsData = await Promise.all(
           snapshot.docs.map(async (docSnap) => {
             const request = { id: docSnap.id, ...docSnap.data() } as AdoptionRequest;
+
+            // Fetch related data
             const [listingSnap, userSnap] = await Promise.all([
               getDoc(doc(db, "listings", request.listingId)),
               getDoc(doc(db, "users", request.userId))
@@ -93,10 +96,11 @@ export default function Profile() {
     return () => unsubscribe();
   }, [user]);
 
-  // Fetch sent adoption requests
+  // Fetch sent adoption requests with index on userId and createdAt
   useEffect(() => {
     if (!user) return;
 
+    // Create compound query using the index
     const q = query(
       collection(db, "adoptionRequests"),
       where("userId", "==", user.uid),
@@ -108,6 +112,8 @@ export default function Profile() {
         const requestsData = await Promise.all(
           snapshot.docs.map(async (docSnap) => {
             const request = { id: docSnap.id, ...docSnap.data() } as AdoptionRequest;
+
+            // Fetch related data
             const [listingSnap, userSnap] = await Promise.all([
               getDoc(doc(db, "listings", request.listingId)),
               getDoc(doc(db, "users", request.ownerId))
@@ -151,6 +157,7 @@ export default function Profile() {
       const chatId = generateChatId(request.ownerId, request.userId);
       const chatRef = doc(db, "chats", chatId);
 
+      // Set chat data with participants as a map
       batch.set(chatRef, {
         participants: {
           [request.ownerId]: true,
@@ -160,10 +167,10 @@ export default function Profile() {
         createdAt: new Date().toISOString(),
         lastMessage: {
           text: "Заявката беше одобрена! Можете да започнете разговор.",
-          senderId: user.uid,
+          senderId: "system",
           timestamp: new Date().toISOString()
         }
-      }, { merge: true });
+      });
 
       // Create initial system message in the chat
       const messagesCollection = collection(db, "chats", chatId, "messages");
@@ -171,7 +178,7 @@ export default function Profile() {
       batch.set(messageRef, {
         text: "Заявката беше одобрена! Можете да започнете разговор.",
         senderId: "system",
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
         type: "system"
       });
 
