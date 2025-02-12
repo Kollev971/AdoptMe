@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    match /listings/{listingId} {
+      // Позволява четене на всички обяви
+      allow read: if true;
+      
+      // Позволява създаване на обяви само за логнати потребители
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      
+      // Позволява редактиране/изтриване само на собственика на обявата
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      
+      // Гарантира, че създадените обяви имат поле createdAt с правилния тип
+      allow create: if request.resource.data.createdAt is timestamp;
+    }
+
+    match /adoptionRequests/{requestId} {
+      // Позволява четене на всички заявки за осиновяване
+      allow read: if true;
+      
+      // Позволява писане само за логнати потребители
+      allow write: if request.auth != null;
+
+      // Позволява на собственика на обявата да одобри заявката
+      allow update: if request.auth != null &&
+                    resource.data.listingUserId == request.auth.uid &&  // Проверяваме дали потребителят е собственик на обявата
+                    request.resource.data.status == "approved";       // Позволява актуализацията само ако статусът е "approved"
+    }
+
+    match /users/{userId} {
+      // Позволява на всеки да вижда само публична информация на потребителите
+      allow read: if true;
+      
+      // Позволява само на собственика на профила да го редактира
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /chats/{chatId} {
+      // Позволява четене/запис само на участващите в чата потребители
+      allow read, write: if request.auth != null && request.auth.uid in resource.data.users;
+
+      // Позволява създаване на чат само ако заявката за осиновяване е одобрена
+      allow create: if request.auth != null &&
+                    resource.data.status == "approved" &&  // Убедете се, че заявката е одобрена
+                    (request.resource.data.users[0] == resource.data.listingUserId || 
+                     request.resource.data.users[1] == resource.data.listingUserId); // Проверка дали поне един от участниците е собственик на обявата
+    }
+
+    match /chats/{chatId}/messages/{messageId} {
+      // Позволява четене/запис само на участниците в чата
+      allow read, write: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.users;
+    }
+  }
+}
