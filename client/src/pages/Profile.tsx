@@ -11,8 +11,8 @@ import { useLocation } from "wouter";
 export default function Profile() {
   const { user, userData } = useAuth();
   const [listings, setListings] = useState<Listing[]>([]);
-  const [adoptionRequests, setAdoptionRequests] = useState<(AdoptionRequest & { listingName?: string; adopterName?: string })[]>([]);
-  const [sentRequests, setSentRequests] = useState<(AdoptionRequest & { listingName?: string; ownerName?: string })[]>([]);
+  const [adoptionRequests, setAdoptionRequests] = useState<AdoptionRequest & { listingName?: string; adopterName?: string }[]>([]);
+  const [sentRequests, setSentRequests] = useState<AdoptionRequest & { listingName?: string; ownerName?: string }[]>([]);
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -32,22 +32,23 @@ export default function Profile() {
   useEffect(() => {
     if (!user) return;
 
-    const q = query(
+    // Query for received requests
+    const receivedRequestsQuery = query(
       collection(db, "adoptionRequests"),
       where("ownerId", "==", user.uid),
       orderBy("createdAt", "desc")
     );
 
-    return onSnapshot(q, async (snapshot) => {
+    return onSnapshot(receivedRequestsQuery, async (snapshot) => {
       const requestsData = await Promise.all(snapshot.docs.map(async (docSnap) => {
-        const request = docSnap.data() as AdoptionRequest;
+        const request = { id: docSnap.id, ...docSnap.data() } as AdoptionRequest;
         const listingSnap = await getDoc(doc(db, "listings", request.listingId));
         const userSnap = await getDoc(doc(db, "users", request.userId));
-        return { 
-          ...request, 
-          id: docSnap.id, 
-          listingName: listingSnap.exists() ? listingSnap.data().title : "(Няма име)",
-          adopterName: userSnap.exists() ? userSnap.data().username : "(Няма име)" 
+
+        return {
+          ...request,
+          listingName: listingSnap.exists() ? listingSnap.data()?.title : "Обявата е изтрита",
+          adopterName: userSnap.exists() ? userSnap.data()?.username : "Потребителят е изтрит"
         };
       }));
       setAdoptionRequests(requestsData);
@@ -57,86 +58,165 @@ export default function Profile() {
   useEffect(() => {
     if (!user) return;
 
-    const q = query(
+    // Query for sent requests
+    const sentRequestsQuery = query(
       collection(db, "adoptionRequests"),
       where("userId", "==", user.uid),
       orderBy("createdAt", "desc")
     );
 
-    return onSnapshot(q, async (snapshot) => {
-      const sentRequestsData = await Promise.all(snapshot.docs.map(async (docSnap) => {
-        const request = docSnap.data() as AdoptionRequest;
+    return onSnapshot(sentRequestsQuery, async (snapshot) => {
+      const requestsData = await Promise.all(snapshot.docs.map(async (docSnap) => {
+        const request = { id: docSnap.id, ...docSnap.data() } as AdoptionRequest;
         const listingSnap = await getDoc(doc(db, "listings", request.listingId));
         const ownerSnap = await getDoc(doc(db, "users", request.ownerId));
-        return { 
-          ...request, 
-          id: docSnap.id, 
-          listingName: listingSnap.exists() ? listingSnap.data().title : "(Няма име)",
-          ownerName: ownerSnap.exists() ? ownerSnap.data().username : "(Няма име)" 
+
+        return {
+          ...request,
+          listingName: listingSnap.exists() ? listingSnap.data()?.title : "Обявата е изтрита",
+          ownerName: ownerSnap.exists() ? ownerSnap.data()?.username : "Потребителят е изтрит"
         };
       }));
-      setSentRequests(sentRequestsData);
+      setSentRequests(requestsData);
     });
   }, [user]);
+
+  const handleApproveRequest = async (request: AdoptionRequest) => {
+    if (!user) return;
+
+    try {
+      // Update request status
+      await updateDoc(doc(db, "adoptionRequests", request.id), {
+        status: "approved"
+      });
+
+      // Create a chat room
+      const chatId = `${request.ownerId}_${request.userId}`;
+      await setDoc(doc(db, "chats", chatId), {
+        participants: [request.ownerId, request.userId],
+        createdAt: new Date().toISOString(),
+        listingId: request.listingId
+      });
+
+    } catch (error) {
+      console.error("Error approving request:", error);
+    }
+  };
+
+  const openChat = (ownerId: string, userId: string) => {
+    const chatId = `${ownerId}_${userId}`;
+    setLocation(`/chat/${chatId}`);
+  };
 
   return (
     <div className="space-y-6 p-6 max-w-5xl mx-auto">
       <Tabs defaultValue="listings">
         <TabsList className="bg-gray-100 p-2 rounded-lg">
           <TabsTrigger value="listings">Моите обяви</TabsTrigger>
-          <TabsTrigger value="requests">Заявки за осиновяване</TabsTrigger>
+          <TabsTrigger value="requests">Получени заявки</TabsTrigger>
           <TabsTrigger value="sentRequests">Изпратени заявки</TabsTrigger>
         </TabsList>
 
         <TabsContent value="listings">
-          {listings.length > 0 ? listings.map(listing => (
-            <Card key={listing.id} className="p-4 shadow-md rounded-lg">
-              <CardTitle>{listing.title}</CardTitle>
-              <p>{listing.description}</p>
-            </Card>
-          )) : <p className="text-center text-gray-500">Нямате обяви</p>}
+          <div className="space-y-4">
+            {listings.length > 0 ? listings.map(listing => (
+              <Card key={listing.id} className="overflow-hidden">
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold mb-2">{listing.title}</h3>
+                  <p className="text-gray-600">{listing.description}</p>
+                  {listing.images?.length > 0 && (
+                    <div className="mt-4 flex gap-2 overflow-x-auto">
+                      {listing.images.map((image, index) => (
+                        <img
+                          key={index}
+                          src={image}
+                          alt={`${listing.title} - ${index + 1}`}
+                          className="h-24 w-24 object-cover rounded"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )) : (
+              <p className="text-center text-gray-500">Нямате създадени обяви</p>
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="requests">
-          {adoptionRequests.length > 0 ? adoptionRequests.map(request => (
-            <Card key={request.id} className="p-4 shadow-md rounded-lg">
-              <p><strong>Обява:</strong> {request.listingName}</p>
-              <p><strong>Заявител:</strong> {request.adopterName}</p>
-              <p><strong>Статус:</strong> {request.status}</p>
-              {request.status === "pending" && (
-                <Button 
-                  onClick={async () => {
-                    await updateDoc(doc(db, "adoptionRequests", request.id), { status: "approved" });
-                  }}
-                  size="sm"
-                  className="mt-2"
-                >
-                  Одобри
-                </Button>
-              )}
-              {request.status === "approved" && (
-                <Button onClick={() => setLocation(`/chat/${request.ownerId}_${request.userId}`)} size="sm" className="mt-2">
-                  Отвори чат
-                </Button>
-              )}
-            </Card>
-          )) : <p className="text-center text-gray-500">Няма заявки за осиновяване</p>}
+          <div className="space-y-4">
+            {adoptionRequests.length > 0 ? adoptionRequests.map(request => (
+              <Card key={request.id} className="overflow-hidden">
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold">Обява: {request.listingName}</h3>
+                      <p className="text-sm text-gray-600">От: {request.adopterName}</p>
+                      <p className="mt-2">{request.message}</p>
+                      <p className="text-sm text-gray-500 mt-2">
+                        Статус: <span className="font-medium">{request.status}</span>
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {request.status === "pending" && (
+                        <Button 
+                          onClick={() => handleApproveRequest(request)}
+                          variant="default"
+                          size="sm"
+                        >
+                          Одобри
+                        </Button>
+                      )}
+                      {request.status === "approved" && (
+                        <Button
+                          onClick={() => openChat(request.ownerId, request.userId)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          Отвори чат
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )) : (
+              <p className="text-center text-gray-500">Нямате получени заявки</p>
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="sentRequests">
-          {sentRequests.length > 0 ? sentRequests.map(request => (
-            <Card key={request.id} className="p-4 shadow-md rounded-lg">
-              <p><strong>Изпратено до:</strong> {request.ownerName}</p>
-              <p><strong>Обява:</strong> {request.listingName}</p>
-              <p><strong>Статус:</strong> {request.status}</p>
-              {/*  Add a button to open a chat */}
-              {request.status === "approved" && (
-                <Button onClick={() => setLocation(`/chat/${request.ownerId}_${request.userId}`)} size="sm" className="mt-2">
-                  Отвори чат
-                </Button>
-              )}
-            </Card>
-          )) : <p className="text-center text-gray-500">Нямате изпратени заявки</p>}
+          <div className="space-y-4">
+            {sentRequests.length > 0 ? sentRequests.map(request => (
+              <Card key={request.id} className="overflow-hidden">
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold">Обява: {request.listingName}</h3>
+                      <p className="text-sm text-gray-600">Към: {request.ownerName}</p>
+                      <p className="mt-2">{request.message}</p>
+                      <p className="text-sm text-gray-500 mt-2">
+                        Статус: <span className="font-medium">{request.status}</span>
+                      </p>
+                    </div>
+                    {request.status === "approved" && (
+                      <Button
+                        onClick={() => openChat(request.ownerId, request.userId)}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Отвори чат
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )) : (
+              <p className="text-center text-gray-500">Нямате изпратени заявки</p>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
     </div>

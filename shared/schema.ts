@@ -26,6 +26,7 @@ export const adoptionRequestSchema = z.object({
   id: z.string(),
   listingId: z.string(),
   userId: z.string(),
+  ownerId: z.string(), 
   message: z.string().min(10),
   status: z.enum(['pending', 'approved', 'rejected']),
   createdAt: z.string(),
