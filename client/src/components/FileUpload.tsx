@@ -14,13 +14,10 @@ export function FileUpload({ setImages, images, className }: FileUploadProps) {
   const [progress, setProgress] = useState(0);
   const { toast } = useToast();
 
-  const apiKey = import.meta.env.VITE_IMGBB_API_KEY;
+  // Hardcoded API key for ImgBB
+  const apiKey = 'a662e0016a5d8465729dc716459966fa';
 
   const uploadImage = async (file: File): Promise<string> => {
-    if (!apiKey) {
-      throw new Error('ImgBB API key is not configured');
-    }
-
     const formData = new FormData();
     formData.append('image', file);
 
@@ -32,11 +29,13 @@ export function FileUpload({ setImages, images, className }: FileUploadProps) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+        console.error('ImgBB API error:', errorData);
+        throw new Error(errorData.error?.message || `Upload failed with status: ${response.status}`);
       }
 
       const data = await response.json();
       if (!data.success) {
+        console.error('ImgBB upload failed:', data.error);
         throw new Error(data.error?.message || 'Failed to upload image');
       }
 
@@ -50,15 +49,6 @@ export function FileUpload({ setImages, images, className }: FileUploadProps) {
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files?.length) return;
-
-    if (!apiKey) {
-      toast({
-        title: "Грешка при конфигурацията",
-        description: "ImgBB API ключът не е конфигуриран правилно.",
-        variant: "destructive",
-      });
-      return;
-    }
 
     const validFiles = Array.from(files).filter(file => {
       const isValidType = file.type.startsWith('image/');
@@ -97,11 +87,11 @@ export function FileUpload({ setImages, images, className }: FileUploadProps) {
           const url = await uploadImage(validFiles[i]);
           uploadedUrls.push(url);
           setProgress(((i + 1) / totalFiles) * 100);
-        } catch (error) {
+        } catch (error: any) {
           console.error(`Error uploading file ${i + 1}:`, error);
           toast({
             title: "Грешка при качване",
-            description: `Файл ${i + 1} не можа да бъде качен.`,
+            description: `Файл ${i + 1} не можа да бъде качен: ${error.message}`,
             variant: "destructive",
           });
         }
@@ -114,11 +104,11 @@ export function FileUpload({ setImages, images, className }: FileUploadProps) {
           description: `${uploadedUrls.length} ${uploadedUrls.length === 1 ? 'снимка беше качена' : 'снимки бяха качени'} успешно.`,
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error uploading files:", error);
       toast({
         title: "Грешка",
-        description: "Възникна проблем при качването на снимките.",
+        description: error.message || "Възникна проблем при качването на снимките.",
         variant: "destructive",
       });
     } finally {

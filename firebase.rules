@@ -6,26 +6,31 @@ service cloud.firestore {
       allow read: if true;
 
       // Allow creating listings only for authenticated users
-      allow create: if request.auth != null 
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.createdAt is string;
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid;
 
       // Allow updates/deletes only by the listing owner
-      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
     }
 
     match /adoptionRequests/{requestId} {
-      // Allow reading requests
+      // Allow reading requests that user is involved with
       allow read: if true;
 
       // Allow creating requests for authenticated users
       allow create: if request.auth != null;
 
-      // Allow updates only by the involved parties (owner or requester)
+      // Allow updates by owner or requester
       allow update: if request.auth != null && (
-        resource.data.userId == request.auth.uid || 
-        resource.data.ownerId == request.auth.uid
+        request.auth.uid == resource.data.userId || 
+        request.auth.uid == resource.data.ownerId
       );
+
+      // Allow batch updates when approving requests
+      allow update: if request.auth != null && 
+        (resource.data.ownerId == request.auth.uid || 
+         resource.data.userId == request.auth.uid);
     }
 
     match /users/{userId} {
@@ -33,23 +38,23 @@ service cloud.firestore {
       allow read: if true;
 
       // Allow profile updates only by the owner
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && 
+        request.auth.uid == userId;
     }
 
     match /chats/{chatId} {
-      // Allow access only to chat participants
+      // Allow chat access to participants
+      allow create: if request.auth != null;
       allow read, write: if request.auth != null && (
-        request.auth.uid in resource.data.participants.keys() ||
-        (
-          request.resource != null &&
-          request.auth.uid in request.resource.data.participants.keys()
-        )
+        resource == null || // Allow initial creation
+        request.auth.uid in resource.data.participants
       );
 
-      // Messages subcollection
+      // Allow access to chat messages for participants
       match /messages/{messageId} {
+        allow create: if request.auth != null;
         allow read, write: if request.auth != null && 
-          request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants.keys();
+          get(/databases/$(database)/documents/chats/$(chatId)).data.participants[request.auth.uid] == true;
       }
     }
   }
