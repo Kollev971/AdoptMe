@@ -1,7 +1,7 @@
 
 import { useAuth } from "@/hooks/useAuth";
 import { PawPrint } from "lucide-react";
-import { Link } from "wouter";
+import { Link } from "react-router-dom";
 import { Button } from "./ui/button";
 import { UserMenu } from "./UserMenu";
 
