@@ -1,7 +1,7 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { getStorage } from "firebase/storage";
-import { getDatabase } from "firebase/database";
+import { getDatabase, ref, query, orderByChild, onValue, push, set, off } from "firebase/database";
 import { getFirestore } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 
@@ -66,6 +66,16 @@ export const sendMessage = async (chatId: string, userId: string, message: strin
       message,
       timestamp: Date.now()
     });
+
+    // Update last message
+    const chatRef = ref(database, `chats/${chatId}`);
+    await set(chatRef, {
+      lastMessage: {
+        text: message,
+        senderId: userId,
+        timestamp: Date.now()
+      }
+    }, { merge: true });
 
     return true;
   } catch (error) {

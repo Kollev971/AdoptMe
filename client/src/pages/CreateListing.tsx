@@ -12,8 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileUpload } from "@/components/FileUpload";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { database } from "@/lib/firebase";
-import { ref, push, set } from "firebase/database";
+import { db } from "@/lib/firebase";
+import { collection, addDoc } from "firebase/firestore";
 import { Loader2 } from "lucide-react";
 
 const createListingSchema = z.object({
@@ -64,10 +64,9 @@ export default function CreateListing() {
         createdAt: new Date().toISOString(),
       };
 
-      // Create a new listing in the Realtime Database
-      const listingsRef = ref(database, 'listings');
-      const newListingRef = push(listingsRef);
-      await set(newListingRef, listingData);
+      // Create a new listing in Firestore
+      const listingsRef = collection(db, 'listings');
+      await addDoc(listingsRef, listingData);
 
       toast({
         title: "Успешно създадена обява",

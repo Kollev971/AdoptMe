@@ -1,15 +1,13 @@
 import { useEffect, useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import { generateChatId } from "@/lib/utils";
-import { ref, get, child, push, set } from "firebase/database";
-import { database } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import type { Listing } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
 export default function ListingDetail() {
@@ -18,7 +16,6 @@ export default function ListingDetail() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [listing, setListing] = useState<Listing | null>(null);
-  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -26,11 +23,17 @@ export default function ListingDetail() {
       if (!params?.id) return;
 
       try {
-        const listingRef = ref(database, `listings/${params.id}`);
-        const snapshot = await get(listingRef);
+        const listingRef = doc(db, "listings", params.id);
+        const docSnap = await getDoc(listingRef);
 
-        if (snapshot.exists()) {
-          setListing({ id: snapshot.key!, ...snapshot.val() } as Listing);
+        if (docSnap.exists()) {
+          setListing({ id: docSnap.id, ...docSnap.data() } as Listing);
+        } else {
+          toast({
+            title: "Грешка",
+            description: "Обявата не беше намерена",
+            variant: "destructive",
+          });
         }
       } catch (error: any) {
         toast({
@@ -43,40 +46,6 @@ export default function ListingDetail() {
 
     fetchListing();
   }, [params?.id]);
-
-  const handleAdoptionRequest = async () => {
-    if (!user || !listing) return;
-
-    try {
-      setLoading(true);
-
-      const requestData = {
-        listingId: listing.id,
-        userId: user.uid,
-        ownerId: listing.userId,
-        message,
-        status: "pending",
-        createdAt: new Date().toISOString(),
-      };
-
-      const requestsRef = ref(database, 'adoptionRequests');
-      const newRequestRef = push(requestsRef);
-      await set(newRequestRef, requestData);
-
-      toast({
-        title: "Успешно",
-        description: "Заявката за осиновяване е изпратена успешно",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Грешка",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (!listing) return null;
 
