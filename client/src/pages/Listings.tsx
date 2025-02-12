@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { ref, query, orderByChild, onValue, get } from "firebase/database";
-import { database } from "@/lib/firebase";
+import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import type { Listing } from "@shared/schema";
 import { ListingCard } from "@/components/ListingCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,21 +12,14 @@ export default function Listings() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const listingsRef = ref(database, "listings");
-    const listingsQuery = query(listingsRef, orderByChild("createdAt"));
+    const listingsRef = collection(db, "listings");
+    const q = query(listingsRef, orderBy("createdAt", "desc"));
 
-    const unsubscribe = onValue(listingsQuery, async (snapshot) => {
-      const listingsData: Listing[] = [];
-      snapshot.forEach((childSnapshot) => {
-        const data = childSnapshot.val();
-        listingsData.push({
-          id: childSnapshot.key!,
-          ...data,
-        });
-      });
-
-      // Sort by createdAt in descending order
-      listingsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const listingsData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Listing[];
       setListings(listingsData);
       setLoading(false);
     });

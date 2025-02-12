@@ -6,8 +6,8 @@ import type { Listing } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
-import { database } from "@/lib/firebase";
-import { ref, get } from "firebase/database";
+import { db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 interface ListingCardProps {
   listing: Listing;
@@ -22,11 +22,11 @@ export function ListingCard({ listing }: ListingCardProps) {
       if (!listing?.userId) return;
 
       try {
-        const userRef = ref(database, `users/${listing.userId}`);
-        const snapshot = await get(userRef);
+        const userRef = doc(db, "users", listing.userId);
+        const userSnap = await getDoc(userRef);
 
-        if (snapshot.exists()) {
-          setListingUser(snapshot.val());
+        if (userSnap.exists()) {
+          setListingUser(userSnap.data());
         }
       } catch (error: any) {
         console.error("Error fetching listing user:", error);
@@ -72,7 +72,9 @@ export function ListingCard({ listing }: ListingCardProps) {
           <div className="text-sm text-gray-500">
             Публикувано от: <span className="font-medium">{listingUser?.username || "Анонимен"}</span>
           </div>
-          <div className="text-sm text-gray-500">Дата: {new Date(listing.createdAt).toLocaleDateString()}</div>
+          <div className="text-sm text-gray-500">
+            Дата: {new Date(listing.createdAt).toLocaleDateString()}
+          </div>
           <Button variant="default" size="sm" className="mt-3 w-full">
             Свържи се
           </Button>
