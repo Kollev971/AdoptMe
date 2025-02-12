@@ -1,22 +1,26 @@
-import { useEffect, useState } from "react";
-import { collection, query, where, orderBy, onSnapshot, doc, updateDoc } from "firebase/firestore";
-import type { Listing } from "@shared/schema";
-import { db } from "@/lib/firebase";
+import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { updatePassword } from "firebase/auth";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import type { Listing } from "@shared/schema";
+import { db } from "@/lib/firebase";
+import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
+import { useEffect } from "react";
 
 export default function Profile() {
-  const { user, updatePassword } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
-  const [listings, setListings] = useState<Listing[]>([]);
-  const [loading, setLoading] = useState(true);
   const [newPassword, setNewPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [loadingListings, setLoadingListings] = useState(true);
+
 
   useEffect(() => {
     if (!user) return;
@@ -29,7 +33,7 @@ export default function Profile() {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setListings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Listing[]);
-      setLoading(false);
+      setLoadingListings(false);
     }, (error) => {
       console.error("Error fetching listings:", error);
       toast({
@@ -37,30 +41,35 @@ export default function Profile() {
         description: "Възникна проблем при зареждането на обявите",
         variant: "destructive",
       });
-      setLoading(false);
+      setLoadingListings(false);
     });
 
     return () => unsubscribe();
   }, [user]);
 
   const handlePasswordChange = async () => {
+    if (!user || !newPassword) return;
+
     try {
-      await updatePassword(newPassword);
+      setLoading(true);
+      await updatePassword(user, newPassword);
       toast({
         title: "Успешно",
-        description: "Паролата е променена успешно"
+        description: "Паролата беше променена успешно",
       });
       setNewPassword("");
     } catch (error: any) {
       toast({
         title: "Грешка",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (loading) {
+  if (loadingListings) {
     return (
       <div className="space-y-4 p-6">
         <Skeleton className="h-12 w-full" />
@@ -70,12 +79,41 @@ export default function Profile() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <Tabs defaultValue="listings" className="space-y-6">
-        <TabsList className="w-full justify-start bg-card p-1 rounded-lg">
-          <TabsTrigger value="listings" className="flex-1">Моите обяви</TabsTrigger>
-          <TabsTrigger value="settings" className="flex-1">Настройки</TabsTrigger>
+    <div className="container mx-auto p-6">
+      <Tabs defaultValue="settings" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="settings">Настройки</TabsTrigger>
+          <TabsTrigger value="listings">Моите обяви</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="settings">
+          <Card>
+            <CardHeader>
+              <CardTitle>Настройки на профила</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h3 className="text-lg font-medium">Имейл</h3>
+                <p className="text-muted-foreground">{user?.email}</p>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-lg font-medium">Промяна на парола</h3>
+                <div className="flex gap-2">
+                  <Input
+                    type="password"
+                    placeholder="Нова парола"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                  <Button onClick={handlePasswordChange} disabled={loading}>
+                    {loading ? "Промяна..." : "Промени"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="listings">
           <ScrollArea className="h-[70vh]">
@@ -105,23 +143,6 @@ export default function Profile() {
               )}
             </div>
           </ScrollArea>
-        </TabsContent>
-
-        <TabsContent value="settings">
-          <Card>
-            <CardContent className="space-y-4 p-6">
-              <h3 className="text-lg font-semibold">Смяна на парола</h3>
-              <div className="flex gap-4">
-                <Input
-                  type="password"
-                  placeholder="Нова парола"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
-                <Button onClick={handlePasswordChange}>Промени</Button>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>
