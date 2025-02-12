@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useRoute } from "wouter";
+import { useParams } from "react-router-dom";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,7 +13,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { useLocation, useNavigate } from 'react-router-dom';
 
 export default function ListingDetail() {
-  const [, params] = useRoute("/listings/:id");
+  const { id } = useParams();
   const { user } = useAuth();
   const { toast } = useToast();
   const [listing, setListing] = useState<Listing | null>(null);
@@ -26,10 +26,10 @@ export default function ListingDetail() {
 
   useEffect(() => {
     const fetchListing = async () => {
-      if (!params?.id) return;
+      if (!id) return;
 
       try {
-        const docRef = doc(db, "listings", params.id);
+        const docRef = doc(db, "listings", id);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
