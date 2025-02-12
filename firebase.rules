@@ -1,58 +1,55 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
     match /listings/{listingId} {
-      // Allow reading listings for everyone
+      // Позволява четене на всички обяви
       allow read: if true;
 
-      // Allow creating listings only for authenticated users
-      allow create: if request.auth != null && 
-        request.resource.data.userId == request.auth.uid;
+      // Позволява създаване на обяви само за логнати потребители
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
 
-      // Allow updates/deletes only by the listing owner
-      allow update, delete: if request.auth != null && 
-        resource.data.userId == request.auth.uid;
+      // Позволява редактиране/изтриване само на собственика на обявата
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
     match /adoptionRequests/{requestId} {
-      // Allow reading requests that user is involved with
+      // Позволява четене на всички заявки за осиновяване
       allow read: if true;
 
-      // Allow creating requests for authenticated users
+      // Позволява създаване на заявки само за логнати потребители
       allow create: if request.auth != null;
 
-      // Allow updates by owner or requester
+      // Позволява актуализация от собственика на обявата или заявителя
       allow update: if request.auth != null && (
-        request.auth.uid == resource.data.userId || 
-        request.auth.uid == resource.data.ownerId
+        request.auth.uid == resource.data.ownerId ||
+        request.auth.uid == resource.data.userId
       );
-
-      // Allow batch updates when approving requests
-      allow update: if request.auth != null && 
-        (resource.data.ownerId == request.auth.uid || 
-         resource.data.userId == request.auth.uid);
     }
 
     match /users/{userId} {
-      // Allow public reading of user profiles
+      // Позволява на всеки да вижда само публична информация на потребителите
       allow read: if true;
 
-      // Allow profile updates only by the owner
-      allow write: if request.auth != null && 
-        request.auth.uid == userId;
+      // Позволява само на собственика на профила да го редактира
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
 
     match /chats/{chatId} {
-      // Allow chat access to participants
+      // Позволява създаване на чат
       allow create: if request.auth != null;
+
+      // Позволява четене/запис само на участващите в чата потребители
       allow read, write: if request.auth != null && (
-        resource == null || // Allow initial creation
+        resource == null || // Позволява първоначално създаване
         request.auth.uid in resource.data.participants
       );
 
-      // Allow access to chat messages for participants
       match /messages/{messageId} {
+        // Позволява създаване на съобщения
         allow create: if request.auth != null;
+
+        // Позволява четене/запис само на участниците в чата
         allow read, write: if request.auth != null && 
           get(/databases/$(database)/documents/chats/$(chatId)).data.participants[request.auth.uid] == true;
       }
