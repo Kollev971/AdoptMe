@@ -25,7 +25,8 @@ function App() {
             <Route path="/create-listing" component={CreateListing} />
             <Route path="/listings" component={Listings} />
             <Route path="/listings/:id" component={ListingDetail} />
-            <Route path="/chat/:chatId" component={Chat} /> {/* Нов маршрут за чата */}
+            <Route path="/chat/:chatId" component={Chat} />
+            <Route path="/messages" component={Messages} />
             <Route component={NotFound} />
           </Switch>
         </main>
