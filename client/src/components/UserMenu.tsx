@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 export function UserMenu() {
   const { userData } = useAuth();
   const [, setLocation] = useLocation();
+  const unreadCount = 0; // Placeholder - needs actual implementation to fetch unread count
 
   const handleLogout = async () => {
     try {
@@ -44,8 +45,13 @@ export function UserMenu() {
         <DropdownMenuItem onClick={() => setLocation("/profile")}>
           Профил
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setLocation("/chat")}>
+        <DropdownMenuItem onClick={() => setLocation("/messages")} className="relative">
           Съобщения
+          {unreadCount > 0 && (
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+              {unreadCount}
+            </span>
+          )}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleLogout}>
           Изход
