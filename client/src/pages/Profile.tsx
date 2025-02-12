@@ -100,9 +100,9 @@ export default function Profile() {
   useEffect(() => {
     if (!user) return;
 
-    // Create compound query using the index
+    // Create compound query using the sentRequests collection
     const q = query(
-      collection(db, "adoptionRequests"),
+      collection(db, "sentRequests"),
       where("userId", "==", user.uid),
       orderBy("createdAt", "desc")
     );
@@ -146,12 +146,17 @@ export default function Profile() {
     try {
       const batch = writeBatch(db);
 
-      // Update request status
-      const requestRef = doc(db, "adoptionRequests", request.id);
-      batch.update(requestRef, {
+      // Update request status in both collections
+      const adoptionRequestRef = doc(db, "adoptionRequests", request.id);
+      const sentRequestRef = doc(db, "sentRequests", request.id);
+
+      const updateData = {
         status: "approved",
         updatedAt: new Date().toISOString()
-      });
+      };
+
+      batch.update(adoptionRequestRef, updateData);
+      batch.update(sentRequestRef, updateData);
 
       // Create or update chat room
       const chatId = generateChatId(request.ownerId, request.userId);
