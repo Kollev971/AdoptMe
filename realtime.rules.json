@@ -1,31 +1,5 @@
 {
   "rules": {
-    "users": {
-      "$uid": {
-        ".read": "auth != null",
-        ".write": "auth != null && auth.uid === $uid"
-      }
-    },
-    "listings": {
-      ".read": true,
-      ".write": "auth != null",
-      "$listingId": {
-        ".validate": "newData.hasChildren(['title', 'description', 'userId', 'createdAt'])",
-        "userId": {
-          ".validate": "newData.val() === auth.uid"
-        }
-      }
-    },
-    "adoptionRequests": {
-      ".read": "auth != null",
-      ".write": "auth != null",
-      "$requestId": {
-        ".validate": "newData.hasChildren(['listingId', 'userId', 'message', 'status', 'createdAt'])",
-        "userId": {
-          ".validate": "newData.val() === auth.uid"
-        }
-      }
-    },
     "chats": {
       "$chatId": {
         ".read": "auth != null",

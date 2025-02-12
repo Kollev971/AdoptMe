@@ -1,7 +1,8 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { getStorage } from "firebase/storage";
-import { getDatabase, ref, push, set, onValue, off, query, orderByChild } from "firebase/database";
+import { getDatabase } from "firebase/database";
+import { getFirestore } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
@@ -19,7 +20,8 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 export const auth = getAuth(app);
 export const storage = getStorage(app);
-export const database = getDatabase(app);
+export const database = getDatabase(app); // Realtime Database for chat
+export const db = getFirestore(app); // Firestore for everything else
 export const analytics = getAnalytics(app);
 
 // Helper function for registration

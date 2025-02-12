@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { User as FirebaseUser } from "firebase/auth";
-import { auth, database } from "@/lib/firebase";
-import { ref, onValue } from "firebase/database";
+import { auth, db } from "@/lib/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
 import type { User } from "@shared/schema";
 
 export function useAuth() {
@@ -19,10 +19,10 @@ export function useAuth() {
         return;
       }
 
-      const userRef = ref(database, `users/${firebaseUser.uid}`);
-      const unsubscribeSnapshot = onValue(userRef, (snapshot) => {
-        if (snapshot.exists()) {
-          setUserData(snapshot.val() as User);
+      const userDocRef = doc(db, "users", firebaseUser.uid);
+      const unsubscribeSnapshot = onSnapshot(userDocRef, (doc) => {
+        if (doc.exists()) {
+          setUserData(doc.data() as User);
         } else {
           setUserData(null);
         }

@@ -9,8 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Listing } from "@shared/schema";
-import { database } from "@/lib/firebase";
-import { ref, query, orderByChild, onValue, remove } from "firebase/database";
+import { db } from "@/lib/firebase";
+import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc } from "firebase/firestore";
+
 
 export default function Profile() {
   const { user } = useAuth();
@@ -23,22 +24,14 @@ export default function Profile() {
   useEffect(() => {
     if (!user) return;
 
-    const listingsRef = ref(database, "listings");
-    const listingsQuery = query(listingsRef, orderByChild("userId"), user.uid);
+    const q = query(
+      collection(db, "listings"),
+      where("userId", "==", user.uid),
+      orderBy("createdAt", "desc")
+    );
 
-    const unsubscribe = onValue(listingsQuery, (snapshot) => {
-      const listingsData: Listing[] = [];
-      snapshot.forEach((childSnapshot) => {
-        // Only include listings that belong to the current user
-        const data = childSnapshot.val();
-        if (data.userId === user.uid) {
-          listingsData.push({
-            id: childSnapshot.key!,
-            ...data
-          });
-        }
-      });
-      setListings(listingsData);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setListings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Listing[]);
       setLoadingListings(false);
     }, (error) => {
       console.error("Error fetching listings:", error);
@@ -77,9 +70,7 @@ export default function Profile() {
 
   const handleDeleteListing = async (listingId: string) => {
     try {
-      const listingRef = ref(database, `listings/${listingId}`);
-      await remove(listingRef);
-
+      await deleteDoc(doc(db, "listings", listingId));
       toast({
         title: "Успешно",
         description: "Обявата беше изтрита успешно",
