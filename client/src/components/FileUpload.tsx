@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { toast } from "@/hooks/use-toast";
 
 interface FileUploadProps {
   setImages: (images: string[]) => void;
@@ -16,63 +17,120 @@ export function FileUpload({ setImages, images, className }: FileUploadProps) {
     const formData = new FormData();
     formData.append('image', file);
 
-    const response = await fetch(`https://api.imgbb.com/1/upload?key=${import.meta.env.VITE_IMGBB_API_KEY}`, {
-      method: 'POST',
-      body: formData
-    });
+    try {
+      const response = await fetch(`https://api.imgbb.com/1/upload?key=${import.meta.env.VITE_IMGBB_API_KEY}`, {
+        method: 'POST',
+        body: formData
+      });
 
-    if (!response.ok) {
-      throw new Error('Failed to upload image');
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error?.message || 'Failed to upload image');
+      }
+
+      return data.data.url;
+    } catch (error) {
+      console.error('Error uploading to ImgBB:', error);
+      throw error;
     }
-
-    const data = await response.json();
-    return data.data.url;
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files?.length) return;
 
+    // Validate file types and sizes
+    const validFiles = Array.from(files).filter(file => {
+      const isValidType = file.type.startsWith('image/');
+      const isValidSize = file.size <= 2 * 1024 * 1024; // 2MB max
+      return isValidType && isValidSize;
+    });
+
+    if (validFiles.length !== files.length) {
+      toast({
+        title: "Внимание",
+        description: "Някои файлове бяха пропуснати. Моля, използвайте само изображения до 2MB.",
+        variant: "warning",
+      });
+    }
+
+    if (!validFiles.length) return;
+
     setUploading(true);
-    const totalFiles = files.length;
+    const totalFiles = validFiles.length;
     const uploadedUrls: string[] = [];
 
     try {
-      for (let i = 0; i < files.length; i++) {
-        const url = await uploadImage(files[i]);
+      for (let i = 0; i < validFiles.length; i++) {
+        const url = await uploadImage(validFiles[i]);
         uploadedUrls.push(url);
         setProgress(((i + 1) / totalFiles) * 100);
       }
 
       setImages([...images, ...uploadedUrls]);
+      toast({
+        title: "Успешно",
+        description: `${uploadedUrls.length} ${uploadedUrls.length === 1 ? 'снимка беше качена' : 'снимки бяха качени'} успешно.`,
+      });
     } catch (error) {
       console.error("Error uploading files:", error);
+      toast({
+        title: "Грешка",
+        description: "Възникна проблем при качването на снимките.",
+        variant: "destructive",
+      });
     } finally {
       setUploading(false);
       setProgress(0);
+      // Clear the input
+      event.target.value = '';
     }
   };
 
   return (
     <div className={className}>
-      <input
-        type="file"
-        onChange={handleFileChange}
-        multiple
-        accept="image/*"
-        className="block w-full text-sm text-gray-500
-          file:mr-4 file:py-2 file:px-4
-          file:rounded-md file:border-0
-          file:text-sm file:font-semibold
-          file:bg-primary file:text-primary-foreground
-          hover:file:bg-primary/90"
-      />
-      {uploading && (
-        <div className="mt-2">
-          <Progress value={progress} className="h-2" />
-          <p className="text-sm text-gray-500 mt-1">
-            Качване... {Math.round(progress)}%
-          </p>
+      <div className="relative">
+        <input
+          type="file"
+          onChange={handleFileChange}
+          multiple
+          accept="image/*"
+          disabled={uploading}
+          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4
+            file:rounded-md file:border-0 file:text-sm file:font-semibold
+            file:bg-primary file:text-primary-foreground hover:file:bg-primary/90
+            disabled:opacity-50 disabled:cursor-not-allowed"
+        />
+        {uploading && (
+          <div className="mt-2 space-y-2">
+            <Progress value={progress} className="h-2" />
+            <p className="text-sm text-muted-foreground">
+              Качване... {Math.round(progress)}%
+            </p>
+          </div>
+        )}
+      </div>
+      {images.length > 0 && (
+        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+          {images.map((img, index) => (
+            <div key={index} className="relative aspect-square rounded-lg overflow-hidden group">
+              <img 
+                src={img} 
+                alt={`Upload ${index + 1}`} 
+                className="w-full h-full object-cover"
+              />
+              <button
+                onClick={() => setImages(images.filter((_, i) => i !== index))}
+                className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <span className="text-white text-sm">Премахни</span>
+              </button>
+            </div>
+          ))}
         </div>
       )}
     </div>

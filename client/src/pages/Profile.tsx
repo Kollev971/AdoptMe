@@ -1,21 +1,30 @@
-import { useAuth } from "@/hooks/useAuth";
-import { useState, useEffect } from "react";
-import { collection, query, where, orderBy, getDocs, deleteDoc, doc, onSnapshot, getDoc, updateDoc, setDoc } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import { collection, query, where, orderBy, getDocs, deleteDoc, doc, onSnapshot, getDoc, updateDoc, setDoc, getFirestore, writeBatch } from "firebase/firestore";
 import type { Listing, AdoptionRequest } from "@shared/schema";
 import { db } from "@/lib/firebase";
-import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useLocation } from "wouter";
-import { useToast } from "@/hooks/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Profile() {
   const { user } = useAuth();
-  const [listings, setListings] = useState<Listing[]>([]);
-  const [adoptionRequests, setAdoptionRequests] = useState<AdoptionRequest & { listingName?: string; adopterName?: string }[]>([]);
-  const [sentRequests, setSentRequests] = useState<AdoptionRequest & { listingName?: string; ownerName?: string }[]>([]);
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [adoptionRequests, setAdoptionRequests] = useState<(AdoptionRequest & { listingName?: string; adopterName?: string })[]>([]);
+  const [sentRequests, setSentRequests] = useState<(AdoptionRequest & { listingName?: string; ownerName?: string })[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Helper function to generate consistent chat IDs
+  const generateChatId = (ownerId: string, adopterId: string) => {
+    return [ownerId, adopterId].sort().join('_');
+  };
 
   // Fetch user's listings
   useEffect(() => {
@@ -27,91 +36,133 @@ export default function Profile() {
       orderBy("createdAt", "desc")
     );
 
-    return onSnapshot(q, (snapshot) => {
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       setListings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Listing[]);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching listings:", error);
+      toast({
+        title: "Грешка",
+        description: "Възникна проблем при зареждането на обявите",
+        variant: "destructive",
+      });
+      setLoading(false);
     });
+
+    return () => unsubscribe();
   }, [user]);
 
   // Fetch received adoption requests
   useEffect(() => {
     if (!user) return;
 
-    const receivedRequestsQuery = query(
+    const q = query(
       collection(db, "adoptionRequests"),
       where("ownerId", "==", user.uid),
       orderBy("createdAt", "desc")
     );
 
-    return onSnapshot(receivedRequestsQuery, async (snapshot) => {
-      const requestsData = await Promise.all(snapshot.docs.map(async (docSnap) => {
-        const request = { id: docSnap.id, ...docSnap.data() } as AdoptionRequest;
-        const listingSnap = await getDoc(doc(db, "listings", request.listingId));
-        const userSnap = await getDoc(doc(db, "users", request.userId));
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      try {
+        const requestsData = await Promise.all(
+          snapshot.docs.map(async (docSnap) => {
+            const request = { id: docSnap.id, ...docSnap.data() } as AdoptionRequest;
+            const [listingSnap, userSnap] = await Promise.all([
+              getDoc(doc(db, "listings", request.listingId)),
+              getDoc(doc(db, "users", request.userId))
+            ]);
 
-        return {
-          ...request,
-          listingName: listingSnap.exists() ? listingSnap.data()?.title : "Обявата е изтрита",
-          adopterName: userSnap.exists() ? userSnap.data()?.username : "Потребителят е изтрит"
-        };
-      }));
-      setAdoptionRequests(requestsData);
+            return {
+              ...request,
+              listingName: listingSnap.exists() ? listingSnap.data()?.title : "Обявата е изтрита",
+              adopterName: userSnap.exists() ? userSnap.data()?.username : "Потребителят е изтрит"
+            };
+          })
+        );
+        setAdoptionRequests(requestsData);
+      } catch (error) {
+        console.error("Error fetching adoption requests:", error);
+        toast({
+          title: "Грешка",
+          description: "Възникна проблем при зареждането на заявките",
+          variant: "destructive",
+        });
+      }
     });
+
+    return () => unsubscribe();
   }, [user]);
 
   // Fetch sent adoption requests
   useEffect(() => {
     if (!user) return;
 
-    const sentRequestsQuery = query(
+    const q = query(
       collection(db, "adoptionRequests"),
       where("userId", "==", user.uid),
       orderBy("createdAt", "desc")
     );
 
-    return onSnapshot(sentRequestsQuery, async (snapshot) => {
-      const requestsData = await Promise.all(snapshot.docs.map(async (docSnap) => {
-        const request = { id: docSnap.id, ...docSnap.data() } as AdoptionRequest;
-        const listingSnap = await getDoc(doc(db, "listings", request.listingId));
-        const ownerSnap = await getDoc(doc(db, "users", request.ownerId));
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      try {
+        const requestsData = await Promise.all(
+          snapshot.docs.map(async (docSnap) => {
+            const request = { id: docSnap.id, ...docSnap.data() } as AdoptionRequest;
+            const [listingSnap, userSnap] = await Promise.all([
+              getDoc(doc(db, "listings", request.listingId)),
+              getDoc(doc(db, "users", request.ownerId))
+            ]);
 
-        return {
-          ...request,
-          listingName: listingSnap.exists() ? listingSnap.data()?.title : "Обявата е изтрита",
-          ownerName: ownerSnap.exists() ? ownerSnap.data()?.username : "Потребителят е изтрит"
-        };
-      }));
-      setSentRequests(requestsData);
+            return {
+              ...request,
+              listingName: listingSnap.exists() ? listingSnap.data()?.title : "Обявата е изтрита",
+              ownerName: userSnap.exists() ? userSnap.data()?.username : "Потребителят е изтрит"
+            };
+          })
+        );
+        setSentRequests(requestsData);
+      } catch (error) {
+        console.error("Error fetching sent requests:", error);
+        toast({
+          title: "Грешка",
+          description: "Възникна проблем при зареждането на изпратените заявки",
+          variant: "destructive",
+        });
+      }
     });
-  }, [user]);
 
-  const generateChatId = (ownerId: string, adopterId: string) => {
-    // Sort IDs to ensure consistent chat ID regardless of who creates it
-    const sortedIds = [ownerId, adopterId].sort();
-    return `${sortedIds[0]}_${sortedIds[1]}`;
-  };
+    return () => unsubscribe();
+  }, [user]);
 
   const handleApproveRequest = async (request: AdoptionRequest) => {
     if (!user) return;
 
     try {
-      // Update request status
+      // Update request status in a batch to ensure atomicity
+      const batch = writeBatch(db);
+
+      // Update the request status
       const requestRef = doc(db, "adoptionRequests", request.id);
-      await updateDoc(requestRef, {
+      batch.update(requestRef, {
         status: "approved",
         updatedAt: new Date().toISOString()
       });
 
-      // Create a chat room with sorted IDs to ensure consistency
+      // Create or update chat room
       const chatId = generateChatId(request.ownerId, request.userId);
       const chatRef = doc(db, "chats", chatId);
-
-      // Use set with merge to prevent duplicate chat rooms
-      await setDoc(chatRef, {
+      batch.set(chatRef, {
         participants: [request.ownerId, request.userId],
         listingId: request.listingId,
         createdAt: new Date().toISOString(),
-        lastUpdated: new Date().toISOString()
+        lastMessage: {
+          text: "Заявката беше одобрена! Можете да започнете разговор.",
+          timestamp: new Date().toISOString()
+        }
       }, { merge: true });
+
+      // Commit the batch
+      await batch.commit();
 
       toast({
         title: "Успешно",
@@ -127,120 +178,157 @@ export default function Profile() {
     }
   };
 
-  const openChat = (ownerId: string, userId: string) => {
-    const chatId = generateChatId(ownerId, userId);
+  const openChat = (ownerId: string, adopterId: string) => {
+    const chatId = generateChatId(ownerId, adopterId);
     setLocation(`/chat/${chatId}`);
   };
 
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      pending: { label: "Изчакваща", class: "bg-yellow-500" },
+      approved: { label: "Одобрена", class: "bg-green-500" },
+      rejected: { label: "Отхвърлена", class: "bg-red-500" }
+    };
+    const config = statusConfig[status as keyof typeof statusConfig];
+    return <Badge className={config.class}>{config.label}</Badge>;
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-4 p-6">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-[200px] w-full" />
+        <Skeleton className="h-[200px] w-full" />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6 p-6 max-w-5xl mx-auto">
-      <Tabs defaultValue="listings">
-        <TabsList className="bg-gray-100 p-2 rounded-lg">
-          <TabsTrigger value="listings">Моите обяви</TabsTrigger>
-          <TabsTrigger value="requests">Получени заявки</TabsTrigger>
-          <TabsTrigger value="sentRequests">Изпратени заявки</TabsTrigger>
+    <div className="container mx-auto py-8 px-4">
+      <Tabs defaultValue="listings" className="space-y-6">
+        <TabsList className="w-full justify-start bg-card p-1 rounded-lg">
+          <TabsTrigger value="listings" className="flex-1">Моите обяви</TabsTrigger>
+          <TabsTrigger value="requests" className="flex-1">Получени заявки</TabsTrigger>
+          <TabsTrigger value="sentRequests" className="flex-1">Изпратени заявки</TabsTrigger>
         </TabsList>
 
         <TabsContent value="listings">
-          <div className="space-y-4">
-            {listings.length > 0 ? listings.map(listing => (
-              <Card key={listing.id} className="overflow-hidden">
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold mb-2">{listing.title}</h3>
-                  <p className="text-gray-600">{listing.description}</p>
-                  {listing.images?.length > 0 && (
-                    <div className="mt-4 flex gap-2 overflow-x-auto">
-                      {listing.images.map((image, index) => (
-                        <img
-                          key={index}
-                          src={image}
-                          alt={`${listing.title} - ${index + 1}`}
-                          className="h-24 w-24 object-cover rounded"
-                        />
-                      ))}
+          <ScrollArea className="h-[70vh]">
+            <div className="space-y-4 pr-4">
+              {listings.length > 0 ? listings.map(listing => (
+                <Card key={listing.id} className="overflow-hidden">
+                  <CardContent className="p-6">
+                    <div className="flex flex-col md:flex-row gap-6">
+                      {listing.images && listing.images[0] && (
+                        <div className="w-full md:w-48 h-48 relative">
+                          <img
+                            src={listing.images[0]}
+                            alt={listing.title}
+                            className="absolute inset-0 w-full h-full object-cover rounded-lg"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <h3 className="text-xl font-semibold mb-2">{listing.title}</h3>
+                        <p className="text-muted-foreground mb-4">{listing.description}</p>
+                        <div className="flex gap-2 flex-wrap">
+                          <Badge variant="outline">{listing.type}</Badge>
+                          <Badge variant="outline">{listing.age} години</Badge>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            )) : (
-              <p className="text-center text-gray-500">Нямате създадени обяви</p>
-            )}
-          </div>
+                  </CardContent>
+                </Card>
+              )) : (
+                <p className="text-center text-muted-foreground">Нямате създадени обяви</p>
+              )}
+            </div>
+          </ScrollArea>
         </TabsContent>
 
         <TabsContent value="requests">
-          <div className="space-y-4">
-            {adoptionRequests.length > 0 ? adoptionRequests.map(request => (
-              <Card key={request.id} className="overflow-hidden">
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold">Обява: {request.listingName}</h3>
-                      <p className="text-sm text-gray-600">От: {request.adopterName}</p>
-                      <p className="mt-2">{request.message}</p>
-                      <p className="text-sm text-gray-500 mt-2">
-                        Статус: <span className="font-medium">{request.status}</span>
-                      </p>
+          <ScrollArea className="h-[70vh]">
+            <div className="space-y-4 pr-4">
+              {adoptionRequests.length > 0 ? adoptionRequests.map(request => (
+                <Card key={request.id} className="overflow-hidden">
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-lg font-semibold">{request.listingName}</h3>
+                          {getStatusBadge(request.status)}
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          От: <span className="font-medium">{request.adopterName}</span>
+                        </p>
+                        <p className="text-sm border-l-2 border-primary pl-3 my-3">{request.message}</p>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        {request.status === "pending" && (
+                          <Button
+                            onClick={() => handleApproveRequest(request)}
+                            size="sm"
+                            className="w-[120px]"
+                          >
+                            Одобри
+                          </Button>
+                        )}
+                        {request.status === "approved" && (
+                          <Button
+                            onClick={() => openChat(request.ownerId, request.userId)}
+                            variant="outline"
+                            size="sm"
+                            className="w-[120px]"
+                          >
+                            Отвори чат
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex flex-col gap-2">
-                      {request.status === "pending" && (
-                        <Button 
-                          onClick={() => handleApproveRequest(request)}
-                          variant="default"
-                          size="sm"
-                        >
-                          Одобри
-                        </Button>
-                      )}
+                  </CardContent>
+                </Card>
+              )) : (
+                <p className="text-center text-muted-foreground">Нямате получени заявки</p>
+              )}
+            </div>
+          </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="sentRequests">
+          <ScrollArea className="h-[70vh]">
+            <div className="space-y-4 pr-4">
+              {sentRequests.length > 0 ? sentRequests.map(request => (
+                <Card key={request.id} className="overflow-hidden">
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-lg font-semibold">{request.listingName}</h3>
+                          {getStatusBadge(request.status)}
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Към: <span className="font-medium">{request.ownerName}</span>
+                        </p>
+                        <p className="text-sm border-l-2 border-primary pl-3 my-3">{request.message}</p>
+                      </div>
                       {request.status === "approved" && (
                         <Button
                           onClick={() => openChat(request.ownerId, request.userId)}
                           variant="outline"
                           size="sm"
+                          className="w-[120px]"
                         >
                           Отвори чат
                         </Button>
                       )}
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )) : (
-              <p className="text-center text-gray-500">Нямате получени заявки</p>
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="sentRequests">
-          <div className="space-y-4">
-            {sentRequests.length > 0 ? sentRequests.map(request => (
-              <Card key={request.id} className="overflow-hidden">
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold">Обява: {request.listingName}</h3>
-                      <p className="text-sm text-gray-600">Към: {request.ownerName}</p>
-                      <p className="mt-2">{request.message}</p>
-                      <p className="text-sm text-gray-500 mt-2">
-                        Статус: <span className="font-medium">{request.status}</span>
-                      </p>
-                    </div>
-                    {request.status === "approved" && (
-                      <Button
-                        onClick={() => openChat(request.ownerId, request.userId)}
-                        variant="outline"
-                        size="sm"
-                      >
-                        Отвори чат
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )) : (
-              <p className="text-center text-gray-500">Нямате изпратени заявки</p>
-            )}
-          </div>
+                  </CardContent>
+                </Card>
+              )) : (
+                <p className="text-center text-muted-foreground">Нямате изпратени заявки</p>
+              )}
+            </div>
+          </ScrollArea>
         </TabsContent>
       </Tabs>
     </div>
