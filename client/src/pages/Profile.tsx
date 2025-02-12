@@ -138,10 +138,9 @@ export default function Profile() {
     if (!user) return;
 
     try {
-      // Update request status in a batch to ensure atomicity
       const batch = writeBatch(db);
 
-      // Update the request status
+      // Update request status
       const requestRef = doc(db, "adoptionRequests", request.id);
       batch.update(requestRef, {
         status: "approved",
@@ -151,29 +150,43 @@ export default function Profile() {
       // Create or update chat room
       const chatId = generateChatId(request.ownerId, request.userId);
       const chatRef = doc(db, "chats", chatId);
+
       batch.set(chatRef, {
-        participants: [request.ownerId, request.userId],
+        participants: {
+          [request.ownerId]: true,
+          [request.userId]: true
+        },
         listingId: request.listingId,
         createdAt: new Date().toISOString(),
         lastMessage: {
           text: "Заявката беше одобрена! Можете да започнете разговор.",
+          senderId: user.uid,
           timestamp: new Date().toISOString()
         }
       }, { merge: true });
+
+      // Create initial system message in the chat
+      const messagesRef = doc(collection(db, "chats", chatId, "messages"));
+      batch.set(messagesRef, {
+        text: "Заявката беше одобрена! Можете да започнете разговор.",
+        senderId: "system",
+        createdAt: new Date().toISOString(),
+        type: "system"
+      });
 
       // Commit the batch
       await batch.commit();
 
       toast({
         title: "Успешно",
-        description: "Заявката е одобрена и чатът е създаден",
+        description: "Заявката е одобрена и чатът е създаден"
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error approving request:", error);
       toast({
         title: "Грешка",
-        description: "Възникна проблем при одобряването на заявката",
-        variant: "destructive",
+        description: error.message || "Възникна проблем при одобряването на заявката",
+        variant: "destructive"
       });
     }
   };

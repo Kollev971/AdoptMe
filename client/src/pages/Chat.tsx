@@ -1,25 +1,33 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useParams, useLocation } from "wouter";
-import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, DocumentData, getDoc, doc } from "firebase/firestore";
+import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, DocumentData, getDoc, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Loader2 } from "lucide-react";
 
 interface Message {
   id: string;
   text: string;
   senderId: string;
   createdAt: any;
+  type?: 'system' | 'user';
 }
 
 interface ChatRoom {
-  participants: string[];
+  participants: { [key: string]: boolean };
   listingId: string;
   createdAt: string;
+  lastMessage?: {
+    text: string;
+    senderId: string;
+    timestamp: string;
+  };
 }
 
 export default function Chat() {
@@ -30,6 +38,13 @@ export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [chatRoom, setChatRoom] = useState<ChatRoom | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   // Verify chat access
   useEffect(() => {
@@ -49,7 +64,7 @@ export default function Chat() {
         }
 
         const chatData = chatDoc.data() as ChatRoom;
-        if (!chatData.participants.includes(user.uid)) {
+        if (!chatData.participants[user.uid]) {
           toast({
             title: "Грешка",
             description: "Нямате достъп до този чат",
@@ -60,6 +75,7 @@ export default function Chat() {
         }
 
         setChatRoom(chatData);
+        setLoading(false);
       } catch (error) {
         console.error("Error fetching chat:", error);
         toast({
@@ -67,6 +83,7 @@ export default function Chat() {
           description: "Възникна проблем при зареждането на чата",
           variant: "destructive",
         });
+        setLoading(false);
       }
     };
 
@@ -86,6 +103,14 @@ export default function Chat() {
         ...doc.data()
       } as Message));
       setMessages(messagesData);
+      scrollToBottom();
+    }, (error) => {
+      console.error("Error fetching messages:", error);
+      toast({
+        title: "Грешка",
+        description: "Възникна проблем при зареждането на съобщенията",
+        variant: "destructive",
+      });
     });
 
     return () => unsubscribe();
@@ -93,15 +118,29 @@ export default function Chat() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !user || !chatId || !chatRoom) return;
+    if (!newMessage.trim() || !user || !chatId || !chatRoom || sending) return;
 
     try {
+      setSending(true);
       const messagesRef = collection(db, "chats", chatId, "messages");
-      await addDoc(messagesRef, {
+      const messageData = {
         text: newMessage,
         senderId: user.uid,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        type: 'user'
+      };
+
+      await addDoc(messagesRef, messageData);
+
+      // Update last message in chat room
+      await updateDoc(doc(db, "chats", chatId), {
+        lastMessage: {
+          text: newMessage,
+          senderId: user.uid,
+          timestamp: new Date().toISOString()
+        }
       });
+
       setNewMessage("");
     } catch (error) {
       console.error("Error sending message:", error);
@@ -110,15 +149,20 @@ export default function Chat() {
         description: "Съобщението не можа да бъде изпратено",
         variant: "destructive",
       });
+    } finally {
+      setSending(false);
     }
   };
 
-  if (!chatId || !chatRoom) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Card className="w-full max-w-md">
           <CardContent className="p-6">
-            <p className="text-center text-gray-500">Зареждане на чата...</p>
+            <div className="flex items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span className="ml-2">Зареждане на чата...</span>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -139,17 +183,27 @@ export default function Chat() {
                   key={msg.id}
                   className={`flex ${msg.senderId === user?.uid ? "justify-end" : "justify-start"}`}
                 >
-                  <div
-                    className={`max-w-[80%] px-4 py-2 rounded-lg ${
-                      msg.senderId === user?.uid
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
-                    }`}
-                  >
-                    <p className="break-words">{msg.text}</p>
-                  </div>
+                  {msg.type === 'system' ? (
+                    <div className="bg-muted/50 px-4 py-2 rounded-lg text-sm text-center w-full">
+                      {msg.text}
+                    </div>
+                  ) : (
+                    <div
+                      className={`max-w-[80%] px-4 py-2 rounded-lg ${
+                        msg.senderId === user?.uid
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted"
+                      }`}
+                    >
+                      <p className="break-words">{msg.text}</p>
+                      <span className="text-xs opacity-50 mt-1">
+                        {msg.createdAt?.toDate().toLocaleTimeString()}
+                      </span>
+                    </div>
+                  )}
                 </div>
               ))}
+              <div ref={messagesEndRef} />
             </div>
           </ScrollArea>
           <form onSubmit={handleSendMessage} className="flex gap-2 mt-4">
@@ -158,8 +212,15 @@ export default function Chat() {
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Напишете съобщение..."
               className="flex-1"
+              disabled={sending}
             />
-            <Button type="submit">Изпрати</Button>
+            <Button type="submit" disabled={sending}>
+              {sending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Изпрати"
+              )}
+            </Button>
           </form>
         </CardContent>
       </Card>
