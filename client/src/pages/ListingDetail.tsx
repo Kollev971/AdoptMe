@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRoute, useLocation } from "wouter";
+import { generateChatId } from "@/lib/utils";
 import { doc, getDoc, addDoc, collection } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";

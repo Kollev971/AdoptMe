@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -44,6 +43,9 @@ export function UserMenu() {
         )}
         <DropdownMenuItem onClick={() => setLocation("/profile")}>
           Профил
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setLocation("/chat")}>
+          Съобщения
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleLogout}>
           Изход
