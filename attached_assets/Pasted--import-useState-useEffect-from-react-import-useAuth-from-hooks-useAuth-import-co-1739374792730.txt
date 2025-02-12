@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { collection, query, where, orderBy, onSnapshot, getDocs } from "firebase/firestore";
@@ -41,7 +42,7 @@ export default function Messages() {
       const chatsPromises = snapshot.docs.map(async (doc) => {
         const chatData = doc.data();
         const otherUserId = Object.keys(chatData.participants).find(id => id !== user.uid);
-
+        
         if (otherUserId) {
           const userDoc = await getDocs(query(collection(db, "users"), where("uid", "==", otherUserId)));
           if (!userDoc.empty) {

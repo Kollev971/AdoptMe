@@ -26,6 +26,13 @@ export default function Chat() {
   const [chatRoom, setChatRoom] = useState<ChatRoom | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Handle navigation if no user or chatId
+  useEffect(() => {
+    if (!user || !chatId) {
+      setLocation("/messages");
+    }
+  }, [user, chatId]);
+
   // Verify chat access
   useEffect(() => {
     if (!chatId || !user) return;
@@ -61,7 +68,6 @@ export default function Chat() {
   }, [chatId, user]);
 
   if (!user || !chatId) {
-    setLocation("/messages");
     return null;
   }
 
