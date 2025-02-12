@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { useRoute } from "wouter";
+import { doc, getDoc, addDoc, collection } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -10,26 +10,21 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { useLocation, useNavigate } from 'react-router-dom';
 
 export default function ListingDetail() {
-  const { id } = useParams();
+  const [, params] = useRoute("/listings/:id");
   const { user } = useAuth();
   const { toast } = useToast();
   const [listing, setListing] = useState<Listing | null>(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const location = useLocation();
-  const navigate = useNavigate();
-  const setLocation = (path: string) => navigate(path, {replace: true});
-
 
   useEffect(() => {
     const fetchListing = async () => {
-      if (!id) return;
+      if (!params?.id) return;
 
       try {
-        const docRef = doc(db, "listings", id);
+        const docRef = doc(db, "listings", params.id);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
@@ -47,27 +42,25 @@ export default function ListingDetail() {
     fetchListing();
   }, [params?.id]);
 
-  const openChat = async () => {
+  const handleAdoptionRequest = async () => {
     if (!user || !listing) return;
 
     try {
       setLoading(true);
-      const chatId = [listing.userId, user.uid].sort().join('_');
-      const chatRef = doc(db, "chats", chatId);
-      const chatDoc = await getDoc(chatRef);
 
-      if (!chatDoc.exists()) {
-        await setDoc(chatRef, {
-          participants: {
-            [listing.userId]: true,
-            [user.uid]: true
-          },
-          listingId: listing.id,
-          createdAt: new Date().toISOString(),
-        });
-      }
+      await addDoc(collection(db, "adoptionRequests"), {
+        listingId: listing.id,
+        userId: user.uid,
+        ownerId: listing.userId, // Добавено ownerId
+        message,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      });
 
-      setLocation(`/chat/${chatId}`);
+      toast({
+        title: "Успешно",
+        description: "Заявката за осиновяване е изпратена успешно",
+      });
     } catch (error: any) {
       toast({
         title: "Грешка",
@@ -120,9 +113,33 @@ export default function ListingDetail() {
           </div>
 
           {user && user.uid !== listing.userId && (
-            <Button onClick={openChat} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-lg shadow-md">
-              Отвори чат
-            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-lg shadow-md">
+                  Изпрати заявка за осиновяване
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Изпрати заявка</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <Textarea
+                    placeholder="Напишете съобщение до собственика..."
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    className="min-h-[100px] border-gray-300"
+                  />
+                  <Button 
+                    onClick={handleAdoptionRequest}
+                    disabled={loading || !message.trim()}
+                    className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg shadow-md"
+                  >
+                    {loading ? "Изпращане..." : "Изпрати заявка"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           )}
         </CardContent>
       </Card>

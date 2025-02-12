@@ -1,5 +1,4 @@
-
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -10,29 +9,27 @@ import Profile from "./pages/Profile";
 import CreateListing from "./pages/CreateListing";
 import Listings from "./pages/Listings";
 import ListingDetail from "./pages/ListingDetail";
-import Chat from "./pages/Chat";
+import Chat from "./pages/Chat"; // Добавяме страницата за чат
 import NotFound from "./pages/not-found";
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <div className="min-h-screen bg-background">
-          <Navbar />
-          <main className="container py-6">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/create-listing" element={<CreateListing />} />
-              <Route path="/listings" element={<Listings />} />
-              <Route path="/listings/:id" element={<ListingDetail />} />
-              <Route path="/chat/:chatId" element={<Chat />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </main>
-        </div>
-      </Router>
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container py-6">
+          <Switch>
+            <Route path="/" component={Home} />
+            <Route path="/auth" component={Auth} />
+            <Route path="/profile" component={Profile} />
+            <Route path="/create-listing" component={CreateListing} />
+            <Route path="/listings" component={Listings} />
+            <Route path="/listings/:id" component={ListingDetail} />
+            <Route path="/chat/:chatId" component={Chat} /> {/* Нов маршрут за чата */}
+            <Route component={NotFound} />
+          </Switch>
+        </main>
+      </div>
       <Toaster />
     </QueryClientProvider>
   );
