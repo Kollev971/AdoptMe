@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { storage } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 
@@ -14,37 +12,39 @@ export function FileUpload({ setImages, images, className }: FileUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
 
+  const uploadImage = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await fetch(`https://api.imgbb.com/1/upload?key=${import.meta.env.VITE_IMGBB_API_KEY}`, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to upload image');
+    }
+
+    const data = await response.json();
+    return data.data.url;
+  };
+
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files?.length) return;
 
     setUploading(true);
-    const uploadPromises = Array.from(files).map(async (file) => {
-      const storageRef = ref(storage, `listings/${Date.now()}_${file.name}`);
-      const uploadTask = uploadBytesResumable(storageRef, file);
-
-      return new Promise<string>((resolve, reject) => {
-        uploadTask.on(
-          "state_changed",
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            setProgress(progress);
-          },
-          (error) => {
-            console.error("Error uploading file:", error);
-            reject(error);
-          },
-          async () => {
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            resolve(downloadURL);
-          }
-        );
-      });
-    });
+    const totalFiles = files.length;
+    const uploadedUrls: string[] = [];
 
     try {
-      const downloadURLs = await Promise.all(uploadPromises);
-      setImages([...images, ...downloadURLs]);
+      for (let i = 0; i < files.length; i++) {
+        const url = await uploadImage(files[i]);
+        uploadedUrls.push(url);
+        setProgress(((i + 1) / totalFiles) * 100);
+      }
+
+      setImages([...images, ...uploadedUrls]);
     } catch (error) {
       console.error("Error uploading files:", error);
     } finally {

@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useParams } from "wouter";
-import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, DocumentData } from "firebase/firestore";
+import { useParams, useLocation } from "wouter";
+import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, DocumentData, getDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   id: string;
@@ -15,14 +16,67 @@ interface Message {
   createdAt: any;
 }
 
+interface ChatRoom {
+  participants: string[];
+  listingId: string;
+  createdAt: string;
+}
+
 export default function Chat() {
   const { user } = useAuth();
   const { chatId } = useParams();
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
+  const [chatRoom, setChatRoom] = useState<ChatRoom | null>(null);
 
+  // Verify chat access
   useEffect(() => {
-    if (!chatId) return;
+    if (!chatId || !user) return;
+
+    const fetchChatRoom = async () => {
+      try {
+        const chatDoc = await getDoc(doc(db, "chats", chatId));
+        if (!chatDoc.exists()) {
+          toast({
+            title: "Грешка",
+            description: "Чатът не съществува",
+            variant: "destructive",
+          });
+          setLocation("/profile");
+          return;
+        }
+
+        const chatData = chatDoc.data() as ChatRoom;
+        if (!chatData.participants.includes(user.uid)) {
+          toast({
+            title: "Грешка",
+            description: "Нямате достъп до този чат",
+            variant: "destructive",
+          });
+          setLocation("/profile");
+          return;
+        }
+
+        setChatRoom(chatData);
+      } catch (error) {
+        console.error("Error fetching chat:", error);
+        toast({
+          title: "Грешка",
+          description: "Възникна проблем при зареждането на чата",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchChatRoom();
+  }, [chatId, user]);
+
+  // Load messages
+  useEffect(() => {
+    if (!chatId || !user || !chatRoom) return;
+
     const messagesRef = collection(db, "chats", chatId, "messages");
     const q = query(messagesRef, orderBy("createdAt", "asc"));
 
@@ -35,11 +89,11 @@ export default function Chat() {
     });
 
     return () => unsubscribe();
-  }, [chatId]);
+  }, [chatId, user, chatRoom]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !user || !chatId) return;
+    if (!newMessage.trim() || !user || !chatId || !chatRoom) return;
 
     try {
       const messagesRef = collection(db, "chats", chatId, "messages");
@@ -51,15 +105,20 @@ export default function Chat() {
       setNewMessage("");
     } catch (error) {
       console.error("Error sending message:", error);
+      toast({
+        title: "Грешка",
+        description: "Съобщението не можа да бъде изпратено",
+        variant: "destructive",
+      });
     }
   };
 
-  if (!chatId) {
+  if (!chatId || !chatRoom) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Card className="w-full max-w-md">
           <CardContent className="p-6">
-            <p className="text-center text-gray-500">Моля, изберете чат</p>
+            <p className="text-center text-gray-500">Зареждане на чата...</p>
           </CardContent>
         </Card>
       </div>

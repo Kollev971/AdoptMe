@@ -7,14 +7,17 @@ import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Profile() {
-  const { user, userData } = useAuth();
+  const { user } = useAuth();
   const [listings, setListings] = useState<Listing[]>([]);
   const [adoptionRequests, setAdoptionRequests] = useState<AdoptionRequest & { listingName?: string; adopterName?: string }[]>([]);
   const [sentRequests, setSentRequests] = useState<AdoptionRequest & { listingName?: string; ownerName?: string }[]>([]);
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
+  // Fetch user's listings
   useEffect(() => {
     if (!user) return;
 
@@ -29,10 +32,10 @@ export default function Profile() {
     });
   }, [user]);
 
+  // Fetch received adoption requests
   useEffect(() => {
     if (!user) return;
 
-    // Query for received requests
     const receivedRequestsQuery = query(
       collection(db, "adoptionRequests"),
       where("ownerId", "==", user.uid),
@@ -55,10 +58,10 @@ export default function Profile() {
     });
   }, [user]);
 
+  // Fetch sent adoption requests
   useEffect(() => {
     if (!user) return;
 
-    // Query for sent requests
     const sentRequestsQuery = query(
       collection(db, "adoptionRequests"),
       where("userId", "==", user.uid),
@@ -81,30 +84,51 @@ export default function Profile() {
     });
   }, [user]);
 
+  const generateChatId = (ownerId: string, adopterId: string) => {
+    // Sort IDs to ensure consistent chat ID regardless of who creates it
+    const sortedIds = [ownerId, adopterId].sort();
+    return `${sortedIds[0]}_${sortedIds[1]}`;
+  };
+
   const handleApproveRequest = async (request: AdoptionRequest) => {
     if (!user) return;
 
     try {
       // Update request status
-      await updateDoc(doc(db, "adoptionRequests", request.id), {
-        status: "approved"
+      const requestRef = doc(db, "adoptionRequests", request.id);
+      await updateDoc(requestRef, {
+        status: "approved",
+        updatedAt: new Date().toISOString()
       });
 
-      // Create a chat room
-      const chatId = `${request.ownerId}_${request.userId}`;
-      await setDoc(doc(db, "chats", chatId), {
+      // Create a chat room with sorted IDs to ensure consistency
+      const chatId = generateChatId(request.ownerId, request.userId);
+      const chatRef = doc(db, "chats", chatId);
+
+      // Use set with merge to prevent duplicate chat rooms
+      await setDoc(chatRef, {
         participants: [request.ownerId, request.userId],
+        listingId: request.listingId,
         createdAt: new Date().toISOString(),
-        listingId: request.listingId
-      });
+        lastUpdated: new Date().toISOString()
+      }, { merge: true });
 
+      toast({
+        title: "Успешно",
+        description: "Заявката е одобрена и чатът е създаден",
+      });
     } catch (error) {
       console.error("Error approving request:", error);
+      toast({
+        title: "Грешка",
+        description: "Възникна проблем при одобряването на заявката",
+        variant: "destructive",
+      });
     }
   };
 
   const openChat = (ownerId: string, userId: string) => {
-    const chatId = `${ownerId}_${userId}`;
+    const chatId = generateChatId(ownerId, userId);
     setLocation(`/chat/${chatId}`);
   };
 
