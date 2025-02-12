@@ -45,7 +45,7 @@ export function ListingCard({ listing }: ListingCardProps) {
   };
 
   return (
-    <Link href={`/listings/${listing.id}`} className="block">
+    <Link to={`/listings/${listing.id}`} className="block">
       <Card className="overflow-hidden hover:shadow-xl transition-transform transform hover:scale-105 cursor-pointer rounded-xl bg-white shadow-md">
         <CardContent className="p-0">
           <AspectRatio ratio={4 / 3} className="relative">
