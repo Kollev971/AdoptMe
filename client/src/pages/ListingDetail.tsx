@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import type { Listing } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
@@ -26,14 +26,14 @@ export default function ListingDetail() {
       try {
         const docRef = doc(db, "listings", params.id);
         const docSnap = await getDoc(docRef);
-        
+
         if (docSnap.exists()) {
           setListing({ id: docSnap.id, ...docSnap.data() } as Listing);
         }
       } catch (error: any) {
         toast({
-          title: "Error",
-          description: "Failed to load listing",
+          title: "Грешка",
+          description: "Неуспешно зареждане на обявата",
           variant: "destructive",
         });
       }
@@ -47,22 +47,23 @@ export default function ListingDetail() {
 
     try {
       setLoading(true);
-      
+
       await addDoc(collection(db, "adoptionRequests"), {
         listingId: listing.id,
         userId: user.uid,
+        ownerId: listing.userId, // Добавено ownerId
         message,
         status: "pending",
         createdAt: new Date().toISOString(),
       });
 
       toast({
-        title: "Success",
-        description: "Adoption request sent successfully",
+        title: "Успешно",
+        description: "Заявката за осиновяване е изпратена успешно",
       });
     } catch (error: any) {
       toast({
-        title: "Error",
+        title: "Грешка",
         description: error.message,
         variant: "destructive",
       });
@@ -74,19 +75,22 @@ export default function ListingDetail() {
   if (!listing) return null;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <Card>
-        <CardContent className="p-6">
-          <div className="mb-6">
-            <Carousel>
+    <div className="max-w-5xl mx-auto space-y-8 p-6 bg-gray-50 rounded-lg shadow-md min-h-screen flex flex-col items-center justify-center">
+      <Card className="w-full max-w-3xl overflow-hidden rounded-lg shadow-lg bg-white">
+        <CardHeader className="bg-gray-900 text-white p-6 text-center rounded-t-lg">
+          <h1 className="text-3xl font-bold">{listing.title}</h1>
+        </CardHeader>
+        <CardContent className="p-6 space-y-6">
+          <div className="w-full flex justify-center">
+            <Carousel className="w-full max-w-2xl">
               <CarouselContent>
                 {listing.images.map((image, index) => (
-                  <CarouselItem key={index}>
-                    <div className="aspect-square relative">
+                  <CarouselItem key={index} className="flex justify-center">
+                    <div className="aspect-square relative max-w-lg">
                       <img
                         src={image}
-                        alt={`${listing.title} - image ${index + 1}`}
-                        className="object-cover rounded-lg"
+                        alt={`${listing.title} - изображение ${index + 1}`}
+                        className="object-cover w-full h-full rounded-lg shadow-md"
                       />
                     </div>
                   </CarouselItem>
@@ -97,44 +101,41 @@ export default function ListingDetail() {
             </Carousel>
           </div>
 
-          <h1 className="text-3xl font-bold mb-4">{listing.title}</h1>
-          
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div>
-              <span className="font-medium">Type:</span> {listing.type}
-            </div>
-            <div>
-              <span className="font-medium">Age:</span> {listing.age} years
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-gray-700 text-lg">
+            <div><span className="font-semibold">Вид:</span> {listing.type}</div>
+            <div><span className="font-semibold">Възраст:</span> {listing.age} години</div>
+            <div><span className="font-semibold">Публикувано на:</span> {new Date(listing.createdAt).toLocaleDateString()}</div>
           </div>
 
-          <div className="mb-6">
-            <h2 className="font-medium mb-2">Description</h2>
-            <p className="text-gray-600">{listing.description}</p>
+          <div className="border-t border-gray-300 pt-4">
+            <h2 className="font-semibold text-xl">Описание</h2>
+            <p className="text-gray-600 leading-relaxed">{listing.description}</p>
           </div>
 
           {user && user.uid !== listing.userId && (
             <Dialog>
               <DialogTrigger asChild>
-                <Button className="w-full">Request Adoption</Button>
+                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-lg shadow-md">
+                  Изпрати заявка за осиновяване
+                </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Send Adoption Request</DialogTitle>
+                  <DialogTitle>Изпрати заявка</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                   <Textarea
-                    placeholder="Write a message to the owner..."
+                    placeholder="Напишете съобщение до собственика..."
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    className="min-h-[100px]"
+                    className="min-h-[100px] border-gray-300"
                   />
                   <Button 
                     onClick={handleAdoptionRequest}
                     disabled={loading || !message.trim()}
-                    className="w-full"
+                    className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg shadow-md"
                   >
-                    {loading ? "Sending..." : "Send Request"}
+                    {loading ? "Изпращане..." : "Изпрати заявка"}
                   </Button>
                 </div>
               </DialogContent>

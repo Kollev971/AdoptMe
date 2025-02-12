@@ -1,0 +1,52 @@
+import { Link } from "wouter";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
+import type { Listing } from "@shared/schema";
+
+interface ListingCardProps {
+  listing: Listing;
+}
+
+export function ListingCard({ listing }: ListingCardProps) {
+  const formatAge = (age: number) => {
+    if (age < 1) {
+      const months = Math.round(age * 12);
+      return `${months} month${months === 1 ? '' : 's'}`;
+    }
+    return `${age} year${age === 1 ? '' : 's'}`;
+  };
+
+  return (
+    <Link href={`/listings/${listing.id}`}>
+      <Card className="overflow-hidden hover:shadow-xl transition-shadow transform hover:scale-105 cursor-pointer rounded-lg shadow-lg bg-white">
+        <CardContent className="p-0">
+          <AspectRatio ratio={4/3}>
+            <img
+              src={listing.images[0] || 'https://via.placeholder.com/400x300?text=No+Image'}
+              alt={listing.title}
+              className="object-cover w-full h-full rounded-t-lg transition-transform transform hover:scale-110"
+            />
+          </AspectRatio>
+          <div className="p-4">
+            <div className="flex justify-between items-start mb-3">
+              <h3 className="font-semibold text-xl text-gray-900 line-clamp-1 hover:text-primary transition-colors">{listing.title}</h3>
+              <Badge variant="secondary" className="capitalize bg-gradient-to-r from-primary to-secondary text-white py-1 px-2 rounded-lg">
+                {listing.type}
+              </Badge>
+            </div>
+            <p className="text-sm text-gray-600 mb-2">
+              Age: {formatAge(listing.age)}
+            </p>
+            <p className="text-sm text-gray-700 line-clamp-3">{listing.description}</p>
+          </div>
+        </CardContent>
+        <CardFooter className="p-4 pt-0 bg-gray-50 rounded-b-lg">
+          <div className="text-sm text-gray-500">
+            Listed on {new Date(listing.createdAt).toLocaleDateString()}
+          </div>
+        </CardFooter>
+      </Card>
+    </Link>
+  );
+}

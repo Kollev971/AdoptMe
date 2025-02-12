@@ -1,0 +1,25 @@
+Warning: Received NaN for the &#x60;value&#x60; attribute. If this is expected, cast the value to a string.
+    at input
+    at _c (https://07303207-7fba-46e8-ae8c-30913bb46733-00-26px2rz7g1mdk.spock.replit.dev/src/components/ui/input.tsx:20:11)
+    at https://07303207-7fba-46e8-ae8c-30913bb46733-00-26px2rz7g1mdk.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-4WIT4MX7.js?v=834f216b:52:11
+    at https://07303207-7fba-46e8-ae8c-30913bb46733-00-26px2rz7g1mdk.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-4WIT4MX7.js?v=834f216b:33:11
+    at https://07303207-7fba-46e8-ae8c-30913bb46733-00-26px2rz7g1mdk.spock.replit.dev/src/components/ui/form.tsx:127:9
+    at div
+    at https://07303207-7fba-46e8-ae8c-30913bb46733-00-26px2rz7g1mdk.spock.replit.dev/src/components/ui/form.tsx:71:6
+    at Controller (https://07303207-7fba-46e8-ae8c-30913bb46733-00-26px2rz7g1mdk.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RBMNEPGM.js?v=834f216b:313:35)
+    at FormField (https://07303207-7fba-46e8-ae8c-30913bb46733-00-26px2rz7g1mdk.spock.replit.dev/src/components/ui/form.tsx:32:6)
+    at form
+    at FormProvider (https://07303207-7fba-46e8-ae8c-30913bb46733-00-26px2rz7g1mdk.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RBMNEPGM.js?v=834f216b:102:11)
+    at div
+    at _c9 (https://07303207-7fba-46e8-ae8c-30913bb46733-00-26px2rz7g1mdk.spock.replit.dev/src/components/ui/card.tsx:106:12)
+    at div
+    at _c (https://07303207-7fba-46e8-ae8c-30913bb46733-00-26px2rz7g1mdk.spock.replit.dev/src/components/ui/card.tsx:20:11)
+    at CreateListing (https://07303207-7fba-46e8-ae8c-30913bb46733-00-26px2rz7g1mdk.spock.replit.dev/src/pages/CreateListing.tsx:37:33)
+    at Route (https://07303207-7fba-46e8-ae8c-30913bb46733-00-26px2rz7g1mdk.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=834f216b:323:16)
+    at Switch (https://07303207-7fba-46e8-ae8c-30913bb46733-00-26px2rz7g1mdk.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=834f216b:379:17)
+    at main
+    at div
+    at QueryClientProvider (https://07303207-7fba-46e8-ae8c-30913bb46733-00-26px2rz7g1mdk.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=834f216b:2835:3)
+    at App
+Error fetching listings: 
+_FirebaseError {code: "failed-precondition", customData: undefined, name: "FirebaseError", toString: ƒ}

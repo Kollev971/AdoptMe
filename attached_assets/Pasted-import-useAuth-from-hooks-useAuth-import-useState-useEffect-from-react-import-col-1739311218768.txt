@@ -129,7 +129,6 @@ export default function Profile() {
               <p><strong>Изпратено до:</strong> {request.ownerName}</p>
               <p><strong>Обява:</strong> {request.listingName}</p>
               <p><strong>Статус:</strong> {request.status}</p>
-              {/*  Add a button to open a chat */}
               {request.status === "approved" && (
                 <Button onClick={() => setLocation(`/chat/${request.ownerId}_${request.userId}`)} size="sm" className="mt-2">
                   Отвори чат

@@ -1,0 +1,193 @@
+import { useState } from "react";
+import { useLocation } from "wouter";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { db, storage } from "@/lib/firebase";
+import { collection, addDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { listingSchema } from "@shared/schema";
+import { FileUpload } from "@/components/FileUpload";
+import { Label } from "@/components/ui/label"; // Import Label
+
+const createListingSchema = listingSchema.omit({ id: true, userId: true, createdAt: true });
+
+export default function CreateListing() {
+  const [loading, setLoading] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const [images, setImages] = useState<string[]>([]);
+
+  const form = useForm<z.infer<typeof createListingSchema>>({
+    resolver: zodResolver(createListingSchema),
+    defaultValues: {
+      title: "",
+      type: "dog",
+      age: 0,
+      description: "",
+      images: [],
+    },
+  });
+
+  const onSubmit = async (data: z.infer<typeof createListingSchema>) => {
+    if (!user) {
+      toast({
+        title: "Грешка",
+        description: "Трябва да сте влезли в профила си, за да създадете обява",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Create listing
+      const listingData = {
+        ...data,
+        images,
+        userId: user.uid,
+        createdAt: new Date().toISOString(),
+      };
+
+      const listingRef = await addDoc(collection(db, "listings"), {
+        ...listingData,
+        userId: user.uid,
+        createdAt: new Date().toISOString()
+      });
+
+      toast({
+        title: "Успешно създадена обява",
+        description: "Вашата обява беше публикувана успешно"
+      });
+
+      toast({
+        title: "Успех!",
+        description: "Обявата е създадена успешно",
+        duration: 5000,
+      });
+
+      setLocation("/listings");
+    } catch (error: any) {
+      toast({
+        title: "Грешка",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card className="max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle>Създай нова обява</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Заглавие</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Въведете заглавие на обявата" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Вид на любимеца</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Изберете вид" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="dog">Куче</SelectItem>
+                      <SelectItem value="cat">Котка</SelectItem>
+                      <SelectItem value="other">Друго</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="age"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Възраст (години)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      min="0"
+                      step="0.1"
+                      placeholder="Въведете възрастта" 
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Описание</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Опишете любимеца" 
+                      className="min-h-[100px]"
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div>
+              <Label htmlFor="images">Снимки</Label> {/* Use Label here */}
+              <FileUpload 
+                setImages={setImages}
+                images={images} 
+                className="w-full"
+              />
+            </div>
+
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Създаване..." : "Създай обява"}
+            </Button>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+  );
+}

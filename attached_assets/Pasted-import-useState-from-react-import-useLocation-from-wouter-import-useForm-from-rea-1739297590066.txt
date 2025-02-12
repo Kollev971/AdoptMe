@@ -11,20 +11,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { db } from "@/lib/firebase";
+import { db, storage } from "@/lib/firebase";
 import { collection, addDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { listingSchema } from "@shared/schema";
 
-const createListingSchema = z.object({
-  title: z.string().min(1, "Заглавието е задължително"),
-  type: z.enum(["dog", "cat", "other"]),
-  age: z.number().min(0, "Възрастта не може да е отрицателна"),
-  description: z.string().min(1, "Описанието е задължително"),
-  images: z.array(z.string()).optional(),
-});
+const createListingSchema = listingSchema.omit({ id: true, userId: true, createdAt: true });
 
 export default function CreateListing() {
   const [loading, setLoading] = useState(false);
-  const [images, setImages] = useState<string[]>([]); // Съхранява качените URL адреси
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -40,20 +36,6 @@ export default function CreateListing() {
     },
   });
 
-  // Функция за качване на снимки (фиктивно)
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files) return;
-
-    // Генерираме фиктивен URL (примерно изображение)
-    const uploadedImages = Array.from(files).map(
-      (_, index) => `https://placekitten.com/200/200?image=${index}`
-    );
-
-    setImages(uploadedImages);
-    form.setValue("images", uploadedImages);
-  };
-
   const onSubmit = async (data: z.infer<typeof createListingSchema>) => {
     if (!user) {
       toast({
@@ -67,18 +49,41 @@ export default function CreateListing() {
     try {
       setLoading(true);
 
+      // Upload images
+      const imageUrls: string[] = [];
+      if (selectedFiles) {
+        for (let i = 0; i < selectedFiles.length; i++) {
+          const file = selectedFiles[i];
+          const storageRef = ref(storage, `listings/${Date.now()}_${file.name}`);
+          const snapshot = await uploadBytes(storageRef, file);
+          const url = await getDownloadURL(snapshot.ref);
+          imageUrls.push(url);
+        }
+      }
+
+      // Create listing
       const listingData = {
         ...data,
-        images, // Добавяме фиктивни снимки
+        images: imageUrls,
         userId: user.uid,
         createdAt: new Date().toISOString(),
       };
 
-      await addDoc(collection(db, "listings"), listingData);
+      const listingRef = await addDoc(collection(db, "listings"), {
+        ...listingData,
+        userId: user.uid,
+        createdAt: new Date().toISOString()
+      });
 
       toast({
         title: "Успешно създадена обява",
-        description: "Вашата обява беше публикувана успешно",
+        description: "Вашата обява беше публикувана успешно"
+      });
+
+      toast({
+        title: "Успех!",
+        description: "Обявата е създадена успешно",
+        duration: 5000,
       });
 
       setLocation("/listings");
@@ -145,11 +150,11 @@ export default function CreateListing() {
                 <FormItem>
                   <FormLabel>Възраст (години)</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
+                    <Input 
+                      type="number" 
                       min="0"
                       step="0.1"
-                      placeholder="Въведете възрастта"
+                      placeholder="Въведете възрастта" 
                       {...field}
                       onChange={(e) => field.onChange(parseFloat(e.target.value))}
                     />
@@ -166,10 +171,10 @@ export default function CreateListing() {
                 <FormItem>
                   <FormLabel>Описание</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Опишете любимеца"
+                    <Textarea 
+                      placeholder="Опишете любимеца" 
                       className="min-h-[100px]"
-                      {...field}
+                      {...field} 
                     />
                   </FormControl>
                   <FormMessage />
@@ -177,16 +182,18 @@ export default function CreateListing() {
               )}
             />
 
-            {/* Поле за качване на снимки */}
-            <div>
+            <FormItem>
               <FormLabel>Снимки</FormLabel>
-              <input type="file" multiple accept="image/*" onChange={handleFileUpload} />
-              <div className="flex gap-2 mt-2">
-                {images.map((img, index) => (
-                  <img key={index} src={img} alt="uploaded" className="w-20 h-20 object-cover rounded" />
-                ))}
-              </div>
-            </div>
+              <FormControl>
+                <Input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={(e) => setSelectedFiles(e.target.files)}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Създаване..." : "Създай обява"}

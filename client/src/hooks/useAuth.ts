@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { User as FirebaseUser } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
@@ -13,7 +12,7 @@ export function useAuth() {
   useEffect(() => {
     const unsubscribeAuth = auth.onAuthStateChanged(async (firebaseUser) => {
       setUser(firebaseUser);
-      
+
       if (!firebaseUser) {
         setUserData(null);
         setLoading(false);
