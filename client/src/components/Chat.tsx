@@ -35,6 +35,14 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
   useEffect(() => {
     if (!chatId || !user) return;
 
+    const chatRef = ref(database, `chats/${chatId}`);
+    // Initialize chat if it doesn't exist
+    set(chatRef, {
+      participants: {
+        [user.uid]: true
+      }
+    }, { merge: true });
+
     const messagesRef = ref(database, `chats/${chatId}/messages`);
     const messagesQuery = query(messagesRef, orderByChild('timestamp'));
 
