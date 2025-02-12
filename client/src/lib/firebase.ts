@@ -7,7 +7,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyBi0vY3afPi46kgqgBJvW6JHxLUwqQsSYI",
   authDomain: "doggycat-5b20c.firebaseapp.com",
   projectId: "doggycat-5b20c",
-  storageBucket: "doggycat-5b20c.appspot.com",
+  storageBucket: "doggycat-5b20c.firebasestorage.app",
   messagingSenderId: "147390397323",
   appId: "1:147390397323:web:581d860b5a6a683acb8d8e",
   measurementId: "G-PS3DS1YQQY"
