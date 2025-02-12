@@ -1,12 +1,11 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { collection, query, where, orderBy, onSnapshot, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { ref, query, orderByChild, onValue } from "firebase/database";
+import { database } from "@/lib/firebase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation } from "wouter";
 import { Loader2, MessageCircle } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface Chat {
   id: string;
@@ -14,7 +13,7 @@ interface Chat {
   lastMessage?: {
     text: string;
     senderId: string;
-    timestamp: string;
+    timestamp: number;
   };
   otherUser?: {
     id: string;
@@ -31,37 +30,31 @@ export default function Messages() {
   useEffect(() => {
     if (!user) return;
 
-    const chatsRef = collection(db, "chats");
-    const q = query(
-      chatsRef,
-      where(`participants.${user.uid}`, "==", true),
-      orderBy("lastMessage.timestamp", "desc")
-    );
+    const chatsRef = ref(database, 'chats');
+    const chatsQuery = query(chatsRef, orderByChild(`participants/${user.uid}`));
 
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      const chatsPromises = snapshot.docs.map(async (doc) => {
-        const chatData = doc.data();
-        const otherUserId = Object.keys(chatData.participants).find(id => id !== user.uid);
-        
-        if (otherUserId) {
-          const userDoc = await getDocs(query(collection(db, "users"), where("uid", "==", otherUserId)));
-          if (!userDoc.empty) {
-            const userData = userDoc.docs[0].data();
-            return {
-              id: doc.id,
-              ...chatData,
-              otherUser: {
-                id: otherUserId,
-                email: userData.email,
-              }
-            } as Chat;
-          }
+    const unsubscribe = onValue(chatsQuery, (snapshot) => {
+      const chatsData: Chat[] = [];
+      snapshot.forEach((childSnapshot) => {
+        const chatData = childSnapshot.val();
+        if (chatData.participants[user.uid]) {
+          const otherUserId = Object.keys(chatData.participants).find(id => id !== user.uid);
+          chatsData.push({
+            id: childSnapshot.key!,
+            ...chatData,
+            otherUser: otherUserId ? {
+              id: otherUserId,
+              email: chatData.participantEmails?.[otherUserId] || 'Unknown User'
+            } : undefined
+          });
         }
-        return { id: doc.id, ...chatData } as Chat;
       });
 
-      const resolvedChats = await Promise.all(chatsPromises);
-      setChats(resolvedChats);
+      setChats(chatsData.sort((a, b) => {
+        const timeA = a.lastMessage?.timestamp || 0;
+        const timeB = b.lastMessage?.timestamp || 0;
+        return timeB - timeA;
+      }));
       setLoading(false);
     });
 

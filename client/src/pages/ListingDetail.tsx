@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import { generateChatId } from "@/lib/utils";
-import { doc, getDoc, addDoc, collection } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { ref, get, child, push, set } from "firebase/database";
+import { database } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import type { Listing } from "@shared/schema";
@@ -26,11 +26,11 @@ export default function ListingDetail() {
       if (!params?.id) return;
 
       try {
-        const docRef = doc(db, "listings", params.id);
-        const docSnap = await getDoc(docRef);
+        const listingRef = ref(database, `listings/${params.id}`);
+        const snapshot = await get(listingRef);
 
-        if (docSnap.exists()) {
-          setListing({ id: docSnap.id, ...docSnap.data() } as Listing);
+        if (snapshot.exists()) {
+          setListing({ id: snapshot.key!, ...snapshot.val() } as Listing);
         }
       } catch (error: any) {
         toast({
@@ -50,14 +50,18 @@ export default function ListingDetail() {
     try {
       setLoading(true);
 
-      await addDoc(collection(db, "adoptionRequests"), {
+      const requestData = {
         listingId: listing.id,
         userId: user.uid,
-        ownerId: listing.userId, // Добавено ownerId
+        ownerId: listing.userId,
         message,
         status: "pending",
         createdAt: new Date().toISOString(),
-      });
+      };
+
+      const requestsRef = ref(database, 'adoptionRequests');
+      const newRequestRef = push(requestsRef);
+      await set(newRequestRef, requestData);
 
       toast({
         title: "Успешно",

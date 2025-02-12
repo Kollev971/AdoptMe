@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { collection, query, onSnapshot, orderBy, getDoc, doc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { ref, query, orderByChild, onValue, get } from "firebase/database";
+import { database } from "@/lib/firebase";
 import type { Listing } from "@shared/schema";
 import { ListingCard } from "@/components/ListingCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,45 +12,24 @@ export default function Listings() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const listingsRef = collection(db, "listings");
-    const q = query(listingsRef, orderBy("createdAt", "desc"));
+    const listingsRef = ref(database, "listings");
+    const listingsQuery = query(listingsRef, orderByChild("createdAt"));
 
-    const unsubscribe = onSnapshot(
-      q,
-      async (snapshot) => {
-        const listingsData = await Promise.all(
-          snapshot.docs.map(async (docSnap) => {
-            const data = docSnap.data() as Listing;
+    const unsubscribe = onValue(listingsQuery, async (snapshot) => {
+      const listingsData: Listing[] = [];
+      snapshot.forEach((childSnapshot) => {
+        const data = childSnapshot.val();
+        listingsData.push({
+          id: childSnapshot.key!,
+          ...data,
+        });
+      });
 
-            // Проверяваме дали userId съществува
-            if (!data.userId) {
-              return { id: docSnap.id, ...data, username: "Неизвестен потребител" };
-            }
-
-            try {
-              // Вземаме username от `users/{userId}`
-              const userRef = doc(db, "users", data.userId);
-              const userSnap = await getDoc(userRef);
-
-              if (userSnap.exists()) {
-                return { id: docSnap.id, ...data, username: userSnap.data().username };
-              }
-            } catch (error) {
-              console.error("Error fetching username:", error);
-            }
-
-            return { id: docSnap.id, ...data, username: "Неизвестен потребител" };
-          })
-        );
-
-        setListings(listingsData);
-        setLoading(false);
-      },
-      (error) => {
-        console.error("Error fetching listings:", error);
-        setLoading(false);
-      }
-    );
+      // Sort by createdAt in descending order
+      listingsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setListings(listingsData);
+      setLoading(false);
+    });
 
     return () => unsubscribe();
   }, []);

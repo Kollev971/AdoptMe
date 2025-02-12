@@ -1,32 +1,30 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useParams, useLocation } from "wouter";
-import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, DocumentData, getDoc, doc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { ref, onValue, push, set, serverTimestamp } from "firebase/database";
+import { database } from "@/lib/firebase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2 } from "lucide-react";
 
 interface Message {
   id: string;
   text: string;
   senderId: string;
-  createdAt: any;
+  timestamp: number;
   type?: 'system' | 'user';
 }
 
 interface ChatRoom {
   participants: { [key: string]: boolean };
-  listingId: string;
-  createdAt: string;
+  participantEmails?: { [key: string]: string };
   lastMessage?: {
     text: string;
     senderId: string;
-    timestamp: string;
+    timestamp: number;
   };
 }
 
@@ -50,67 +48,51 @@ export default function Chat() {
   useEffect(() => {
     if (!chatId || !user) return;
 
-    const fetchChatRoom = async () => {
-      try {
-        const chatDoc = await getDoc(doc(db, "chats", chatId));
-        if (!chatDoc.exists()) {
-          toast({
-            title: "Грешка",
-            description: "Чатът не съществува",
-            variant: "destructive",
-          });
-          setLocation("/profile");
-          return;
-        }
-
-        const chatData = chatDoc.data() as ChatRoom;
-        if (!chatData.participants[user.uid]) {
-          toast({
-            title: "Грешка",
-            description: "Нямате достъп до този чат",
-            variant: "destructive",
-          });
-          setLocation("/profile");
-          return;
-        }
-
-        setChatRoom(chatData);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching chat:", error);
+    const chatRef = ref(database, `chats/${chatId}`);
+    const unsubscribe = onValue(chatRef, (snapshot) => {
+      if (!snapshot.exists()) {
         toast({
           title: "Грешка",
-          description: "Възникна проблем при зареждането на чата",
+          description: "Чатът не съществува",
           variant: "destructive",
         });
-        setLoading(false);
+        setLocation("/profile");
+        return;
       }
-    };
 
-    fetchChatRoom();
+      const chatData = snapshot.val() as ChatRoom;
+      if (!chatData.participants[user.uid]) {
+        toast({
+          title: "Грешка",
+          description: "Нямате достъп до този чат",
+          variant: "destructive",
+        });
+        setLocation("/profile");
+        return;
+      }
+
+      setChatRoom(chatData);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, [chatId, user]);
 
   // Load messages
   useEffect(() => {
     if (!chatId || !user || !chatRoom) return;
 
-    const messagesRef = collection(db, "chats", chatId, "messages");
-    const q = query(messagesRef, orderBy("createdAt", "asc"));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const messagesData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Message));
-      setMessages(messagesData);
-      scrollToBottom();
-    }, (error) => {
-      console.error("Error fetching messages:", error);
-      toast({
-        title: "Грешка",
-        description: "Възникна проблем при зареждането на съобщенията",
-        variant: "destructive",
+    const messagesRef = ref(database, `chats/${chatId}/messages`);
+    const unsubscribe = onValue(messagesRef, (snapshot) => {
+      const messagesData: Message[] = [];
+      snapshot.forEach((childSnapshot) => {
+        messagesData.push({
+          id: childSnapshot.key!,
+          ...childSnapshot.val()
+        });
       });
+      setMessages(messagesData.sort((a, b) => a.timestamp - b.timestamp));
+      scrollToBottom();
     });
 
     return () => unsubscribe();
@@ -122,23 +104,22 @@ export default function Chat() {
 
     try {
       setSending(true);
-      const messagesRef = collection(db, "chats", chatId, "messages");
+      const messagesRef = ref(database, `chats/${chatId}/messages`);
+      const newMessageRef = push(messagesRef);
       const messageData = {
         text: newMessage,
         senderId: user.uid,
-        createdAt: serverTimestamp(),
+        timestamp: Date.now(),
         type: 'user'
       };
 
-      await addDoc(messagesRef, messageData);
+      await set(newMessageRef, messageData);
 
       // Update last message in chat room
-      await updateDoc(doc(db, "chats", chatId), {
-        lastMessage: {
-          text: newMessage,
-          senderId: user.uid,
-          timestamp: new Date().toISOString()
-        }
+      await set(ref(database, `chats/${chatId}/lastMessage`), {
+        text: newMessage,
+        senderId: user.uid,
+        timestamp: Date.now()
       });
 
       setNewMessage("");
@@ -197,7 +178,7 @@ export default function Chat() {
                     >
                       <p className="break-words">{msg.text}</p>
                       <span className="text-xs opacity-50 mt-1">
-                        {msg.createdAt?.toDate().toLocaleTimeString()}
+                        {new Date(msg.timestamp).toLocaleTimeString()}
                       </span>
                     </div>
                   )}

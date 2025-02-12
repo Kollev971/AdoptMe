@@ -10,7 +10,7 @@ interface Message {
   id: string;
   userId: string;
   message: string;
-  timestamp: any; // Firestore Timestamp
+  timestamp: number;
 }
 
 interface ChatProps {
@@ -25,8 +25,9 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
   useEffect(() => {
     if (!chatId) return;
 
+    // Subscribe to chat messages
     const unsubscribe = subscribeToChat(chatId, (newMessages) => {
-      setMessages(newMessages);
+      setMessages(newMessages.sort((a, b) => a.timestamp - b.timestamp));
     });
 
     return () => unsubscribe();
@@ -62,7 +63,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
               >
                 <p className="text-sm">{msg.message}</p>
                 <span className="text-xs opacity-70">
-                  {msg.timestamp?.toDate()?.toLocaleTimeString() || 'Just now'}
+                  {new Date(msg.timestamp).toLocaleTimeString()}
                 </span>
               </div>
             </div>

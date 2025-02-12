@@ -6,8 +6,8 @@ import type { Listing } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
-import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { database } from "@/lib/firebase";
+import { ref, get } from "firebase/database";
 
 interface ListingCardProps {
   listing: Listing;
@@ -22,11 +22,11 @@ export function ListingCard({ listing }: ListingCardProps) {
       if (!listing?.userId) return;
 
       try {
-        const docRef = doc(db, "users", listing.userId);
-        const docSnap = await getDoc(docRef);
+        const userRef = ref(database, `users/${listing.userId}`);
+        const snapshot = await get(userRef);
 
-        if (docSnap.exists()) {
-          setListingUser(docSnap.data());
+        if (snapshot.exists()) {
+          setListingUser(snapshot.val());
         }
       } catch (error: any) {
         console.error("Error fetching listing user:", error);

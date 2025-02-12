@@ -10,8 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { registerUser, loginUser } from "@/lib/firebase";
-import { db } from "@/lib/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { database } from "@/lib/firebase";
+import { ref, set } from "firebase/database";
 import { userSchema } from "@shared/schema";
 
 // First omit the auto-generated fields, then extend with password fields, then add refinement
@@ -71,7 +71,7 @@ export default function Auth() {
       // First create the Firebase auth user
       const userCredential = await registerUser(data.email, data.password);
 
-      // Prepare user data for Firestore
+      // Prepare user data for Realtime Database
       const userData = {
         uid: userCredential.uid,
         username: data.username,
@@ -82,8 +82,8 @@ export default function Auth() {
         emailVerified: false,
       };
 
-      // Save user data to Firestore
-      await setDoc(doc(db, "users", userCredential.uid), userData);
+      // Save user data to Realtime Database
+      await set(ref(database, `users/${userCredential.uid}`), userData);
 
       // Show success message and handle redirection
       toast({

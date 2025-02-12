@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,9 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Listing } from "@shared/schema";
-import { db } from "@/lib/firebase";
-import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
-import { useEffect } from "react";
+import { database } from "@/lib/firebase";
+import { ref, query, orderByChild, onValue, remove } from "firebase/database";
 
 export default function Profile() {
   const { user } = useAuth();
@@ -21,18 +20,25 @@ export default function Profile() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loadingListings, setLoadingListings] = useState(true);
 
-
   useEffect(() => {
     if (!user) return;
 
-    const q = query(
-      collection(db, "listings"),
-      where("userId", "==", user.uid),
-      orderBy("createdAt", "desc")
-    );
+    const listingsRef = ref(database, "listings");
+    const listingsQuery = query(listingsRef, orderByChild("userId"), user.uid);
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setListings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Listing[]);
+    const unsubscribe = onValue(listingsQuery, (snapshot) => {
+      const listingsData: Listing[] = [];
+      snapshot.forEach((childSnapshot) => {
+        // Only include listings that belong to the current user
+        const data = childSnapshot.val();
+        if (data.userId === user.uid) {
+          listingsData.push({
+            id: childSnapshot.key!,
+            ...data
+          });
+        }
+      });
+      setListings(listingsData);
       setLoadingListings(false);
     }, (error) => {
       console.error("Error fetching listings:", error);
@@ -66,6 +72,24 @@ export default function Profile() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteListing = async (listingId: string) => {
+    try {
+      const listingRef = ref(database, `listings/${listingId}`);
+      await remove(listingRef);
+
+      toast({
+        title: "Успешно",
+        description: "Обявата беше изтрита успешно",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Грешка",
+        description: "Възникна проблем при изтриването на обявата",
+        variant: "destructive",
+      });
     }
   };
 
@@ -134,6 +158,12 @@ export default function Profile() {
                       <div className="flex-1">
                         <h3 className="text-xl font-semibold mb-2">{listing.title}</h3>
                         <p className="text-muted-foreground mb-4">{listing.description}</p>
+                        <Button 
+                          variant="destructive" 
+                          onClick={() => handleDeleteListing(listing.id)}
+                        >
+                          Изтрий обява
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
