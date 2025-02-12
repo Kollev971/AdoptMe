@@ -14,18 +14,25 @@ export function FileUpload({ setImages, images, className }: FileUploadProps) {
   const [progress, setProgress] = useState(0);
   const { toast } = useToast();
 
+  const apiKey = import.meta.env.VITE_IMGBB_API_KEY;
+
   const uploadImage = async (file: File): Promise<string> => {
+    if (!apiKey) {
+      throw new Error('ImgBB API key is not configured');
+    }
+
     const formData = new FormData();
     formData.append('image', file);
 
     try {
-      const response = await fetch(`https://api.imgbb.com/1/upload?key=${import.meta.env.VITE_IMGBB_API_KEY}`, {
+      const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
         method: 'POST',
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
@@ -34,7 +41,7 @@ export function FileUpload({ setImages, images, className }: FileUploadProps) {
       }
 
       return data.data.url;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading to ImgBB:', error);
       throw error;
     }
@@ -43,6 +50,15 @@ export function FileUpload({ setImages, images, className }: FileUploadProps) {
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files?.length) return;
+
+    if (!apiKey) {
+      toast({
+        title: "Грешка при конфигурацията",
+        description: "ImgBB API ключът не е конфигуриран правилно.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const validFiles = Array.from(files).filter(file => {
       const isValidType = file.type.startsWith('image/');

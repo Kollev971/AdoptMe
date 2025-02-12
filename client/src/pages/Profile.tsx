@@ -166,8 +166,9 @@ export default function Profile() {
       }, { merge: true });
 
       // Create initial system message in the chat
-      const messagesRef = doc(collection(db, "chats", chatId, "messages"));
-      batch.set(messagesRef, {
+      const messagesCollection = collection(db, "chats", chatId, "messages");
+      const messageRef = doc(messagesCollection);
+      batch.set(messageRef, {
         text: "Заявката беше одобрена! Можете да започнете разговор.",
         senderId: "system",
         createdAt: new Date().toISOString(),
