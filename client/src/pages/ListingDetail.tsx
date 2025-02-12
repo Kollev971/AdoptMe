@@ -113,33 +113,12 @@ export default function ListingDetail() {
           </div>
 
           {user && user.uid !== listing.userId && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-lg shadow-md">
-                  Изпрати заявка за осиновяване
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Изпрати заявка</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <Textarea
-                    placeholder="Напишете съобщение до собственика..."
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    className="min-h-[100px] border-gray-300"
-                  />
-                  <Button 
-                    onClick={handleAdoptionRequest}
-                    disabled={loading || !message.trim()}
-                    className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg shadow-md"
-                  >
-                    {loading ? "Изпращане..." : "Изпрати заявка"}
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <Button
+              onClick={() => setLocation(`/chat/${generateChatId(listing.userId, user.uid)}`)}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-lg shadow-md"
+            >
+              Свържи се с потребителя
+            </Button>
           )}
         </CardContent>
       </Card>
