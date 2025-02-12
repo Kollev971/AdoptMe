@@ -1,11 +1,12 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, query, where, orderBy, onSnapshot, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation } from "wouter";
-import { Loader2 } from "lucide-react";
+import { Loader2, MessageCircle } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface Chat {
   id: string;
@@ -14,6 +15,10 @@ interface Chat {
     text: string;
     senderId: string;
     timestamp: string;
+  };
+  otherUser?: {
+    id: string;
+    email: string;
   };
 }
 
@@ -33,12 +38,30 @@ export default function Messages() {
       orderBy("lastMessage.timestamp", "desc")
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const chatsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Chat));
-      setChats(chatsData);
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const chatsPromises = snapshot.docs.map(async (doc) => {
+        const chatData = doc.data();
+        const otherUserId = Object.keys(chatData.participants).find(id => id !== user.uid);
+        
+        if (otherUserId) {
+          const userDoc = await getDocs(query(collection(db, "users"), where("uid", "==", otherUserId)));
+          if (!userDoc.empty) {
+            const userData = userDoc.docs[0].data();
+            return {
+              id: doc.id,
+              ...chatData,
+              otherUser: {
+                id: otherUserId,
+                email: userData.email,
+              }
+            } as Chat;
+          }
+        }
+        return { id: doc.id, ...chatData } as Chat;
+      });
+
+      const resolvedChats = await Promise.all(chatsPromises);
+      setChats(resolvedChats);
       setLoading(false);
     });
 
@@ -57,7 +80,10 @@ export default function Messages() {
     <div className="container mx-auto p-4">
       <Card>
         <CardHeader>
-          <CardTitle>Съобщения</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5" />
+            Съобщения
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -67,22 +93,32 @@ export default function Messages() {
                 className="cursor-pointer hover:bg-muted/50"
                 onClick={() => setLocation(`/chat/${chat.id}`)}
               >
-                <CardContent className="p-4">
-                  {chat.lastMessage ? (
-                    <>
-                      <p className="font-medium">{chat.lastMessage.text}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(chat.lastMessage.timestamp).toLocaleString()}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-muted-foreground">Няма съобщения</p>
-                  )}
+                <CardContent className="p-4 flex items-center gap-4">
+                  <Avatar>
+                    <AvatarFallback>
+                      {chat.otherUser?.email?.charAt(0).toUpperCase() || '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <p className="font-medium">{chat.otherUser?.email || 'Потребител'}</p>
+                    {chat.lastMessage ? (
+                      <>
+                        <p className="text-sm text-muted-foreground line-clamp-1">
+                          {chat.lastMessage.text}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {new Date(chat.lastMessage.timestamp).toLocaleString()}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Няма съобщения</p>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ))}
             {chats.length === 0 && (
-              <p className="text-center text-muted-foreground">Нямате съобщения</p>
+              <p className="text-center text-muted-foreground py-8">Нямате съобщения</p>
             )}
           </div>
         </CardContent>
