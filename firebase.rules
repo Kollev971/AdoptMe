@@ -1,33 +1,21 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
     match /listings/{listingId} {
-      // Позволява четене на всички обяви
       allow read: if true;
-
-      // Позволява създаване на обяви само за логнати потребители
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-
-      // Позволява редактиране/изтриване само на собственика на обявата
       allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
     match /adoptionRequests/{requestId} {
-      // Позволява четене на заявки, в които потребителят участва
       allow read: if request.auth != null && (
         resource.data.userId == request.auth.uid ||
         resource.data.ownerId == request.auth.uid
       );
-
-      // Позволява създаване на заявки
       allow create: if request.auth != null;
-
-      // Позволява актуализация на заявки
       allow update: if request.auth != null && (
-        (request.auth.uid == resource.data.ownerId && 
-         request.resource.data.status in ['approved', 'rejected']) ||
-        request.auth.uid == resource.data.userId
+        resource.data.ownerId == request.auth.uid ||
+        resource.data.userId == request.auth.uid
       );
     }
 
@@ -37,18 +25,10 @@ service cloud.firestore {
     }
 
     match /chats/{chatId} {
-      // Позволява създаване и четене на чат
       allow create: if request.auth != null;
-
-      allow read, write: if request.auth != null && (
-        resource == null ||
-        resource.data.participants[request.auth.uid] == true
-      );
+      allow read, write: if request.auth != null && resource.data.participants[request.auth.uid] == true;
 
       match /messages/{messageId} {
-        allow create: if request.auth != null && 
-          get(/databases/$(database)/documents/chats/$(chatId)).data.participants[request.auth.uid] == true;
-
         allow read, write: if request.auth != null && 
           get(/databases/$(database)/documents/chats/$(chatId)).data.participants[request.auth.uid] == true;
       }
