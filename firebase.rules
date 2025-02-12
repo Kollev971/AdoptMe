@@ -3,56 +3,40 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     match /listings/{listingId} {
-      // Позволява четене на всички обяви
       allow read: if true;
-
-      // Позволява създаване на обяви само за логнати потребители
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-
-      // Позволява редактиране/изтриване само на собственика на обявата
-      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && 
+                   request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && 
+                           resource.data.userId == request.auth.uid;
     }
 
     match /adoptionRequests/{requestId} {
-      // Позволява четене на всички заявки за осиновяване
       allow read: if true;
-
-      // Позволява създаване на заявки само за логнати потребители
       allow create: if request.auth != null;
-
-      // Позволява актуализация от собственика на обявата или заявителя
       allow update: if request.auth != null && (
-        request.auth.uid == resource.data.ownerId ||
-        request.auth.uid == resource.data.userId
+        // Allow the owner of the listing to update the request
+        get(/databases/$(database)/documents/listings/$(resource.data.listingId)).data.userId == request.auth.uid ||
+        // Allow the requester to update their own request
+        resource.data.userId == request.auth.uid
       );
+      allow delete: if request.auth != null && 
+                   resource.data.userId == request.auth.uid;
     }
 
     match /users/{userId} {
-      // Позволява на всеки да вижда само публична информация на потребителите
       allow read: if true;
-
-      // Позволява само на собственика на профила да го редактира
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && 
+                   request.auth.uid == userId;
     }
 
     match /chats/{chatId} {
-      // Позволява създаване на чат
-      allow create: if request.auth != null;
+      allow read, write: if request.auth != null && 
+                        (request.auth.uid in resource.data.participants);
+    }
 
-      // Позволява четене/запис само на участващите в чата потребители
-      allow read, write: if request.auth != null && (
-        resource == null || // Позволява първоначално създаване
-        request.auth.uid in resource.data.participants
-      );
-
-      match /messages/{messageId} {
-        // Позволява създаване на съобщения
-        allow create: if request.auth != null;
-
-        // Позволява четене/запис само на участниците в чата
-        allow read, write: if request.auth != null && 
-          get(/databases/$(database)/documents/chats/$(chatId)).data.participants[request.auth.uid] == true;
-      }
+    match /chats/{chatId}/messages/{messageId} {
+      allow read, write: if request.auth != null && 
+                        request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
     }
   }
 }
