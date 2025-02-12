@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow users to read and create their own data
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Allow users to read all listings but only create/update their own
+    match /listings/{listingId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
+    // Allow users to read and write adoption requests they're involved in
+    match /adoptionRequests/{requestId} {
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid || 
+        resource.data.ownerId == request.auth.uid
+      );
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (
+        resource.data.userId == request.auth.uid || 
+        resource.data.ownerId == request.auth.uid
+      );
+    }
+    
+    // Allow users to access chats they're participating in
+    match /chats/{chatId} {
+      allow read, write: if request.auth != null && 
+        resource.data.participants[request.auth.uid] != null;
+    }
+  }
+}

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface FileUploadProps {
   setImages: (images: string[]) => void;
@@ -12,6 +12,7 @@ interface FileUploadProps {
 export function FileUpload({ setImages, images, className }: FileUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const { toast } = useToast();
 
   const uploadImage = async (file: File): Promise<string> => {
     const formData = new FormData();
@@ -20,11 +21,11 @@ export function FileUpload({ setImages, images, className }: FileUploadProps) {
     try {
       const response = await fetch(`https://api.imgbb.com/1/upload?key=${import.meta.env.VITE_IMGBB_API_KEY}`, {
         method: 'POST',
-        body: formData
+        body: formData,
       });
 
       if (!response.ok) {
-        throw new Error('Failed to upload image');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
@@ -43,20 +44,30 @@ export function FileUpload({ setImages, images, className }: FileUploadProps) {
     const files = event.target.files;
     if (!files?.length) return;
 
-    // Validate file types and sizes
     const validFiles = Array.from(files).filter(file => {
       const isValidType = file.type.startsWith('image/');
-      const isValidSize = file.size <= 2 * 1024 * 1024; // 2MB max
-      return isValidType && isValidSize;
-    });
+      const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB max
 
-    if (validFiles.length !== files.length) {
-      toast({
-        title: "Внимание",
-        description: "Някои файлове бяха пропуснати. Моля, използвайте само изображения до 2MB.",
-        variant: "warning",
-      });
-    }
+      if (!isValidType) {
+        toast({
+          title: "Невалиден файл",
+          description: "Моля, изберете само изображения.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      if (!isValidSize) {
+        toast({
+          title: "Файлът е твърде голям",
+          description: "Максималният размер на файла е 5MB.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      return true;
+    });
 
     if (!validFiles.length) return;
 
@@ -66,16 +77,27 @@ export function FileUpload({ setImages, images, className }: FileUploadProps) {
 
     try {
       for (let i = 0; i < validFiles.length; i++) {
-        const url = await uploadImage(validFiles[i]);
-        uploadedUrls.push(url);
-        setProgress(((i + 1) / totalFiles) * 100);
+        try {
+          const url = await uploadImage(validFiles[i]);
+          uploadedUrls.push(url);
+          setProgress(((i + 1) / totalFiles) * 100);
+        } catch (error) {
+          console.error(`Error uploading file ${i + 1}:`, error);
+          toast({
+            title: "Грешка при качване",
+            description: `Файл ${i + 1} не можа да бъде качен.`,
+            variant: "destructive",
+          });
+        }
       }
 
-      setImages([...images, ...uploadedUrls]);
-      toast({
-        title: "Успешно",
-        description: `${uploadedUrls.length} ${uploadedUrls.length === 1 ? 'снимка беше качена' : 'снимки бяха качени'} успешно.`,
-      });
+      if (uploadedUrls.length > 0) {
+        setImages([...images, ...uploadedUrls]);
+        toast({
+          title: "Успешно качване",
+          description: `${uploadedUrls.length} ${uploadedUrls.length === 1 ? 'снимка беше качена' : 'снимки бяха качени'} успешно.`,
+        });
+      }
     } catch (error) {
       console.error("Error uploading files:", error);
       toast({
@@ -86,7 +108,6 @@ export function FileUpload({ setImages, images, className }: FileUploadProps) {
     } finally {
       setUploading(false);
       setProgress(0);
-      // Clear the input
       event.target.value = '';
     }
   };
