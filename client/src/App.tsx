@@ -9,7 +9,8 @@ import Profile from "./pages/Profile";
 import CreateListing from "./pages/CreateListing";
 import Listings from "./pages/Listings";
 import ListingDetail from "./pages/ListingDetail";
-import Chat from "./pages/Chat"; // Добавяме страницата за чат
+import Chat from "./pages/Chat";
+import Messages from "./pages/Messages";
 import NotFound from "./pages/not-found";
 
 function App() {
