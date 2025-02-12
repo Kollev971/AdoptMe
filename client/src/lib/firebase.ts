@@ -1,14 +1,12 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import { getDatabase, ref, set, push, onValue, off } from "firebase/database";
 import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBi0vY3afPi46kgqgBJvW6JHxLUwqQsSYI",
   authDomain: "doggycat-5b20c.firebaseapp.com",
-  databaseURL: "https://doggycat-5b20c-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "doggycat-5b20c",
   storageBucket: "doggycat-5b20c.firebasestorage.app",
   messagingSenderId: "147390397323",
@@ -21,7 +19,6 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-export const rtdb = getDatabase(app);
 export const analytics = getAnalytics(app);
 
 // Helper function for registration
@@ -58,12 +55,11 @@ export const loginUser = async (email: string, password: string) => {
 // Chat related functions
 export const sendMessage = async (chatId: string, userId: string, message: string) => {
   try {
-    const chatRef = ref(rtdb, `chats/${chatId}/messages`);
-    const newMessageRef = push(chatRef);
-    await set(newMessageRef, {
+    const chatRef = collection(db, 'chats', chatId, 'messages');
+    await addDoc(chatRef, {
       userId,
       message,
-      timestamp: Date.now()
+      timestamp: serverTimestamp()
     });
     return true;
   } catch (error) {
@@ -73,20 +69,16 @@ export const sendMessage = async (chatId: string, userId: string, message: strin
 };
 
 export const subscribeToChat = (chatId: string, callback: (messages: any[]) => void) => {
-  const chatRef = ref(rtdb, `chats/${chatId}/messages`);
-  onValue(chatRef, (snapshot) => {
-    const messages: any[] = [];
-    snapshot.forEach((childSnapshot) => {
-      messages.push({
-        id: childSnapshot.key,
-        ...childSnapshot.val()
-      });
-    });
+  const chatRef = collection(db, 'chats', chatId, 'messages');
+  const q = query(chatRef, orderBy('timestamp', 'asc'));
+
+  return onSnapshot(q, (snapshot) => {
+    const messages = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
     callback(messages);
   });
-
-  // Return unsubscribe function
-  return () => off(chatRef);
 };
 
 // Function to get user-friendly error messages
