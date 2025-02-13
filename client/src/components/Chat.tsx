@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { database } from '@/lib/firebase';
@@ -5,9 +6,11 @@ import { ref, push, set, onValue, query, orderByChild } from 'firebase/database'
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from "lucide-react";
+import { Loader2, Send } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { format } from 'date-fns';
 
 interface Message {
   id: string;
@@ -24,6 +27,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [participantDetails, setParticipantDetails] = useState<Record<string, { email: string; photoURL?: string; }>>({});
   const { user } = useAuth();
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -35,10 +39,18 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
   useEffect(() => {
     if (!chatId || !user) return;
 
+    const chatRef = ref(database, `chats/${chatId}`);
+    const unsubscribe = onValue(chatRef, (snapshot) => {
+      const chatData = snapshot.val();
+      if (chatData) {
+        setParticipantDetails(chatData.participantDetails || {});
+      }
+    });
+
     const messagesRef = ref(database, `chats/${chatId}/messages`);
     const messagesQuery = query(messagesRef, orderByChild('timestamp'));
 
-    const unsubscribe = onValue(messagesQuery, (snapshot) => {
+    const messagesUnsubscribe = onValue(messagesQuery, (snapshot) => {
       const messagesData: Message[] = [];
       snapshot.forEach((childSnapshot) => {
         messagesData.push({
@@ -50,7 +62,10 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
       scrollToBottom();
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      messagesUnsubscribe();
+    };
   }, [chatId, user]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -68,8 +83,6 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
       };
 
       await set(newMessageRef, messageData);
-
-      // Update last message in chat room
       await set(ref(database, `chats/${chatId}/lastMessage`), {
         text: newMessage,
         senderId: user.uid,
@@ -90,14 +103,33 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
   };
 
   return (
-    <Card className="w-full">
-      <ScrollArea className="h-[400px] p-4">
+    <Card className="w-full h-[80vh] flex flex-col">
+      <CardHeader className="border-b">
+        <CardTitle className="text-lg">
+          {Object.entries(participantDetails)
+            .filter(([id]) => id !== user?.uid)
+            .map(([, details]) => details.email)
+            .join(', ')}
+        </CardTitle>
+      </CardHeader>
+      <ScrollArea className="flex-1 p-4">
         <div className="space-y-4">
           {messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex ${msg.userId === user?.uid ? 'justify-end' : 'justify-start'}`}
+              className={`flex items-start gap-2 ${msg.userId === user?.uid ? 'justify-end' : 'justify-start'}`}
             >
+              {msg.userId !== user?.uid && (
+                <Avatar className="w-8 h-8">
+                  {participantDetails[msg.userId]?.photoURL ? (
+                    <AvatarImage src={participantDetails[msg.userId].photoURL} />
+                  ) : (
+                    <AvatarFallback>
+                      {participantDetails[msg.userId]?.email?.charAt(0).toUpperCase() || '?'}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+              )}
               <div
                 className={`max-w-[70%] rounded-lg p-3 ${
                   msg.userId === user?.uid
@@ -106,16 +138,27 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
                 }`}
               >
                 <p className="text-sm break-words">{msg.message}</p>
-                <span className="text-xs opacity-70">
-                  {new Date(msg.timestamp).toLocaleTimeString()}
+                <span className="text-xs opacity-70 block mt-1">
+                  {format(msg.timestamp, 'HH:mm')}
                 </span>
               </div>
+              {msg.userId === user?.uid && (
+                <Avatar className="w-8 h-8">
+                  {user.photoURL ? (
+                    <AvatarImage src={user.photoURL} />
+                  ) : (
+                    <AvatarFallback>
+                      {user.email?.charAt(0).toUpperCase() || '?'}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+              )}
             </div>
           ))}
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
-      <form onSubmit={handleSendMessage} className="p-4 flex gap-2">
+      <form onSubmit={handleSendMessage} className="p-4 flex gap-2 border-t">
         <Input
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
@@ -127,7 +170,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
           {sending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            "Изпрати"
+            <Send className="h-4 w-4" />
           )}
         </Button>
       </form>

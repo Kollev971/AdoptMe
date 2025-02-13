@@ -6,7 +6,7 @@ import { ref, query, orderByChild, onValue } from "firebase/database";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation } from "wouter";
 import { Loader2, MessageCircle } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 
 interface Chat {
@@ -18,6 +18,7 @@ interface Chat {
     timestamp: number;
   };
   participantEmails?: Record<string, string>;
+  participantPhotos?: Record<string, string>;
 }
 
 export default function Messages() {
@@ -26,7 +27,6 @@ export default function Messages() {
   const [loading, setLoading] = useState(true);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [lastMessageTimestamps, setLastMessageTimestamps] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!user) return;
@@ -38,27 +38,11 @@ export default function Messages() {
       const chatsData: Chat[] = [];
       snapshot.forEach((childSnapshot) => {
         const chatData = childSnapshot.val();
-        if (chatData.participants[user.uid]) {
+        if (chatData.participants?.[user.uid]) {
           chatsData.push({
             id: childSnapshot.key!,
             ...chatData
           });
-
-          // Check for new messages
-          if (chatData.lastMessage) {
-            const lastTimestamp = lastMessageTimestamps[childSnapshot.key!] || 0;
-            if (chatData.lastMessage.timestamp > lastTimestamp && chatData.lastMessage.senderId !== user.uid) {
-              toast({
-                title: "Ново съобщение",
-                description: `${chatData.participantEmails[chatData.lastMessage.senderId]}: ${chatData.lastMessage.text}`,
-                duration: 5000,
-              });
-              setLastMessageTimestamps(prev => ({
-                ...prev,
-                [childSnapshot.key!]: chatData.lastMessage.timestamp
-              }));
-            }
-          }
         }
       });
 
@@ -71,11 +55,23 @@ export default function Messages() {
     });
 
     return () => unsubscribe();
-  }, [user, toast, lastMessageTimestamps]);
+  }, [user]);
+
+  if (!user) {
+    return (
+      <div className="container mx-auto p-4">
+        <Card>
+          <CardContent className="p-8">
+            <p className="text-center">Моля, влезте в профила си за да видите съобщенията.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-[50vh]">
         <Loader2 className="h-6 w-6 animate-spin" />
       </div>
     );
@@ -95,6 +91,7 @@ export default function Messages() {
             {chats.map((chat) => {
               const otherUserId = Object.keys(chat.participants).find(id => id !== user?.uid);
               const otherUserEmail = otherUserId ? chat.participantEmails?.[otherUserId] : 'Непознат потребител';
+              const otherUserPhoto = otherUserId ? chat.participantPhotos?.[otherUserId] : null;
 
               return (
                 <Card 
@@ -104,9 +101,13 @@ export default function Messages() {
                 >
                   <CardContent className="p-4 flex items-center gap-4">
                     <Avatar>
-                      <AvatarFallback>
-                        {otherUserEmail?.charAt(0).toUpperCase() || '?'}
-                      </AvatarFallback>
+                      {otherUserPhoto ? (
+                        <AvatarImage src={otherUserPhoto} alt={otherUserEmail} />
+                      ) : (
+                        <AvatarFallback>
+                          {otherUserEmail?.charAt(0).toUpperCase() || '?'}
+                        </AvatarFallback>
+                      )}
                     </Avatar>
                     <div className="flex-1">
                       <p className="font-medium">{otherUserEmail}</p>
