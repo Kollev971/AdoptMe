@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { 
-  getFirestore, 
   collection, 
   doc, 
   getDoc,
@@ -12,9 +11,8 @@ import {
   serverTimestamp,
   updateDoc,
   setDoc,
-  arrayUnion
 } from "firebase/firestore";
-const db = getFirestore();
+import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -78,15 +76,12 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
 
       if (data) {
         // Ensure we have both owner and requester details
-        const promises = [];
         if (data.ownerId) {
-          promises.push(fetchUserDetails(data.ownerId));
+          await fetchUserDetails(data.ownerId);
         }
         if (data.requesterId) {
-          promises.push(fetchUserDetails(data.requesterId));
+          await fetchUserDetails(data.requesterId);
         }
-
-        await Promise.all(promises);
         setChatData(data);
       }
     });
@@ -124,21 +119,29 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
 
     setSending(true);
     try {
+      const [, ownerId, requesterId] = chatId.split('_');
+
+      // Validate chat participants
+      if (!ownerId || !requesterId) {
+        throw new Error('Invalid chat ID format');
+      }
+
       const chatRef = doc(db, 'chats', chatId);
       const chatDoc = await getDoc(chatRef);
 
-      // Create chat document if it doesn't exist
+      // Create or update chat document
       if (!chatDoc.exists()) {
-        const [, ownerId, requesterId] = chatId.split('_');
-        await setDoc(chatRef, {
+        const newChatData = {
           ownerId,
           requesterId,
           participants: [ownerId, requesterId],
           createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        });
+          updatedAt: serverTimestamp(),
+        };
+        await setDoc(chatRef, newChatData);
       }
 
+      // Add the message
       const messageData = {
         text: newMessage,
         senderId: user.uid,
@@ -148,10 +151,9 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
       const messagesRef = collection(db, 'chats', chatId, 'messages');
       await addDoc(messagesRef, messageData);
 
-      // Update chat document
-      await updateDoc(doc(db, 'chats', chatId), {
+      // Update chat document with last message
+      await updateDoc(chatRef, {
         lastMessage: messageData,
-        participants: arrayUnion(user.uid),
         updatedAt: serverTimestamp()
       });
 
@@ -227,7 +229,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
                       <AvatarImage src={user.photoURL} alt="Your avatar" />
                     ) : (
                       <AvatarFallback>
-                        {(user.username || user.email || '?').charAt(0).toUpperCase()}
+                        {(user.displayName || '?').charAt(0).toUpperCase()}
                       </AvatarFallback>
                     )}
                   </Avatar>
