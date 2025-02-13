@@ -119,12 +119,16 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
 
     setSending(true);
     try {
-      const [, ownerId, requesterId] = chatId.split('_');
-
-      // Validate chat participants
-      if (!ownerId || !requesterId) {
-        throw new Error('Invalid chat ID format');
+      // Get current chat data instead of splitting ID
+      const chatRef = doc(db, 'chats', chatId);
+      const chatDoc = await getDoc(chatRef);
+      
+      if (!chatDoc.exists()) {
+        throw new Error('Chat not found');
       }
+      
+      const chatData = chatDoc.data();
+      const { ownerId, requesterId } = chatData;
 
       const chatRef = doc(db, 'chats', chatId);
       const chatDoc = await getDoc(chatRef);
