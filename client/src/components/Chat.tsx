@@ -10,7 +10,8 @@ import {
   query,
   orderBy,
   serverTimestamp,
-  updateDoc
+  updateDoc,
+  arrayUnion
 } from "firebase/firestore";
 const db = getFirestore();
 import { Button } from '@/components/ui/button';
@@ -55,11 +56,22 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
     const unsubscribeChat = onSnapshot(chatDocRef, async (snapshot) => {
       const data = snapshot.data();
       if (data) {
+        // Ensure participants array exists and includes current user
+        if (!data.participants) {
+          await updateDoc(chatDocRef, {
+            participants: arrayUnion(user.uid)
+          });
+        }
+
         // Fetch listing details
         if (data.listingId) {
-          const listingDoc = await getDoc(doc(db, 'listings', data.listingId));
-          if (listingDoc.exists()) {
-            data.listingDetails = listingDoc.data();
+          try {
+            const listingDoc = await getDoc(doc(db, 'listings', data.listingId));
+            if (listingDoc.exists()) {
+              data.listingDetails = listingDoc.data();
+            }
+          } catch (error) {
+            console.error("Error fetching listing:", error);
           }
         }
 
@@ -67,14 +79,17 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
         const participantsDetails: Record<string, any> = {};
         const userIds = [data.ownerId, data.requesterId].filter(Boolean);
 
-        const promises = userIds.map(async (userId) => {
-          const userDoc = await getDoc(doc(db, 'users', userId));
-          if (userDoc.exists()) {
-            participantsDetails[userId] = userDoc.data();
+        for (const userId of userIds) {
+          try {
+            const userDoc = await getDoc(doc(db, 'users', userId));
+            if (userDoc.exists()) {
+              participantsDetails[userId] = userDoc.data();
+            }
+          } catch (error) {
+            console.error("Error fetching user:", error);
           }
-        });
+        }
 
-        await Promise.all(promises);
         setParticipantDetails(participantsDetails);
         setChatData(data);
       }
@@ -117,7 +132,8 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
           text: newMessage,
           senderId: user.uid,
           createdAt: serverTimestamp()
-        }
+        },
+        participants: arrayUnion(user.uid)
       });
 
       setNewMessage('');

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useRoute } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import ChatComponent from "@/components/Chat";
@@ -11,49 +11,56 @@ export default function ChatPage() {
   const [, params] = useRoute("/chat/:chatId");
   const { user } = useAuth();
   const { toast } = useToast();
-  const [chatExists, setChatExists] = useState<boolean | null>(null);
+  const [chatData, setChatData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!params?.chatId || !user) return;
 
-    const checkChatAccess = async () => {
+    const fetchChatData = async () => {
       try {
         const chatDoc = await getDoc(doc(db, "chats", params.chatId));
+
         if (!chatDoc.exists()) {
-          setChatExists(false);
           toast({
             description: "Този чат не съществува.",
             variant: "destructive",
           });
+          setLoading(false);
           return;
         }
 
-        const chatData = chatDoc.data();
-        if (chatData.ownerId !== user.uid && chatData.requesterId !== user.uid) {
-          setChatExists(false);
+        const data = chatDoc.data();
+        // Check if user is part of the chat
+        const isParticipant = data.participants?.includes(user.uid);
+
+        if (!isParticipant) {
           toast({
             description: "Нямате достъп до този чат.",
             variant: "destructive",
           });
+          setLoading(false);
           return;
         }
 
-        setChatExists(true);
+        setChatData(data);
+        setLoading(false);
       } catch (error: any) {
-        console.error("Error checking chat access:", error);
+        console.error("Error fetching chat:", error);
         toast({
-          description: "Грешка при достъп до чата: " + error.message,
+          description: "Грешка при зареждане на чата: " + error.message,
           variant: "destructive",
         });
+        setLoading(false);
       }
     };
 
-    checkChatAccess();
+    fetchChatData();
   }, [params?.chatId, user, toast]);
 
-  if (!user || !params?.chatId) return null;
+  if (!user || !params?.chatId || loading) return null;
 
-  if (chatExists === false) {
+  if (!chatData) {
     return (
       <div className="container mx-auto p-4 max-w-4xl">
         <Card className="p-4 text-center">
@@ -62,8 +69,6 @@ export default function ChatPage() {
       </div>
     );
   }
-
-  if (chatExists === null) return null;
 
   return (
     <div className="container mx-auto p-4 max-w-4xl">

@@ -24,15 +24,15 @@ import { Loader2 } from "lucide-react";
 
 interface ChatPreview {
   id: string;
-  lastMessage: {
+  lastMessage?: {
     text: string;
     senderId: string;
     createdAt: any;
   };
   listingId: string;
-  listingTitle: string;
   ownerId: string;
   requesterId: string;
+  listingDetails?: any;
   ownerDetails?: any;
   requesterDetails?: any;
 }
@@ -45,45 +45,60 @@ export default function Messages() {
   useEffect(() => {
     if (!user) return;
 
+    // Query for chats where the user is either the owner or requester
     const chatsQuery = query(
       collection(db, "chats"),
-      where("participants", "array-contains", user.uid),
-      orderBy("lastMessage.createdAt", "desc")
+      where("participants", "array-contains", user.uid)
     );
 
     const unsubscribe = onSnapshot(chatsQuery, async (snapshot) => {
-      const chatsData: ChatPreview[] = [];
+      try {
+        const chatsPromises = snapshot.docs.map(async (chatDoc) => {
+          const chatData = chatDoc.data();
 
-      const promises = snapshot.docs.map(async (doc) => {
-        const chatData = doc.data();
-
-        // Fetch listing details
-        let listingTitle = "Непознато животно";
-        if (chatData.listingId) {
-          const listingDoc = await getDoc(doc.ref.parent.parent!.collection('listings').doc(chatData.listingId));
-          if (listingDoc.exists()) {
-            listingTitle = listingDoc.data().title;
+          // Get listing details
+          let listingDetails = null;
+          if (chatData.listingId) {
+            const listingDoc = await getDoc(doc(db, "listings", chatData.listingId));
+            if (listingDoc.exists()) {
+              listingDetails = listingDoc.data();
+            }
           }
-        }
 
-        // Fetch user details
-        const [ownerDoc, requesterDoc] = await Promise.all([
-          getDoc(doc.ref.parent.parent!.collection('users').doc(chatData.ownerId)),
-          getDoc(doc.ref.parent.parent!.collection('users').doc(chatData.requesterId))
-        ]);
+          // Get owner details
+          let ownerDetails = null;
+          if (chatData.ownerId) {
+            const ownerDoc = await getDoc(doc(db, "users", chatData.ownerId));
+            if (ownerDoc.exists()) {
+              ownerDetails = ownerDoc.data();
+            }
+          }
 
-        return {
-          id: doc.id,
-          ...chatData,
-          listingTitle,
-          ownerDetails: ownerDoc.exists() ? ownerDoc.data() : null,
-          requesterDetails: requesterDoc.exists() ? requesterDoc.data() : null,
-        };
-      });
+          // Get requester details
+          let requesterDetails = null;
+          if (chatData.requesterId) {
+            const requesterDoc = await getDoc(doc(db, "users", chatData.requesterId));
+            if (requesterDoc.exists()) {
+              requesterDetails = requesterDoc.data();
+            }
+          }
 
-      const resolvedChats = await Promise.all(promises);
-      setChats(resolvedChats);
-      setLoading(false);
+          return {
+            id: chatDoc.id,
+            ...chatData,
+            listingDetails,
+            ownerDetails,
+            requesterDetails,
+          };
+        });
+
+        const resolvedChats = await Promise.all(chatsPromises);
+        setChats(resolvedChats);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching chats:", error);
+        setLoading(false);
+      }
     });
 
     return () => unsubscribe();
@@ -138,7 +153,7 @@ export default function Messages() {
                               )}
                             </div>
                             <p className="text-sm text-muted-foreground truncate">
-                              Относно: {chat.listingTitle}
+                              Относно: {chat.listingDetails?.title || "Непознато животно"}
                             </p>
                             {chat.lastMessage && (
                               <p className="text-sm truncate">
