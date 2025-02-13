@@ -65,7 +65,7 @@ export default function Messages() {
           chatData.id = chatDoc.id;
           console.log("Processing chat:", chatDoc.id, chatData);
 
-          // Fetch listing details
+          // Fetch listing details if available
           if (chatData.listingId) {
             try {
               const listingDoc = await getDoc(doc(db, "listings", chatData.listingId));
@@ -78,7 +78,7 @@ export default function Messages() {
             }
           }
 
-          // Fetch owner details
+          // Fetch owner details if available
           if (chatData.ownerId) {
             try {
               const ownerDoc = await getDoc(doc(db, "users", chatData.ownerId));
@@ -91,7 +91,7 @@ export default function Messages() {
             }
           }
 
-          // Fetch requester details
+          // Fetch requester details if available
           if (chatData.requesterId) {
             try {
               const requesterDoc = await getDoc(doc(db, "users", chatData.requesterId));

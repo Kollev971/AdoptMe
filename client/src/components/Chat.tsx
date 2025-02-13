@@ -48,23 +48,28 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Fetch user details function
+  // Improved user details fetching
   const fetchUserDetails = async (userId: string) => {
+    if (!userId || participantDetails[userId]) return;
+
     try {
+      console.log(`Fetching user details for ID: ${userId}`);
       const userRef = doc(db, 'users', userId);
       const userDoc = await getDoc(userRef);
-      console.log(`Fetching user details for ${userId}:`, userDoc.data());
+
       if (userDoc.exists()) {
+        const userData = userDoc.data();
+        console.log(`User data fetched for ${userId}:`, userData);
         setParticipantDetails(prev => ({
           ...prev,
-          [userId]: userDoc.data()
+          [userId]: userData
         }));
-        return userDoc.data();
+      } else {
+        console.log(`No user document found for ID: ${userId}`);
       }
     } catch (error) {
       console.error(`Error fetching user ${userId}:`, error);
     }
-    return null;
   };
 
   useEffect(() => {
@@ -93,17 +98,16 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
           }
         }
 
-        // Fetch owner and requester details
+        // Ensure we have both owner and requester details
+        const promises = [];
         if (data.ownerId) {
-          const ownerDetails = await fetchUserDetails(data.ownerId);
-          console.log("Owner details fetched:", ownerDetails);
+          promises.push(fetchUserDetails(data.ownerId));
         }
-
         if (data.requesterId) {
-          const requesterDetails = await fetchUserDetails(data.requesterId);
-          console.log("Requester details fetched:", requesterDetails);
+          promises.push(fetchUserDetails(data.requesterId));
         }
 
+        await Promise.all(promises);
         setChatData(data);
       }
     });
@@ -117,6 +121,14 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
         id: doc.id,
         ...doc.data()
       })) as Message[];
+
+      // For each message, ensure we have the sender's details
+      messagesData.forEach(msg => {
+        if (msg.senderId) {
+          fetchUserDetails(msg.senderId);
+        }
+      });
+
       console.log("Messages updated:", messagesData);
       setMessages(messagesData);
       scrollToBottom();
@@ -163,15 +175,15 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
 
   // Determine the other participant
   const otherParticipantId = chatData?.ownerId === user?.uid ? chatData?.requesterId : chatData?.ownerId;
-  console.log("Other participant determination:", {
-    currentUserId: user?.uid,
-    ownerId: chatData?.ownerId,
-    requesterId: chatData?.requesterId,
-    otherParticipantId
-  });
-
   const otherParticipant = otherParticipantId ? participantDetails[otherParticipantId] : null;
-  console.log("Other participant details:", otherParticipant);
+
+  console.log("Chat render state:", {
+    currentUser: user?.uid,
+    otherParticipantId,
+    otherParticipant,
+    participantDetails,
+    chatData
+  });
 
   return (
     <Card className="w-full h-[80vh] flex flex-col">
