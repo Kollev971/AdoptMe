@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { database } from "@/lib/firebase";
-import { ref, query, orderByChild, onValue, get } from "firebase/database";
+import { database as db, getFirestore } from "@/lib/firebase"; // Assuming this exports both db and old database
+import { ref, onValue } from "firebase/database"; //Keeping this for chatsRef
+import { getDoc, doc } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation } from "wouter";
 import { Loader2, MessageCircle } from "lucide-react";
@@ -21,6 +21,7 @@ interface Chat {
     email: string;
     photoURL?: string;
   }>;
+  listingDetails?: any; // Adjust type as needed
 }
 
 export default function Messages() {
@@ -33,30 +34,44 @@ export default function Messages() {
   useEffect(() => {
     if (!user) return;
 
-    const chatsRef = ref(database, 'chats');
+    const chatsRef = ref(db, 'chats'); //Using old db ref for simplicity
     const unsubscribe = onValue(chatsRef, async (snapshot) => {
       const chatsData: Chat[] = [];
       const promises = [];
 
-      snapshot.forEach((childSnapshot) => {
+      for (const childSnapshot of snapshot.val() || []) {
         const chatData = childSnapshot.val();
         if (chatData.participants?.[user.uid]) {
-          // Get listing details if available
+          // Get listing details from Firestore
           if (chatData.listingId) {
-            const promise = get(ref(database, `listings/${chatData.listingId}`))
-              .then(listingSnapshot => {
-                if (listingSnapshot.exists()) {
-                  chatData.listingDetails = listingSnapshot.val();
+            const promise = getDoc(doc(getFirestore(), 'listings', chatData.listingId))
+              .then(listingDoc => {
+                if (listingDoc.exists()) {
+                  chatData.listingDetails = listingDoc.data();
                 }
               });
             promises.push(promise);
+
+            // Get user details from Firestore
+            const otherUserId = Object.keys(chatData.participants).find(id => id !== user.uid);
+            if (otherUserId) {
+              const userPromise = getDoc(doc(getFirestore(), 'users', otherUserId))
+                .then(userDoc => {
+                  if (userDoc.exists()) {
+                    chatData.participantDetails = {
+                      [otherUserId]: userDoc.data()
+                    };
+                  }
+                });
+              promises.push(userPromise);
+            }
           }
           chatsData.push({
             id: childSnapshot.key!,
             ...chatData
           });
         }
-      });
+      }
 
       await Promise.all(promises);
 

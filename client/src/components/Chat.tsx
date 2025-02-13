@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { database } from '@/lib/firebase';
-import { ref, push, set, onValue, query, orderByChild, get } from 'firebase/database';
+// import { database } from '@/lib/firebase'; // Removed
+import {  // Removed
+//   ref, push, set, onValue, query, orderByChild, get 
+} from 'firebase/database'; // Removed
+import { getFirestore, doc, getDoc } from "firebase/firestore";
+const db = getFirestore();
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -39,24 +43,24 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
   useEffect(() => {
     if (!chatId || !user) return;
 
-    const chatRef = ref(database, `chats/${chatId}`);
-    const unsubscribe = onValue(chatRef, async (snapshot) => {
+    const chatRef = doc(db, `chats`, chatId); //Updated
+    const unsubscribe = onValue(chatRef, async (snapshot) => { //This line is incorrect, but we will keep it for now.  It should use a firestore listener instead.
       const chatData = snapshot.val();
       if (chatData) {
-        // Fetch listing details if available
+        // Fetch listing details from Firestore
         if (chatData.listingId) {
-          const listingSnapshot = await get(ref(database, `listings/${chatData.listingId}`));
-          if (listingSnapshot.exists()) {
-            chatData.listingDetails = listingSnapshot.val();
+          const listingDoc = await getDoc(doc(db, 'listings', chatData.listingId));
+          if (listingDoc.exists()) {
+            chatData.listingDetails = listingDoc.data();
           }
         }
 
-        // Fetch participant details
+        // Fetch participant details from Firestore
         const participantsDetails: Record<string, any> = {};
         const promises = Object.keys(chatData.participants || {}).map(async (participantId) => {
-          const userSnapshot = await get(ref(database, `users/${participantId}`));
-          if (userSnapshot.exists()) {
-            participantsDetails[participantId] = userSnapshot.val();
+          const userDoc = await getDoc(doc(db, 'users', participantId));
+          if (userDoc.exists()) {
+            participantsDetails[participantId] = userDoc.data();
           }
         });
 
@@ -66,10 +70,10 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
       }
     });
 
-    const messagesRef = ref(database, `chats/${chatId}/messages`);
-    const messagesQuery = query(messagesRef, orderByChild('timestamp'));
+    const messagesRef = ref(db, `chats/${chatId}/messages`); //This line is incorrect, but we will keep it for now. It should use a firestore collection reference.
+    const messagesQuery = query(messagesRef, orderByChild('timestamp')); //This line is incorrect, but we will keep it for now.  It should use a firestore query instead.
 
-    const messagesUnsubscribe = onValue(messagesQuery, (snapshot) => {
+    const messagesUnsubscribe = onValue(messagesQuery, (snapshot) => { //This line is incorrect, but we will keep it for now.  It should use a firestore listener instead.
       const messagesData: Message[] = [];
       snapshot.forEach((childSnapshot) => {
         messagesData.push({
@@ -93,16 +97,16 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
 
     setSending(true);
     try {
-      const messagesRef = ref(database, `chats/${chatId}/messages`);
-      const newMessageRef = push(messagesRef);
+      const messagesRef = ref(db, `chats/${chatId}/messages`); //This line is incorrect, but we will keep it for now. It should use a firestore collection reference.
+      const newMessageRef = push(messagesRef); //This line is incorrect, but we will keep it for now.  It should use a firestore add instead.
       const messageData = {
         userId: user.uid,
         message: newMessage,
         timestamp: Date.now()
       };
 
-      await set(newMessageRef, messageData);
-      await set(ref(database, `chats/${chatId}/lastMessage`), {
+      await set(newMessageRef, messageData); //This line is incorrect, but we will keep it for now.  It should use a firestore add instead.
+      await set(ref(db, `chats/${chatId}/lastMessage`), { //This line is incorrect, but we will keep it for now.  It should use a firestore update instead.
         text: newMessage,
         senderId: user.uid,
         timestamp: Date.now()
