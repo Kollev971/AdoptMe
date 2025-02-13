@@ -1,8 +1,7 @@
-
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { getStorage } from "firebase/storage";
-import { getDatabase, ref, query, orderByChild, onValue, push, set, off } from "firebase/database";
+import { getDatabase, ref, push, set } from "firebase/database";
 import { getFirestore } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 
@@ -21,35 +20,27 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 
 export const auth = getAuth(app);
 export const storage = getStorage(app);
-export const database = getDatabase(app);
-export const db = getFirestore(app);
+export const database = getDatabase(app); // Realtime Database - само за чат
+export const db = getFirestore(app); // Firestore - за всичко останало
 export const analytics = getAnalytics(app);
 
 export const registerUser = async (email: string, password: string) => {
   try {
-    console.log("Starting registration process for:", email);
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    console.log("User created successfully:", userCredential.user.uid);
-
     if (userCredential.user) {
       await sendEmailVerification(userCredential.user);
-      console.log("Verification email sent");
     }
     return userCredential.user;
   } catch (error: any) {
-    console.error("Registration error:", error);
     throw new Error(getFirebaseErrorMessage(error.code));
   }
 };
 
 export const loginUser = async (email: string, password: string) => {
   try {
-    console.log("Starting login process for:", email);
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    console.log("Login successful for user:", userCredential.user.uid);
     return userCredential.user;
   } catch (error: any) {
-    console.error("Login error:", error);
     throw new Error(getFirebaseErrorMessage(error.code));
   }
 };
@@ -58,7 +49,7 @@ export const sendMessage = async (chatId: string, userId: string, message: strin
   try {
     const messagesRef = ref(database, `chats/${chatId}/messages`);
     const newMessageRef = push(messagesRef);
-    
+
     await set(newMessageRef, {
       userId,
       message,
@@ -79,27 +70,6 @@ export const sendMessage = async (chatId: string, userId: string, message: strin
     console.error("Error sending message:", error);
     throw error;
   }
-};
-
-export const subscribeToChat = (chatId: string, callback: (messages: any[]) => void) => {
-  const messagesRef = ref(database, `chats/${chatId}/messages`);
-  const messagesQuery = query(messagesRef, orderByChild('timestamp'));
-
-  const unsubscribe = onValue(messagesQuery, (snapshot) => {
-    const messages: any[] = [];
-    snapshot.forEach((childSnapshot) => {
-      messages.push({
-        id: childSnapshot.key,
-        ...childSnapshot.val()
-      });
-    });
-    callback(messages);
-  });
-
-  return () => {
-    off(messagesRef);
-    unsubscribe();
-  };
 };
 
 const getFirebaseErrorMessage = (errorCode: string): string => {
