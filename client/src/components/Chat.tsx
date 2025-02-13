@@ -48,31 +48,43 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // Fetch user details function
+  const fetchUserDetails = async (userId: string) => {
+    try {
+      const userRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userRef);
+      console.log(`Fetching user details for ${userId}:`, userDoc.data());
+      if (userDoc.exists()) {
+        setParticipantDetails(prev => ({
+          ...prev,
+          [userId]: userDoc.data()
+        }));
+        return userDoc.data();
+      }
+    } catch (error) {
+      console.error(`Error fetching user ${userId}:`, error);
+    }
+    return null;
+  };
+
   useEffect(() => {
     if (!chatId || !user) return;
+
+    console.log("Starting chat subscription for:", chatId);
 
     // Subscribe to chat document
     const chatDocRef = doc(db, 'chats', chatId);
     const unsubscribeChat = onSnapshot(chatDocRef, async (snapshot) => {
       const data = snapshot.data();
-      console.log("Chat data from Firebase:", data); // Debug log
+      console.log("Chat data received:", data);
 
       if (data) {
-        // Ensure participants array exists and includes current user
-        if (!data.participants) {
-          await updateDoc(chatDocRef, {
-            participants: arrayUnion(user.uid),
-            ownerId: data.ownerId || user.uid,
-            requesterId: data.requesterId || (data.ownerId === user.uid ? null : user.uid)
-          });
-        }
-
         // Fetch listing details
         if (data.listingId) {
           try {
             const listingRef = doc(db, 'listings', data.listingId);
             const listingDoc = await getDoc(listingRef);
-            console.log("Listing data:", listingDoc.data()); // Debug log
+            console.log("Listing details:", listingDoc.data());
             if (listingDoc.exists()) {
               data.listingDetails = listingDoc.data();
             }
@@ -81,42 +93,18 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
           }
         }
 
-        // Fetch owner details
+        // Fetch owner and requester details
         if (data.ownerId) {
-          try {
-            const ownerRef = doc(db, 'users', data.ownerId);
-            const ownerDoc = await getDoc(ownerRef);
-            console.log("Owner data:", data.ownerId, ownerDoc.data()); // Debug log
-            if (ownerDoc.exists()) {
-              setParticipantDetails(prev => ({
-                ...prev,
-                [data.ownerId]: ownerDoc.data()
-              }));
-            }
-          } catch (error) {
-            console.error("Error fetching owner:", error);
-          }
+          const ownerDetails = await fetchUserDetails(data.ownerId);
+          console.log("Owner details fetched:", ownerDetails);
         }
 
-        // Fetch requester details
         if (data.requesterId) {
-          try {
-            const requesterRef = doc(db, 'users', data.requesterId);
-            const requesterDoc = await getDoc(requesterRef);
-            console.log("Requester data:", data.requesterId, requesterDoc.data()); // Debug log
-            if (requesterDoc.exists()) {
-              setParticipantDetails(prev => ({
-                ...prev,
-                [data.requesterId]: requesterDoc.data()
-              }));
-            }
-          } catch (error) {
-            console.error("Error fetching requester:", error);
-          }
+          const requesterDetails = await fetchUserDetails(data.requesterId);
+          console.log("Requester details fetched:", requesterDetails);
         }
 
         setChatData(data);
-        console.log("Updated participant details:", participantDetails); // Debug log
       }
     });
 
@@ -129,6 +117,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
         id: doc.id,
         ...doc.data()
       })) as Message[];
+      console.log("Messages updated:", messagesData);
       setMessages(messagesData);
       scrollToBottom();
     });
@@ -154,7 +143,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
       const messagesRef = collection(db, 'chats', chatId, 'messages');
       await addDoc(messagesRef, messageData);
 
-      // Update chat document with last message and ensure current user is in participants
+      // Update chat document
       await updateDoc(doc(db, 'chats', chatId), {
         lastMessage: messageData,
         participants: arrayUnion(user.uid),
@@ -172,10 +161,17 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
     }
   };
 
+  // Determine the other participant
   const otherParticipantId = chatData?.ownerId === user?.uid ? chatData?.requesterId : chatData?.ownerId;
-  console.log("Other participant ID:", otherParticipantId); // Debug log
-  console.log("Other participant details:", otherParticipantId ? participantDetails[otherParticipantId] : null); // Debug log
+  console.log("Other participant determination:", {
+    currentUserId: user?.uid,
+    ownerId: chatData?.ownerId,
+    requesterId: chatData?.requesterId,
+    otherParticipantId
+  });
+
   const otherParticipant = otherParticipantId ? participantDetails[otherParticipantId] : null;
+  console.log("Other participant details:", otherParticipant);
 
   return (
     <Card className="w-full h-[80vh] flex flex-col">
@@ -202,47 +198,50 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
       </CardHeader>
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-4">
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex items-start gap-2 ${msg.senderId === user?.uid ? 'justify-end' : 'justify-start'}`}
-            >
-              {msg.senderId !== user?.uid && (
-                <Avatar className="h-8 w-8">
-                  {participantDetails[msg.senderId]?.photoURL ? (
-                    <AvatarImage src={participantDetails[msg.senderId].photoURL} alt="User avatar" />
-                  ) : (
-                    <AvatarFallback>
-                      {(participantDetails[msg.senderId]?.displayName || participantDetails[msg.senderId]?.email || '?').charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  )}
-                </Avatar>
-              )}
+          {messages.map((msg) => {
+            const sender = participantDetails[msg.senderId];
+            return (
               <div
-                className={`max-w-[70%] rounded-lg p-3 ${
-                  msg.senderId === user?.uid
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-secondary'
-                }`}
+                key={msg.id}
+                className={`flex items-start gap-2 ${msg.senderId === user?.uid ? 'justify-end' : 'justify-start'}`}
               >
-                <p className="text-sm break-words">{msg.text}</p>
-                <span className="text-xs opacity-70 block mt-1">
-                  {msg.createdAt && format(msg.createdAt.toDate(), 'HH:mm')}
-                </span>
+                {msg.senderId !== user?.uid && (
+                  <Avatar className="h-8 w-8">
+                    {sender?.photoURL ? (
+                      <AvatarImage src={sender.photoURL} alt="User avatar" />
+                    ) : (
+                      <AvatarFallback>
+                        {(sender?.displayName || sender?.email || '?').charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                )}
+                <div
+                  className={`max-w-[70%] rounded-lg p-3 ${
+                    msg.senderId === user?.uid
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-secondary'
+                  }`}
+                >
+                  <p className="text-sm break-words">{msg.text}</p>
+                  <span className="text-xs opacity-70 block mt-1">
+                    {msg.createdAt && format(msg.createdAt.toDate(), 'HH:mm')}
+                  </span>
+                </div>
+                {msg.senderId === user?.uid && (
+                  <Avatar className="h-8 w-8">
+                    {user.photoURL ? (
+                      <AvatarImage src={user.photoURL} alt="Your avatar" />
+                    ) : (
+                      <AvatarFallback>
+                        {(user.email || '?').charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                )}
               </div>
-              {msg.senderId === user?.uid && (
-                <Avatar className="h-8 w-8">
-                  {user.photoURL ? (
-                    <AvatarImage src={user.photoURL} alt="Your avatar" />
-                  ) : (
-                    <AvatarFallback>
-                      {(user.email || '?').charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  )}
-                </Avatar>
-              )}
-            </div>
-          ))}
+            );
+          })}
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
