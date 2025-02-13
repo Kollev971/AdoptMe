@@ -45,6 +45,8 @@ export default function Messages() {
   useEffect(() => {
     if (!user) return;
 
+    console.log("Current user:", user.uid); // Debug log
+
     // Query for chats where the user is a participant
     const chatsQuery = query(
       collection(db, "chats"),
@@ -54,14 +56,18 @@ export default function Messages() {
 
     const unsubscribe = onSnapshot(chatsQuery, async (snapshot) => {
       try {
+        console.log("Chats snapshot:", snapshot.docs.map(doc => ({ id: doc.id, data: doc.data() }))); // Debug log
+
         const chatsPromises = snapshot.docs.map(async (chatDoc) => {
           const chatData = chatDoc.data();
+          console.log("Processing chat:", chatDoc.id, chatData); // Debug log
 
           // Get listing details
           let listingDetails = null;
           if (chatData.listingId) {
             try {
               const listingDoc = await getDoc(doc(db, "listings", chatData.listingId));
+              console.log("Listing details for chat:", chatDoc.id, listingDoc.data()); // Debug log
               if (listingDoc.exists()) {
                 listingDetails = listingDoc.data();
               }
@@ -75,6 +81,7 @@ export default function Messages() {
           if (chatData.ownerId) {
             try {
               const ownerDoc = await getDoc(doc(db, "users", chatData.ownerId));
+              console.log("Owner details for chat:", chatDoc.id, ownerDoc.data()); // Debug log
               if (ownerDoc.exists()) {
                 ownerDetails = ownerDoc.data();
               }
@@ -88,6 +95,7 @@ export default function Messages() {
           if (chatData.requesterId) {
             try {
               const requesterDoc = await getDoc(doc(db, "users", chatData.requesterId));
+              console.log("Requester details for chat:", chatDoc.id, requesterDoc.data()); // Debug log
               if (requesterDoc.exists()) {
                 requesterDetails = requesterDoc.data();
               }
@@ -106,8 +114,8 @@ export default function Messages() {
         });
 
         const resolvedChats = await Promise.all(chatsPromises);
-        console.log("Fetched chats:", resolvedChats); // Debug log
-        setChats(resolvedChats);
+        console.log("Final resolved chats:", resolvedChats); // Debug log
+        setChats(resolvedChats as ChatPreview[]);
         setLoading(false);
       } catch (error) {
         console.error("Error fetching chats:", error);
@@ -141,6 +149,7 @@ export default function Messages() {
                 {chats.map((chat) => {
                   const isOwner = user.uid === chat.ownerId;
                   const otherUser = isOwner ? chat.requesterDetails : chat.ownerDetails;
+                  console.log("Rendering chat:", chat.id, { isOwner, otherUser }); // Debug log
 
                   return (
                     <Link key={chat.id} href={`/chat/${chat.id}`}>

@@ -55,11 +55,15 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
     const chatDocRef = doc(db, 'chats', chatId);
     const unsubscribeChat = onSnapshot(chatDocRef, async (snapshot) => {
       const data = snapshot.data();
+      console.log("Chat data from Firebase:", data); // Debug log
+
       if (data) {
         // Ensure participants array exists and includes current user
         if (!data.participants) {
           await updateDoc(chatDocRef, {
-            participants: arrayUnion(user.uid)
+            participants: arrayUnion(user.uid),
+            ownerId: data.ownerId || user.uid,
+            requesterId: data.requesterId || (data.ownerId === user.uid ? null : user.uid)
           });
         }
 
@@ -68,6 +72,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
           try {
             const listingRef = doc(db, 'listings', data.listingId);
             const listingDoc = await getDoc(listingRef);
+            console.log("Listing data:", listingDoc.data()); // Debug log
             if (listingDoc.exists()) {
               data.listingDetails = listingDoc.data();
             }
@@ -76,11 +81,12 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
           }
         }
 
-        // Fetch participant details immediately when the chat data changes
+        // Fetch owner details
         if (data.ownerId) {
           try {
             const ownerRef = doc(db, 'users', data.ownerId);
             const ownerDoc = await getDoc(ownerRef);
+            console.log("Owner data:", data.ownerId, ownerDoc.data()); // Debug log
             if (ownerDoc.exists()) {
               setParticipantDetails(prev => ({
                 ...prev,
@@ -92,10 +98,12 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
           }
         }
 
+        // Fetch requester details
         if (data.requesterId) {
           try {
             const requesterRef = doc(db, 'users', data.requesterId);
             const requesterDoc = await getDoc(requesterRef);
+            console.log("Requester data:", data.requesterId, requesterDoc.data()); // Debug log
             if (requesterDoc.exists()) {
               setParticipantDetails(prev => ({
                 ...prev,
@@ -108,6 +116,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
         }
 
         setChatData(data);
+        console.log("Updated participant details:", participantDetails); // Debug log
       }
     });
 
@@ -145,6 +154,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
       const messagesRef = collection(db, 'chats', chatId, 'messages');
       await addDoc(messagesRef, messageData);
 
+      // Update chat document with last message and ensure current user is in participants
       await updateDoc(doc(db, 'chats', chatId), {
         lastMessage: messageData,
         participants: arrayUnion(user.uid),
@@ -162,7 +172,9 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
     }
   };
 
-  const otherParticipantId = user ? (chatData?.ownerId === user.uid ? chatData?.requesterId : chatData?.ownerId) : null;
+  const otherParticipantId = chatData?.ownerId === user?.uid ? chatData?.requesterId : chatData?.ownerId;
+  console.log("Other participant ID:", otherParticipantId); // Debug log
+  console.log("Other participant details:", otherParticipantId ? participantDetails[otherParticipantId] : null); // Debug log
   const otherParticipant = otherParticipantId ? participantDetails[otherParticipantId] : null;
 
   return (

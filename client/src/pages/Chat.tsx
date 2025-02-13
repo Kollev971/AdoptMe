@@ -21,20 +21,29 @@ export default function ChatPage() {
       try {
         const chatRef = doc(db, "chats", params.chatId);
         const chatDoc = await getDoc(chatRef);
+        console.log("Initial chat data:", chatDoc.data()); // Debug log
 
         if (!chatDoc.exists()) {
+          // Extract listing ID and owner ID from chat ID format: ownerId_listingId
+          const [ownerId, listingId] = params.chatId.split('_');
+          console.log("Creating new chat with:", { ownerId, listingId }); // Debug log
+
           // Create the chat if it doesn't exist
-          await setDoc(chatRef, {
+          const newChatData = {
             participants: [user.uid],
+            ownerId: ownerId,
+            requesterId: user.uid,
+            listingId: listingId,
             createdAt: new Date(),
             updatedAt: new Date(),
-          });
-          setChatData({
-            id: params.chatId,
-            participants: [user.uid],
-          });
+          };
+
+          await setDoc(chatRef, newChatData);
+          console.log("Created new chat with data:", newChatData); // Debug log
+          setChatData(newChatData);
         } else {
           const data = chatDoc.data();
+          console.log("Existing chat data:", data); // Debug log
           setChatData(data);
         }
         setLoading(false);
