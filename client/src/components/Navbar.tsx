@@ -60,8 +60,8 @@ export function Navbar() {
         <Link href="/">
           <div className="mr-6 flex items-center space-x-1">
             <img src="/paw-house-logo.png" alt="AdoptMe" className="h-12 w-12" />
-            <div className="flex items-center h-12">
-              <span className="font-bold">
+            <div className="flex items-center justify-center h-12">
+              <span className="font-bold translate-y-[1px]">
                 <span style={{color: '#004AAD'}}>Adopt</span>
                 <span style={{color: '#01BFFF'}}>Me</span>
               </span>
