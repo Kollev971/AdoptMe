@@ -83,9 +83,10 @@ export function Navbar() {
               <Link href="/messages" className="relative">
                 <Button variant="ghost" size="icon" className="relative hover:bg-[#01BFFF]/10">
                   <MessageSquare className="h-5 w-5 text-[#004AAD]" />
-                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] font-medium flex items-center justify-center text-primary-foreground" 
-                    style={{ display: unreadCount > 0 ? 'flex' : 'none' }}>
-                    {unreadCount}
+                  <span 
+                    className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary"
+                    style={{ display: unreadCount > 0 ? 'block' : 'none' }} 
+                  />
                   </span>
                 </Button>
               </Link>
