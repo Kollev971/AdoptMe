@@ -1,0 +1,268 @@
+Let's address the two main issues: enhancing the Messages page and the Chat component.
+
+Fixing the Messages Page
+Ensure correct data loading: Fix the loading state and add error handling while querying the chat data.
+Display user avatars: Ensure displaying the avatars of users who participated in the chats.
+Enhance the layout: Improve the overall user interface for better readability.
+Here's how you can update the Messages.tsx:
+
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { database } from "@/lib/firebase";
+import { ref, query, orderByChild, onValue } from "firebase/database";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLocation } from "wouter";
+import { Loader2, MessageCircle } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
+interface Chat {
+  id: string;
+  participants: Record<string, boolean>;
+  lastMessage?: {
+    text: string;
+    senderId: string;
+    timestamp: number;
+  };
+  participantEmails?: Record<string, string>;
+  participantPhotos?: Record<string, string>;
+}
+export default function Messages() {
+  const { user } = useAuth();
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  useEffect(() => {
+    if (!user) return;
+    const chatsRef = ref(database, 'chats');
+    const chatsQuery = query(chatsRef, orderByChild(`participants/${user.uid}`));
+    const unsubscribe = onValue(chatsQuery, (snapshot) => {
+      const chatsData: Chat[] = [];
+      snapshot.forEach((childSnapshot) => {
+        const chatData = childSnapshot.val();
+        if (chatData.participants?.[user.uid]) {
+          chatsData.push({
+            id: childSnapshot.key!,
+            ...chatData
+          });
+        }
+      });
+      setChats(chatsData.sort((a, b) => {
+        const timeA = a.lastMessage?.timestamp || 0;
+        const timeB = b.lastMessage?.timestamp || 0;
+        return timeB - timeA;
+      }));
+      setLoading(false);
+    }, (error) => {
+      toast({ description: 'Error loading chats: ' + error.message });
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, [user]);
+  if (!user) {
+    return (
+      <div className="container mx-auto p-4">
+        <Card>
+          <CardContent className="p-8">
+            <p className="text-center">Моля, влезте в профила си за да видите съобщенията.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[50vh]">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
+  }
+  return (
+    <div className="container mx-auto p-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5" />
+            Съобщения
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {chats.map((chat) => {
+              const otherUserId = Object.keys(chat.participants).find(id => id !== user?.uid);
+              const otherUserEmail = otherUserId ? chat.participantEmails?.[otherUserId] : 'Непознат потребител';
+              const otherUserPhoto = otherUserId ? chat.participantPhotos?.[otherUserId] : null;
+              return (
+                <div key={chat.id} className="flex items-center gap-2 p-4 border-b">
+                  {otherUserPhoto ? (
+                    <Avatar>
+                      <AvatarImage src={otherUserPhoto} />
+                      <AvatarFallback>{otherUserEmail.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                  ) : (
+                    <AvatarFallback>{otherUserEmail.charAt(0)}</AvatarFallback>
+                  )}
+                  <div>
+                    <p className="font-medium">{otherUserEmail}</p>
+                    <p className="text-sm">{chat.lastMessage?.text}</p>
+                    <span className="text-xs text-gray-500">
+                      {chat.lastMessage?.timestamp && new Date(chat.lastMessage.timestamp).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+Enhancing the Chat Component
+Now, let's enhance the Chat.tsx to display user avatars and improve the UI with better message bubbles and timestamps.
+
+Here's how you can update your Chat component:
+
+import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { database } from '@/lib/firebase';
+import { ref, push, set, onValue, query, orderByChild } from 'firebase/database';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, Send } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { format } from 'date-fns';
+interface Message {
+  id: string;
+  userId: string;
+  message: string;
+  timestamp: number;
+}
+interface ChatProps {
+  chatId: string;
+}
+export const Chat: React.FC<ChatProps> = ({ chatId }) => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const [participantDetails, setParticipantDetails] = useState<Record<string, { email: string; photoURL?: string; }>>({});
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+  useEffect(() => {
+    if (!chatId || !user) return;
+    const chatRef = ref(database, `chats/${chatId}`);
+    const unsubscribe = onValue(chatRef, (snapshot) => {
+      const chatData = snapshot.val();
+      if (chatData) {
+        setParticipantDetails(chatData.participantDetails || {});
+      }
+    });
+    const messagesRef = ref(database, `chats/${chatId}/messages`);
+    const messagesQuery = query(messagesRef, orderByChild('timestamp'));
+    const messagesUnsubscribe = onValue(messagesQuery, (snapshot) => {
+      const messagesData: Message[] = [];
+      snapshot.forEach((childSnapshot) => {
+        messagesData.push({
+          id: childSnapshot.key!,
+          ...childSnapshot.val()
+        });
+      });
+      setMessages(messagesData);
+      scrollToBottom();
+    });
+    return () => {
+      unsubscribe();
+      messagesUnsubscribe();
+    };
+  }, [chatId, user]);
+  const handleSendMessage = async () => {
+    if (!newMessage || !user) return;
+    setSending(true);
+    try {
+      await push(ref(database, `chats/${chatId}/messages`), {
+        userId: user.uid,
+        message: newMessage,
+        timestamp: Date.now()
+      });
+      setNewMessage('');
+      toast({ description: 'Message sent!' });
+    } catch (error) {
+      toast({ description: 'Failed to send message!' });
+    } finally {
+      setSending(false);
+    }
+  };
+  return (
+    <Card className="w-full h-[80vh] flex flex-col">
+      <CardHeader className="border-b">
+        <CardTitle className="text-lg">
+          {Object.entries(participantDetails)
+            .filter(([id]) => id !== user?.uid)
+            .map(([, details]) => details.email)
+            .join(', ')}
+        </CardTitle>
+      </CardHeader>
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-4">
+          {messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`flex items-start gap-2 ${msg.userId === user?.uid ? 'justify-end' : 'justify-start'}`}
+            >
+              {msg.userId !== user?.uid && (
+                <Avatar className="w-8 h-8">
+                  {participantDetails[msg.userId]?.photoURL ? (
+                    <AvatarImage src={participantDetails[msg.userId].photoURL} />
+                  ) : (
+                    <AvatarFallback>
+                      {participantDetails[msg.userId]?.email?.charAt(0).toUpperCase() || '?'}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+              )}
+              <div
+                className={`max-w-[70%] rounded-lg p-3 ${
+                  msg.userId === user?.uid
+                    ? 'bg-primary text-primary-foreground ml-auto'
+                    : 'bg-muted'
+                }`}
+              >
+                <p className="text-sm break-words">{msg.message}</p>
+                <span className="text-xs text-gray-500">
+                  {format(new Date(msg.timestamp), "PPPpp")}
+                </span>
+              </div>
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
+      </ScrollArea>
+      <div className="flex p-4 border-t">
+        <Input
+          placeholder="Enter message..."
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          onKeyPress={(e) => (e.key === 'Enter' ? handleSendMessage() : null)}
+        />
+        <Button onClick={handleSendMessage} disabled={sending}>
+          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send />}
+        </Button>
+      </div>
+    </Card>
+  );
+};
+Summary of Changes
+Messages Page: Added loading state handling, proper error display, user avatars, and timestamps for last messages.
+Chat Component: Enhanced the message bubbles with user avatars, timestamps, and improved the UI layout.
+Addressing Rules Issue
+To resolve the issue of avatars not showing, make sure that the user details (email and photoURL) are stored correctly in your database structure when users are added or when messages are sent, and ensure that the rules allow read access to the necessary user data.
+
+Your current Realtime Database rules should allow authenticated users to read their respective chat participants. You might also want to verify that the photoURL is correctly being stored in the database under the participantDetails key for each user.
+
+Make sure these changes are in place, and check the database structure to confirm whether the data is being stored and accessed correctly. Let me know if you encounter any further issues!
