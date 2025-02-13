@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { useRoute, useLocation } from "wouter";
+import { useRoute, useLocation, useNavigate } from "wouter";
 import { generateChatId } from "@/lib/utils";
 import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import type { Listing } from "@shared/schema";
@@ -13,6 +13,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 export default function ListingDetail() {
   const [, params] = useRoute("/listings/:id");
   const [, setLocation] = useLocation();
+  const navigate = useNavigate(); // Added navigate hook
   const { user } = useAuth();
   const { toast } = useToast();
   const [listing, setListing] = useState<Listing | null>(null);
@@ -46,6 +47,47 @@ export default function ListingDetail() {
 
     fetchListing();
   }, [params?.id]);
+
+  const handleConnect = async () => {
+    if (!user) {
+      toast({
+        description: "Трябва да влезете в профила си",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
+
+    try {
+      // Create chat ID using owner and requester IDs in alphabetical order
+      const [id1, id2] = [listing.userId, user.uid].sort();
+      const chatId = `${id1}_${id2}`;
+
+      // Initialize chat document if it doesn't exist
+      const chatRef = doc(db, 'chats', chatId);
+      const chatDoc = await getDoc(chatRef);
+
+      if (!chatDoc.exists()) {
+        await setDoc(chatRef, {
+          ownerId: listing.userId,
+          requesterId: user.uid,
+          listingId: listing.id,
+          participants: [listing.userId, user.uid],
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      }
+
+      navigate(`/chat/${chatId}`);
+    } catch (error) {
+      console.error('Error creating chat:', error);
+      toast({
+        description: "Грешка при създаване на чат",
+        variant: "destructive"
+      });
+    }
+  };
+
 
   if (!listing) return null;
 
@@ -89,7 +131,7 @@ export default function ListingDetail() {
 
           {user && user.uid !== listing.userId && (
             <Button
-              onClick={() => setLocation(`/chat/${generateChatId(listing.userId, user.uid)}`)}
+              onClick={handleConnect} // Changed onClick to call handleConnect
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-lg shadow-md"
             >
               Свържи се с потребителя
