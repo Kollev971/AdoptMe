@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { database } from '@/lib/firebase';
-import { ref, push, set, onValue, query, orderByChild } from 'firebase/database';
+import { ref, push, set, onValue, query, orderByChild, get } from 'firebase/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -40,10 +40,28 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
     if (!chatId || !user) return;
 
     const chatRef = ref(database, `chats/${chatId}`);
-    const unsubscribe = onValue(chatRef, (snapshot) => {
+    const unsubscribe = onValue(chatRef, async (snapshot) => {
       const chatData = snapshot.val();
       if (chatData) {
-        setParticipantDetails(chatData.participantDetails || {});
+        // Fetch listing details if available
+        if (chatData.listingId) {
+          const listingSnapshot = await get(ref(database, `listings/${chatData.listingId}`));
+          if (listingSnapshot.exists()) {
+            chatData.listingDetails = listingSnapshot.val();
+          }
+        }
+
+        // Fetch participant details
+        const participantsDetails: Record<string, any> = {};
+        const promises = Object.keys(chatData.participants || {}).map(async (participantId) => {
+          const userSnapshot = await get(ref(database, `users/${participantId}`));
+          if (userSnapshot.exists()) {
+            participantsDetails[participantId] = userSnapshot.val();
+          }
+        });
+
+        await Promise.all(promises);
+        setParticipantDetails(participantsDetails);
         setChatData(chatData);
       }
     });

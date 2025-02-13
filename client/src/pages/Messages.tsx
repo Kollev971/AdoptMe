@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { database } from "@/lib/firebase";
-import { ref, query, orderByChild, onValue } from "firebase/database";
+import { ref, query, orderByChild, onValue, get } from "firebase/database";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation } from "wouter";
 import { Loader2, MessageCircle } from "lucide-react";
@@ -34,17 +34,31 @@ export default function Messages() {
     if (!user) return;
 
     const chatsRef = ref(database, 'chats');
-    const unsubscribe = onValue(chatsRef, (snapshot) => {
+    const unsubscribe = onValue(chatsRef, async (snapshot) => {
       const chatsData: Chat[] = [];
+      const promises = [];
+
       snapshot.forEach((childSnapshot) => {
         const chatData = childSnapshot.val();
         if (chatData.participants?.[user.uid]) {
+          // Get listing details if available
+          if (chatData.listingId) {
+            const promise = get(ref(database, `listings/${chatData.listingId}`))
+              .then(listingSnapshot => {
+                if (listingSnapshot.exists()) {
+                  chatData.listingDetails = listingSnapshot.val();
+                }
+              });
+            promises.push(promise);
+          }
           chatsData.push({
             id: childSnapshot.key!,
             ...chatData
           });
         }
       });
+
+      await Promise.all(promises);
 
       setChats(chatsData.sort((a, b) => {
         const timeA = a.lastMessage?.timestamp || 0;
