@@ -11,6 +11,7 @@ import {
   orderBy,
   serverTimestamp,
   updateDoc,
+  setDoc,
   arrayUnion
 } from "firebase/firestore";
 const db = getFirestore();
@@ -48,24 +49,19 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Improved user details fetching
   const fetchUserDetails = async (userId: string) => {
     if (!userId || participantDetails[userId]) return;
 
     try {
-      console.log(`Fetching user details for ID: ${userId}`);
       const userRef = doc(db, 'users', userId);
       const userDoc = await getDoc(userRef);
 
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        console.log(`User data fetched for ${userId}:`, userData);
         setParticipantDetails(prev => ({
           ...prev,
           [userId]: userData
         }));
-      } else {
-        console.log(`No user document found for ID: ${userId}`);
       }
     } catch (error) {
       console.error(`Error fetching user ${userId}:`, error);
@@ -75,29 +71,12 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
   useEffect(() => {
     if (!chatId || !user) return;
 
-    console.log("Starting chat subscription for:", chatId);
-
     // Subscribe to chat document
     const chatDocRef = doc(db, 'chats', chatId);
     const unsubscribeChat = onSnapshot(chatDocRef, async (snapshot) => {
       const data = snapshot.data();
-      console.log("Chat data received:", data);
 
       if (data) {
-        // Fetch listing details
-        if (data.listingId) {
-          try {
-            const listingRef = doc(db, 'listings', data.listingId);
-            const listingDoc = await getDoc(listingRef);
-            console.log("Listing details:", listingDoc.data());
-            if (listingDoc.exists()) {
-              data.listingDetails = listingDoc.data();
-            }
-          } catch (error) {
-            console.error("Error fetching listing:", error);
-          }
-        }
-
         // Ensure we have both owner and requester details
         const promises = [];
         if (data.ownerId) {
@@ -129,7 +108,6 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
         }
       });
 
-      console.log("Messages updated:", messagesData);
       setMessages(messagesData);
       scrollToBottom();
     });
@@ -146,6 +124,21 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
 
     setSending(true);
     try {
+      const chatRef = doc(db, 'chats', chatId);
+      const chatDoc = await getDoc(chatRef);
+
+      // Create chat document if it doesn't exist
+      if (!chatDoc.exists()) {
+        const [, ownerId, requesterId] = chatId.split('_');
+        await setDoc(chatRef, {
+          ownerId,
+          requesterId,
+          participants: [ownerId, requesterId],
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      }
+
       const messageData = {
         text: newMessage,
         senderId: user.uid,
@@ -173,7 +166,6 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
     }
   };
 
-  // Determine the other participant
   const otherParticipantId = chatData?.ownerId === user?.uid ? chatData?.requesterId : chatData?.ownerId;
   const otherParticipant = otherParticipantId ? participantDetails[otherParticipantId] : null;
 
@@ -194,11 +186,6 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
             <p className="font-medium">
               {otherParticipant?.username || otherParticipant?.fullName || 'Непознат потребител'}
             </p>
-            {chatData?.listingDetails?.title && (
-              <p className="text-sm text-muted-foreground">
-                Относно: {chatData.listingDetails.title}
-              </p>
-            )}
           </div>
         </CardTitle>
       </CardHeader>

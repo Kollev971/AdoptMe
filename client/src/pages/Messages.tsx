@@ -29,10 +29,8 @@ interface ChatPreview {
     senderId: string;
     createdAt: any;
   };
-  listingId: string;
   ownerId: string;
   requesterId: string;
-  listingDetails?: any;
   ownerDetails?: any;
   requesterDetails?: any;
   participants: string[];
@@ -49,7 +47,7 @@ export default function Messages() {
 
     console.log("Current user ID:", user.uid);
 
-    // Query for chats where the user is an owner or requester
+    // Query for chats where the user is a participant
     const chatsQuery = query(
       collection(db, "chats"),
       where("participants", "array-contains", user.uid),
@@ -64,19 +62,6 @@ export default function Messages() {
           const chatData = chatDoc.data() as ChatPreview;
           chatData.id = chatDoc.id;
           console.log("Processing chat:", chatDoc.id, chatData);
-
-          // Fetch listing details
-          if (chatData.listingId) {
-            try {
-              const listingDoc = await getDoc(doc(db, "listings", chatData.listingId));
-              console.log("Listing details for chat:", chatDoc.id, listingDoc.data());
-              if (listingDoc.exists()) {
-                chatData.listingDetails = listingDoc.data();
-              }
-            } catch (error) {
-              console.error("Error fetching listing:", error);
-            }
-          }
 
           // Fetch owner details
           if (chatData.ownerId) {
@@ -168,9 +153,6 @@ export default function Messages() {
                                 </span>
                               )}
                             </div>
-                            <p className="text-sm text-muted-foreground truncate">
-                              Относно: {chat.listingDetails?.title || "Непознато животно"}
-                            </p>
                             {chat.lastMessage && (
                               <p className="text-sm truncate">
                                 {chat.lastMessage.senderId === user.uid ? "Вие: " : ""}

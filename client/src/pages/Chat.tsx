@@ -24,16 +24,19 @@ export default function ChatPage() {
         console.log("Initial chat data:", chatDoc.data());
 
         if (!chatDoc.exists()) {
-          // Extract owner ID and listing ID from chat ID format: listingId_ownerId_requesterId
           const [listingId, ownerId, requesterId] = params.chatId.split('_');
-          console.log("Creating new chat with:", { listingId, ownerId, requesterId });
+
+          // Verify that the current user is either the owner or requester
+          if (user.uid !== ownerId && user.uid !== requesterId) {
+            throw new Error("Нямате достъп до този чат");
+          }
 
           // Create the chat if it doesn't exist
           const newChatData = {
             participants: [ownerId, requesterId],
-            ownerId: ownerId,
-            requesterId: requesterId,
-            listingId: listingId,
+            ownerId,
+            requesterId,
+            listingId,
             createdAt: new Date(),
             updatedAt: new Date(),
           };
@@ -43,6 +46,12 @@ export default function ChatPage() {
           setChatData(newChatData);
         } else {
           const data = chatDoc.data();
+
+          // Verify that the current user is a participant
+          if (!data.participants.includes(user.uid)) {
+            throw new Error("Нямате достъп до този чат");
+          }
+
           console.log("Existing chat data:", data);
           setChatData(data);
         }
