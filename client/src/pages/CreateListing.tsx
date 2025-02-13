@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
@@ -12,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileUpload } from "@/components/FileUpload";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { db } from "@/lib/firebase";
+import { firestore } from "@/lib/firebase";
 import { collection, addDoc } from "firebase/firestore";
 import { Loader2 } from "lucide-react";
 
@@ -65,7 +66,7 @@ export default function CreateListing() {
       };
 
       // Create a new listing in Firestore
-      const listingsRef = collection(db, 'listings');
+      const listingsRef = collection(firestore, 'listings');
       await addDoc(listingsRef, listingData);
 
       toast({
@@ -86,7 +87,6 @@ export default function CreateListing() {
     }
   };
 
-  // Update form when images change
   useEffect(() => {
     form.setValue("images", images);
   }, [images, form]);
