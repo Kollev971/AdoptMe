@@ -1,12 +1,40 @@
 
 import { useAuth } from "@/hooks/useAuth";
-import { PawPrint } from "lucide-react";
+import { MessageSquare, PawPrint } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "./ui/button";
 import { UserMenu } from "./UserMenu";
+import { useState, useEffect } from "react";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export function Navbar() {
   const { user, userData, loading } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const chatsQuery = query(
+      collection(db, "chats"),
+      where("participants", "array-contains", user.uid)
+    );
+
+    const unsubscribe = onSnapshot(chatsQuery, (snapshot) => {
+      const count = snapshot.docs.reduce((acc, doc) => {
+        const data = doc.data();
+        const lastMessage = data.lastMessage;
+        if (lastMessage && lastMessage.senderId !== user.uid && !data.readBy?.[user.uid]) {
+          return acc + 1;
+        }
+        return acc;
+      }, 0);
+      
+      setUnreadCount(count);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   if (loading) {
     return (
@@ -41,6 +69,15 @@ export function Navbar() {
             <>
               <Link href="/create-listing">
                 <Button>Добави обява</Button>
+              </Link>
+              <Link href="/messages" className="relative">
+                <Button variant="ghost" size="icon" className="relative">
+                  <MessageSquare className="h-5 w-5" />
+                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] font-medium flex items-center justify-center text-primary-foreground" 
+                    style={{ display: unreadCount > 0 ? 'flex' : 'none' }}>
+                    {unreadCount}
+                  </span>
+                </Button>
               </Link>
               <UserMenu />
             </>

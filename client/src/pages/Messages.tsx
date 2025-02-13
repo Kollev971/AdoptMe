@@ -131,7 +131,12 @@ export default function Messages() {
 
                   return (
                     <Link key={chat.id} href={`/chat/${chat.id}`}>
-                      <Card className="cursor-pointer hover:bg-accent transition-colors">
+                      <Card className={`cursor-pointer hover:bg-accent transition-colors relative ${
+                        chat.lastMessage?.senderId !== user.uid && !chat.readBy?.[user.uid] ? 'border-primary' : ''
+                      }`}>
+                        {chat.lastMessage?.senderId !== user.uid && !chat.readBy?.[user.uid] && (
+                          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
+                        )}
                         <CardContent className="p-4 flex items-center gap-4">
                           <Avatar>
                             {otherUser?.photoURL ? (

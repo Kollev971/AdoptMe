@@ -11,6 +11,7 @@ import {
   serverTimestamp,
   updateDoc,
   setDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
@@ -68,6 +69,12 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
 
   useEffect(() => {
     if (!chatId || !user) return;
+
+    // Mark chat as read
+    const chatRef = doc(db, 'chats', chatId);
+    updateDoc(chatRef, {
+      [`readBy.${user.uid}`]: true
+    });
 
     // Subscribe to chat document
     const chatDocRef = doc(db, 'chats', chatId);
