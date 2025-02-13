@@ -73,11 +73,11 @@ export function Navbar() {
           {user ? (
             <>
               <Link href="/create-listing">
-                <Button>Добави обява</Button>
+                <Button className="bg-[#004AAD] hover:bg-[#01BFFF] text-white">Добави обява</Button>
               </Link>
               <Link href="/messages" className="relative">
-                <Button variant="ghost" size="icon" className="relative">
-                  <MessageSquare className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="relative hover:bg-[#01BFFF]/10">
+                  <MessageSquare className="h-5 w-5 text-[#004AAD]" />
                   <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] font-medium flex items-center justify-center text-primary-foreground" 
                     style={{ display: unreadCount > 0 ? 'flex' : 'none' }}>
                     {unreadCount}

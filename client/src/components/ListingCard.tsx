@@ -1,4 +1,3 @@
-
 import { Link } from "wouter";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -52,7 +51,7 @@ export function ListingCard({ listing }: ListingCardProps) {
 
   return (
     <Link href={`/listings/${listing.id}`}>
-      <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer bg-white">
+      <Card className="overflow-hidden hover:shadow-[#01BFFF]/20 transition-shadow">
         <CardContent className="p-0">
           <AspectRatio ratio={4 / 3} className="relative bg-gray-100">
             <img
