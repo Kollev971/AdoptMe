@@ -35,7 +35,6 @@ export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [otherUser, setOtherUser] = useState<any>(null);
-  const [listingTitle, setListingTitle] = useState<string>("Непознато животно");
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -48,34 +47,45 @@ export default function Chat() {
     if (!params?.chatId || !user) return;
 
     const fetchChatDetails = async () => {
+      console.log("Fetching chat details for chatId:", params.chatId);
       const chatDocRef = doc(db, "chats", params.chatId);
       const chatDoc = await getDoc(chatDocRef);
 
-      if (!chatDoc.exists()) return;
+      if (!chatDoc.exists()) {
+        console.log("Chat does not exist, creating a new one");
+        const urlParams = new URLSearchParams(window.location.search);
+        const listingId = urlParams.get("listingId");
+        const ownerId = urlParams.get("ownerId");
+        if (!listingId || !ownerId) {
+          console.error("Missing listingId or ownerId");
+          return;
+        }
+        const requesterId = user.uid;
+        const participants = [ownerId, requesterId];
+        await setDoc(chatDocRef, { participants, listingId, ownerId, requesterId });
+        return;
+      }
 
       const chatData = chatDoc.data();
+      console.log("Chat data:", chatData);
+
+      if (!chatData.ownerId || !chatData.requesterId) {
+        console.error("Chat data missing required fields");
+        return;
+      }
+
       const otherUserId = user.uid === chatData.ownerId ? chatData.requesterId : chatData.ownerId;
-      const listingId = chatData.listingId;
+      console.log("Other userId:", otherUserId);
 
       if (otherUserId) {
         try {
           const userDoc = await getDoc(doc(db, "users", otherUserId));
           if (userDoc.exists()) {
+            console.log("Fetched user data:", userDoc.data());
             setOtherUser({ id: userDoc.id, ...userDoc.data() });
           }
         } catch (error) {
           console.error("Error fetching user data:", error);
-        }
-      }
-
-      if (listingId) {
-        try {
-          const listingDoc = await getDoc(doc(db, "listings", listingId));
-          if (listingDoc.exists()) {
-            setListingTitle(listingDoc.data().title);
-          }
-        } catch (error) {
-          console.error("Error fetching listing data:", error);
         }
       }
     };
@@ -128,7 +138,7 @@ export default function Chat() {
             </AvatarFallback>
           </Avatar>
           <CardTitle className="text-lg font-semibold">
-            Осиновяване на: {listingTitle}
+            {otherUser?.fullName || otherUser?.username || "Непознат"}
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col h-full p-0">
