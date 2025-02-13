@@ -27,6 +27,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [participantDetails, setParticipantDetails] = useState<Record<string, { email: string; photoURL?: string; }>>({});
+  const [chatData, setChatData] = useState<any>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -43,6 +44,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
       const chatData = snapshot.val();
       if (chatData) {
         setParticipantDetails(chatData.participantDetails || {});
+        setChatData(chatData);
       }
     });
 
@@ -103,11 +105,30 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
   return (
     <Card className="w-full h-[80vh] flex flex-col">
       <CardHeader className="border-b">
-        <CardTitle className="text-lg">
+        <CardTitle className="flex items-center gap-2">
           {Object.entries(participantDetails)
             .filter(([id]) => id !== user?.uid)
-            .map(([, details]) => details.email)
-            .join(', ')}
+            .map(([id, details]) => (
+              <div key={id} className="flex items-center gap-2">
+                <Avatar className="h-8 w-8">
+                  {details.photoURL ? (
+                    <AvatarImage src={details.photoURL} alt={details.email} />
+                  ) : (
+                    <AvatarFallback>
+                      {details.email?.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+                <div>
+                  <p className="font-medium">{details.email}</p>
+                  {chatData?.listingDetails?.title && (
+                    <p className="text-sm text-muted-foreground">
+                      Относно: {chatData.listingDetails.title}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
         </CardTitle>
       </CardHeader>
       <ScrollArea className="flex-1 p-4">

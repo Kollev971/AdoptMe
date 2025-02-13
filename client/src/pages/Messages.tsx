@@ -98,6 +98,7 @@ export default function Messages() {
             {chats.map((chat) => {
               const otherUserId = Object.keys(chat.participants).find(id => id !== user.uid);
               const otherUserDetails = otherUserId ? chat.participantDetails?.[otherUserId] : undefined;
+              const listingDetails = chat.listingDetails || {};
 
               return (
                 <Card 
@@ -116,7 +117,12 @@ export default function Messages() {
                       )}
                     </Avatar>
                     <div className="flex-1">
-                      <p className="font-medium">{otherUserDetails?.email || 'Непознат потребител'}</p>
+                      <div>
+                        <p className="font-medium">{otherUserDetails?.email || 'Непознат потребител'}</p>
+                        {listingDetails.title && (
+                          <p className="text-sm text-muted-foreground">Относно: {listingDetails.title}</p>
+                        )}
+                      </div>
                       {chat.lastMessage ? (
                         <>
                           <p className="text-sm text-muted-foreground line-clamp-1">
