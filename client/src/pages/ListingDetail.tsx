@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useRoute, useLocation, useNavigate } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { generateChatId } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
@@ -13,7 +13,6 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 export default function ListingDetail() {
   const [, params] = useRoute("/listings/:id");
   const [, setLocation] = useLocation();
-  const navigate = useNavigate(); // Added navigate hook
   const { user } = useAuth();
   const { toast } = useToast();
   const [listing, setListing] = useState<Listing | null>(null);
@@ -54,7 +53,7 @@ export default function ListingDetail() {
         description: "Трябва да влезете в профила си",
         variant: "destructive",
       });
-      navigate("/auth");
+      setLocation("/auth");
       return;
     }
 
@@ -78,7 +77,7 @@ export default function ListingDetail() {
         });
       }
 
-      navigate(`/chat/${chatId}`);
+      setLocation(`/chat/${chatId}`);
     } catch (error) {
       console.error('Error creating chat:', error);
       toast({
@@ -131,7 +130,7 @@ export default function ListingDetail() {
 
           {user && user.uid !== listing.userId && (
             <Button
-              onClick={handleConnect} // Changed onClick to call handleConnect
+              onClick={handleConnect}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-lg shadow-md"
             >
               Свържи се с потребителя
