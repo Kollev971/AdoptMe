@@ -1,3 +1,4 @@
+
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { getStorage } from "firebase/storage";
@@ -16,15 +17,14 @@ const firebaseConfig = {
   measurementId: "G-PS3DS1YQQY"
 };
 
-// Initialize Firebase only if no apps exist
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+
 export const auth = getAuth(app);
 export const storage = getStorage(app);
-export const database = getDatabase(app); // Realtime Database for chat
-export const firestore = getFirestore(app); // Firestore for everything else
+export const database = getDatabase(app);
+export const db = getFirestore(app);
 export const analytics = getAnalytics(app);
 
-// Helper function for registration
 export const registerUser = async (email: string, password: string) => {
   try {
     console.log("Starting registration process for:", email);
@@ -42,7 +42,6 @@ export const registerUser = async (email: string, password: string) => {
   }
 };
 
-// Helper function for login
 export const loginUser = async (email: string, password: string) => {
   try {
     console.log("Starting login process for:", email);
@@ -55,19 +54,17 @@ export const loginUser = async (email: string, password: string) => {
   }
 };
 
-// Chat related functions using Realtime Database
 export const sendMessage = async (chatId: string, userId: string, message: string) => {
   try {
     const messagesRef = ref(database, `chats/${chatId}/messages`);
     const newMessageRef = push(messagesRef);
-
+    
     await set(newMessageRef, {
       userId,
       message,
       timestamp: Date.now()
     });
 
-    // Update last message
     const chatRef = ref(database, `chats/${chatId}`);
     await set(chatRef, {
       lastMessage: {
@@ -105,7 +102,6 @@ export const subscribeToChat = (chatId: string, callback: (messages: any[]) => v
   };
 };
 
-// Function to get user-friendly error messages
 const getFirebaseErrorMessage = (errorCode: string): string => {
   switch (errorCode) {
     case 'auth/email-already-in-use':
