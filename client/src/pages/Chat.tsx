@@ -1,164 +1,73 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useRoute } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase";
-import {
-  collection,
-  query,
-  orderBy,
-  onSnapshot,
-  addDoc,
-  serverTimestamp,
-  doc,
-  getDoc,
-  setDoc,
-} from "firebase/firestore";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { format } from "date-fns";
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, getDoc, updateDoc } from "firebase/firestore";
+import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import ChatComponent from "@/components/Chat";
 
-interface Message {
-  id: string;
-  text: string;
-  senderId: string;
-  createdAt: any;
-}
-
-export default function Chat() {
+export default function ChatPage() {
   const [, params] = useRoute("/chat/:chatId");
   const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState("");
-  const [otherUser, setOtherUser] = useState<any>(null);
-  const [listingTitle, setListingTitle] = useState<string>("Непознато животно");
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  const [chatExists, setChatExists] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!params?.chatId || !user) return;
 
-    const fetchChatDetails = async () => {
-      const chatDocRef = doc(db, "chats", params.chatId);
-      const chatDoc = await getDoc(chatDocRef);
-
-      if (!chatDoc.exists()) return;
-
-      const chatData = chatDoc.data();
-      const otherUserId = user.uid === chatData.ownerId ? chatData.requesterId : chatData.ownerId;
-      const listingId = chatData.listingId;
-
-      if (otherUserId) {
-        try {
-          const userDoc = await getDoc(doc(db, "users", otherUserId));
-          if (userDoc.exists()) {
-            setOtherUser({ id: userDoc.id, ...userDoc.data() });
-          }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
+    const checkChatAccess = async () => {
+      try {
+        const chatDoc = await getDoc(doc(db, "chats", params.chatId));
+        if (!chatDoc.exists()) {
+          setChatExists(false);
+          toast({
+            description: "Този чат не съществува.",
+            variant: "destructive",
+          });
+          return;
         }
-      }
 
-      if (listingId) {
-        try {
-          const listingDoc = await getDoc(doc(db, "listings", listingId));
-          if (listingDoc.exists()) {
-            setListingTitle(listingDoc.data().title);
-          }
-        } catch (error) {
-          console.error("Error fetching listing data:", error);
+        const chatData = chatDoc.data();
+        if (chatData.ownerId !== user.uid && chatData.requesterId !== user.uid) {
+          setChatExists(false);
+          toast({
+            description: "Нямате достъп до този чат.",
+            variant: "destructive",
+          });
+          return;
         }
+
+        setChatExists(true);
+      } catch (error: any) {
+        console.error("Error checking chat access:", error);
+        toast({
+          description: "Грешка при достъп до чата: " + error.message,
+          variant: "destructive",
+        });
       }
     };
 
-    fetchChatDetails();
+    checkChatAccess();
+  }, [params?.chatId, user, toast]);
 
-    const messagesRef = collection(db, `chats/${params.chatId}/messages`);
-    const q = query(messagesRef, orderBy("createdAt", "asc"));
+  if (!user || !params?.chatId) return null;
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const newMessages = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Message[];
-      setMessages(newMessages);
-      setLoading(false);
-      scrollToBottom();
-    });
+  if (chatExists === false) {
+    return (
+      <div className="container mx-auto p-4 max-w-4xl">
+        <Card className="p-4 text-center">
+          <p>Този чат не съществува или нямате достъп до него.</p>
+        </Card>
+      </div>
+    );
+  }
 
-    return () => unsubscribe();
-  }, [params?.chatId, user]);
-
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !user || !params?.chatId) return;
-
-    try {
-      const messagesRef = collection(db, `chats/${params.chatId}/messages`);
-      await addDoc(messagesRef, {
-        text: newMessage,
-        senderId: user.uid,
-        createdAt: serverTimestamp(),
-      });
-      setNewMessage("");
-    } catch (error: any) {
-      toast({
-        description: "Грешка при изпращане на съобщението: " + error.message,
-        variant: "destructive",
-      });
-    }
-  };
+  if (chatExists === null) return null;
 
   return (
     <div className="container mx-auto p-4 max-w-4xl">
-      <Card className="h-[80vh] rounded-2xl shadow-xl">
-        <CardHeader className="border-b flex items-center gap-3 p-4 bg-gray-100 rounded-t-2xl">
-          <Avatar className="h-10 w-10">
-            <AvatarFallback>
-              {(otherUser?.fullName || otherUser?.username || "?").charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <CardTitle className="text-lg font-semibold">
-            Осиновяване на: {listingTitle}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col h-full p-0">
-          <ScrollArea className="flex-1 p-4 bg-gray-50">
-            {loading ? (
-              <div className="flex justify-center">
-                <Loader2 className="h-6 w-6 animate-spin" />
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {messages.map((message) => (
-                  <div key={message.id} className={`flex ${message.senderId === user.uid ? "justify-end" : "justify-start"}`}>
-                    <div className={`rounded-2xl px-4 py-2 max-w-[70%] text-white shadow-md ${message.senderId === user.uid ? "bg-blue-600" : "bg-gray-700"}`}>
-                      <div>{message.text}</div>
-                      <div className="text-xs opacity-70 mt-1 text-gray-300">
-                        {message.createdAt && format(message.createdAt.toDate(), "HH:mm")}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                <div ref={messagesEndRef} />
-              </div>
-            )}
-          </ScrollArea>
-          <form onSubmit={sendMessage} className="p-4 flex gap-2 border-t bg-gray-100 rounded-b-2xl">
-            <Input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Напишете съобщение..." className="flex-1 rounded-xl" />
-            <Button type="submit" className="rounded-xl">Изпрати</Button>
-          </form>
-        </CardContent>
-      </Card>
+      <ChatComponent chatId={params.chatId} />
     </div>
   );
 }

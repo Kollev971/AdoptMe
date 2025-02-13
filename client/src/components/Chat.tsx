@@ -1,10 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-// import { database } from '@/lib/firebase'; // Removed
-import {  // Removed
-//   ref, push, set, onValue, query, orderByChild, get 
-} from 'firebase/database'; // Removed
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  getDoc,
+  onSnapshot,
+  addDoc,
+  query,
+  orderBy,
+  serverTimestamp,
+  updateDoc
+} from "firebase/firestore";
 const db = getFirestore();
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,9 +24,9 @@ import { format } from 'date-fns';
 
 interface Message {
   id: string;
-  userId: string;
-  message: string;
-  timestamp: number;
+  senderId: string;
+  text: string;
+  createdAt: any;
 }
 
 interface ChatProps {
@@ -30,7 +37,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
-  const [participantDetails, setParticipantDetails] = useState<Record<string, { email: string; photoURL?: string; }>>({});
+  const [participantDetails, setParticipantDetails] = useState<Record<string, any>>({});
   const [chatData, setChatData] = useState<any>(null);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -43,51 +50,52 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
   useEffect(() => {
     if (!chatId || !user) return;
 
-    const chatRef = doc(db, `chats`, chatId); //Updated
-    const unsubscribe = onValue(chatRef, async (snapshot) => { //This line is incorrect, but we will keep it for now.  It should use a firestore listener instead.
-      const chatData = snapshot.val();
-      if (chatData) {
-        // Fetch listing details from Firestore
-        if (chatData.listingId) {
-          const listingDoc = await getDoc(doc(db, 'listings', chatData.listingId));
+    // Subscribe to chat document
+    const chatDocRef = doc(db, 'chats', chatId);
+    const unsubscribeChat = onSnapshot(chatDocRef, async (snapshot) => {
+      const data = snapshot.data();
+      if (data) {
+        // Fetch listing details
+        if (data.listingId) {
+          const listingDoc = await getDoc(doc(db, 'listings', data.listingId));
           if (listingDoc.exists()) {
-            chatData.listingDetails = listingDoc.data();
+            data.listingDetails = listingDoc.data();
           }
         }
 
-        // Fetch participant details from Firestore
+        // Fetch participant details
         const participantsDetails: Record<string, any> = {};
-        const promises = Object.keys(chatData.participants || {}).map(async (participantId) => {
-          const userDoc = await getDoc(doc(db, 'users', participantId));
+        const userIds = [data.ownerId, data.requesterId].filter(Boolean);
+
+        const promises = userIds.map(async (userId) => {
+          const userDoc = await getDoc(doc(db, 'users', userId));
           if (userDoc.exists()) {
-            participantsDetails[participantId] = userDoc.data();
+            participantsDetails[userId] = userDoc.data();
           }
         });
 
         await Promise.all(promises);
         setParticipantDetails(participantsDetails);
-        setChatData(chatData);
+        setChatData(data);
       }
     });
 
-    const messagesRef = ref(db, `chats/${chatId}/messages`); //This line is incorrect, but we will keep it for now. It should use a firestore collection reference.
-    const messagesQuery = query(messagesRef, orderByChild('timestamp')); //This line is incorrect, but we will keep it for now.  It should use a firestore query instead.
+    // Subscribe to messages collection
+    const messagesRef = collection(db, 'chats', chatId, 'messages');
+    const messagesQuery = query(messagesRef, orderBy('createdAt', 'asc'));
 
-    const messagesUnsubscribe = onValue(messagesQuery, (snapshot) => { //This line is incorrect, but we will keep it for now.  It should use a firestore listener instead.
-      const messagesData: Message[] = [];
-      snapshot.forEach((childSnapshot) => {
-        messagesData.push({
-          id: childSnapshot.key!,
-          ...childSnapshot.val()
-        });
-      });
+    const unsubscribeMessages = onSnapshot(messagesQuery, (snapshot) => {
+      const messagesData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Message[];
       setMessages(messagesData);
       scrollToBottom();
     });
 
     return () => {
-      unsubscribe();
-      messagesUnsubscribe();
+      unsubscribeChat();
+      unsubscribeMessages();
     };
   }, [chatId, user]);
 
@@ -97,26 +105,26 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
 
     setSending(true);
     try {
-      const messagesRef = ref(db, `chats/${chatId}/messages`); //This line is incorrect, but we will keep it for now. It should use a firestore collection reference.
-      const newMessageRef = push(messagesRef); //This line is incorrect, but we will keep it for now.  It should use a firestore add instead.
-      const messageData = {
-        userId: user.uid,
-        message: newMessage,
-        timestamp: Date.now()
-      };
-
-      await set(newMessageRef, messageData); //This line is incorrect, but we will keep it for now.  It should use a firestore add instead.
-      await set(ref(db, `chats/${chatId}/lastMessage`), { //This line is incorrect, but we will keep it for now.  It should use a firestore update instead.
+      const messagesRef = collection(db, 'chats', chatId, 'messages');
+      await addDoc(messagesRef, {
         text: newMessage,
         senderId: user.uid,
-        timestamp: Date.now()
+        createdAt: serverTimestamp()
+      });
+
+      await updateDoc(doc(db, 'chats', chatId), {
+        lastMessage: {
+          text: newMessage,
+          senderId: user.uid,
+          createdAt: serverTimestamp()
+        }
       });
 
       setNewMessage('');
       toast({ description: 'Съобщението е изпратено!' });
-    } catch (error) {
+    } catch (error: any) {
       toast({ 
-        description: 'Грешка при изпращане на съобщението!',
+        description: 'Грешка при изпращане на съобщението: ' + error.message,
         variant: 'destructive'
       });
     } finally {
@@ -124,33 +132,30 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
     }
   };
 
+  const otherParticipantId = user ? (chatData?.ownerId === user.uid ? chatData?.requesterId : chatData?.ownerId) : null;
+  const otherParticipant = otherParticipantId ? participantDetails[otherParticipantId] : null;
+
   return (
     <Card className="w-full h-[80vh] flex flex-col">
       <CardHeader className="border-b">
         <CardTitle className="flex items-center gap-2">
-          {Object.entries(participantDetails)
-            .filter(([id]) => id !== user?.uid)
-            .map(([id, details]) => (
-              <div key={id} className="flex items-center gap-2">
-                <Avatar className="h-8 w-8">
-                  {details.photoURL ? (
-                    <AvatarImage src={details.photoURL} alt={details.email} />
-                  ) : (
-                    <AvatarFallback>
-                      {details.email?.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  )}
-                </Avatar>
-                <div>
-                  <p className="font-medium">{details.email}</p>
-                  {chatData?.listingDetails?.title && (
-                    <p className="text-sm text-muted-foreground">
-                      Относно: {chatData.listingDetails.title}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
+          <Avatar className="h-8 w-8">
+            {otherParticipant?.photoURL ? (
+              <AvatarImage src={otherParticipant.photoURL} alt={otherParticipant.fullName || otherParticipant.email} />
+            ) : (
+              <AvatarFallback>
+                {(otherParticipant?.fullName || otherParticipant?.email || '?').charAt(0).toUpperCase()}
+              </AvatarFallback>
+            )}
+          </Avatar>
+          <div>
+            <p className="font-medium">{otherParticipant?.fullName || otherParticipant?.email || 'Непознат потребител'}</p>
+            {chatData?.listingDetails?.title && (
+              <p className="text-sm text-muted-foreground">
+                Относно: {chatData.listingDetails.title}
+              </p>
+            )}
+          </div>
         </CardTitle>
       </CardHeader>
       <ScrollArea className="flex-1 p-4">
@@ -158,49 +163,41 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
           {messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex items-start gap-2 ${msg.userId === user?.uid ? 'justify-end' : 'justify-start'}`}
+              className={`flex items-start gap-2 ${msg.senderId === user?.uid ? 'justify-end' : 'justify-start'}`}
             >
-              {msg.userId !== user?.uid && (
-                <div className="flex flex-col items-center gap-1">
-                  <Avatar className="w-8 h-8">
-                    {participantDetails[msg.userId]?.photoURL ? (
-                      <AvatarImage src={participantDetails[msg.userId].photoURL} alt="User avatar" />
-                    ) : (
-                      <AvatarFallback className="bg-primary text-primary-foreground">
-                        {participantDetails[msg.userId]?.email?.charAt(0).toUpperCase() || '?'}
-                      </AvatarFallback>
-                    )}
-                  </Avatar>
-                  <span className="text-xs text-muted-foreground">
-                    {participantDetails[msg.userId]?.email?.split('@')[0] || 'User'}
-                  </span>
-                </div>
+              {msg.senderId !== user?.uid && (
+                <Avatar className="h-8 w-8">
+                  {participantDetails[msg.senderId]?.photoURL ? (
+                    <AvatarImage src={participantDetails[msg.senderId].photoURL} alt="User avatar" />
+                  ) : (
+                    <AvatarFallback>
+                      {(participantDetails[msg.senderId]?.fullName || participantDetails[msg.senderId]?.email || '?').charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
               )}
               <div
                 className={`max-w-[70%] rounded-lg p-3 ${
-                  msg.userId === user?.uid
-                    ? 'bg-primary text-primary-foreground ml-auto'
+                  msg.senderId === user?.uid
+                    ? 'bg-primary text-primary-foreground'
                     : 'bg-secondary'
                 }`}
               >
-                <p className="text-sm break-words">{msg.message}</p>
+                <p className="text-sm break-words">{msg.text}</p>
                 <span className="text-xs opacity-70 block mt-1">
-                  {format(msg.timestamp, 'HH:mm')}
+                  {msg.createdAt && format(msg.createdAt.toDate(), 'HH:mm')}
                 </span>
               </div>
-              {msg.userId === user?.uid && (
-                <div className="flex flex-col items-center gap-1">
-                  <Avatar className="w-8 h-8">
-                    {user.photoURL ? (
-                      <AvatarImage src={user.photoURL} alt="Your avatar" />
-                    ) : (
-                      <AvatarFallback className="bg-primary text-primary-foreground">
-                        {user.email?.charAt(0).toUpperCase() || '?'}
-                      </AvatarFallback>
-                    )}
-                  </Avatar>
-                  <span className="text-xs text-muted-foreground">You</span>
-                </div>
+              {msg.senderId === user?.uid && (
+                <Avatar className="h-8 w-8">
+                  {user.photoURL ? (
+                    <AvatarImage src={user.photoURL} alt="Your avatar" />
+                  ) : (
+                    <AvatarFallback>
+                      {(user.email || '?').charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
               )}
             </div>
           ))}
