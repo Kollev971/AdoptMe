@@ -1,0 +1,58 @@
+Warning: Received NaN for the &#x60;value&#x60; attribute. If this is expected, cast the value to a string.
+    at input
+    at _c (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/src/components/ui/input.tsx:20:11)
+    at https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-DKHUMOWT.js?v=bfe49766:52:11
+    at https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-DKHUMOWT.js?v=bfe49766:33:11
+    at https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/src/components/ui/form.tsx:127:9
+    at div
+    at https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/src/components/ui/form.tsx:71:6
+    at Controller (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-YABUFNLM.js?v=bfe49766:313:35)
+    at FormField (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/src/components/ui/form.tsx:32:6)
+    at form
+    at FormProvider (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-YABUFNLM.js?v=bfe49766:102:11)
+    at div
+    at _c9 (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/src/components/ui/card.tsx:106:12)
+    at div
+    at _c (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/src/components/ui/card.tsx:20:11)
+    at div
+    at CreateListing (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/src/pages/CreateListing.tsx:44:33)
+    at Route (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=bfe49766:323:16)
+    at Switch (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=bfe49766:379:17)
+    at main
+    at div
+    at QueryClientProvider (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=bfe49766:2835:3)
+    at App
+at input
+at _c (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/src/components/ui/input.tsx:20:11)
+at https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-DKHUMOWT.js?v=bfe49766:52:11
+at https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-DKHUMOWT.js?v=bfe49766:33:11
+at https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/src/components/ui/form.tsx:127:9
+at div
+at https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/src/components/ui/form.tsx:71:6
+at Controller (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-YABUFNLM.js?v=bfe49766:313:35)
+at FormField (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/src/components/ui/form.tsx:32:6)
+at form
+at FormProvider (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-YABUFNLM.js?v=bfe49766:102:11)
+at div
+at _c9 (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/src/components/ui/card.tsx:106:12)
+at div
+at _c (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/src/components/ui/card.tsx:20:11)
+at div
+at CreateListing (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/src/pages/CreateListing.tsx:44:33)
+at Route (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=bfe49766:323:16)
+at Switch (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=bfe49766:379:17)
+at main
+at div
+at QueryClientProvider (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=bfe49766:2835:3)
+at App
+at t.value (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:17465)
+at new t (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:12630)
+at t.value (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:32766)
+at https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:34400
+Error creating listing: 
+_FirebaseError {code: "permission-denied", customData: undefined, name: "FirebaseError", toString: ƒ}
+
+at t.value (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:17465)
+at new t (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:12630)
+at t.value (https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:32766)
+at https://5ccd7ef6-85ef-45f7-9f63-bf79b88ddd23-00-gbk6m9srdqua.spock.replit.dev/__replco/static/devtools/erud
