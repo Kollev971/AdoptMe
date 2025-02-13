@@ -58,7 +58,7 @@ export function Navbar() {
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center justify-between">
         <Link href="/">
-          <div className="mr-6 flex items-center space-x-2">
+          <div className="mr-6 flex items-center space-x-1">
             <img src="/paw-house-logo.png" alt="AdoptMe" className="h-12 w-12" />
             <span className="font-bold">
               <span style={{color: '#004AAD'}}>Adopt</span>
