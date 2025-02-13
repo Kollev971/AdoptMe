@@ -22,15 +22,6 @@ export const auth = getAuth(app);
 export const storage = getStorage(app);
 export const database = getDatabase(app); // Realtime Database - само за чат
 export const db = getFirestore(app); // Firestore - за всичко останало
-
-// Initialize Realtime Database with persistence
-enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code === 'failed-precondition') {
-        console.warn('Multiple tabs open, persistence can only be enabled in one tab at a a time.');
-    } else if (err.code === 'unimplemented') {
-        console.warn('The current browser doesn\'t support persistence.');
-    }
-});
 export const analytics = getAnalytics(app);
 
 export const registerUser = async (email: string, password: string) => {
