@@ -49,7 +49,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
 
     const messagesRef = ref(database, `chats/${chatId}/messages`);
     const messagesQuery = query(messagesRef, orderByChild('timestamp'));
-
+    
     const messagesUnsubscribe = onValue(messagesQuery, (snapshot) => {
       const messagesData: Message[] = [];
       snapshot.forEach((childSnapshot) => {
@@ -68,12 +68,12 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
     };
   }, [chatId, user]);
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !newMessage.trim() || sending) return;
+  const handleSendMessage = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newMessage.trim() || !user || sending) return;
 
+    setSending(true);
     try {
-      setSending(true);
       const messagesRef = ref(database, `chats/${chatId}/messages`);
       const newMessageRef = push(messagesRef);
       const messageData = {
@@ -89,13 +89,12 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
         timestamp: Date.now()
       });
 
-      setNewMessage("");
-    } catch (error: any) {
-      console.error("Error sending message:", error);
-      toast({
-        title: "Грешка",
-        description: "Съобщението не можа да бъде изпратено",
-        variant: "destructive",
+      setNewMessage('');
+      toast({ description: 'Съобщението е изпратено!' });
+    } catch (error) {
+      toast({ 
+        description: 'Грешка при изпращане на съобщението!',
+        variant: 'destructive'
       });
     } finally {
       setSending(false);

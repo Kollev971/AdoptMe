@@ -17,8 +17,10 @@ interface Chat {
     senderId: string;
     timestamp: number;
   };
-  participantEmails?: Record<string, string>;
-  participantPhotos?: Record<string, string>;
+  participantDetails?: Record<string, {
+    email: string;
+    photoURL?: string;
+  }>;
 }
 
 export default function Messages() {
@@ -51,6 +53,9 @@ export default function Messages() {
         const timeB = b.lastMessage?.timestamp || 0;
         return timeB - timeA;
       }));
+      setLoading(false);
+    }, (error) => {
+      toast({ description: 'Error loading chats: ' + error.message });
       setLoading(false);
     });
 
@@ -90,8 +95,7 @@ export default function Messages() {
           <div className="space-y-4">
             {chats.map((chat) => {
               const otherUserId = Object.keys(chat.participants).find(id => id !== user?.uid);
-              const otherUserEmail = otherUserId ? chat.participantEmails?.[otherUserId] : 'Непознат потребител';
-              const otherUserPhoto = otherUserId ? chat.participantPhotos?.[otherUserId] : null;
+              const otherUserDetails = otherUserId ? chat.participantDetails?.[otherUserId] : undefined;
 
               return (
                 <Card 
@@ -101,16 +105,16 @@ export default function Messages() {
                 >
                   <CardContent className="p-4 flex items-center gap-4">
                     <Avatar>
-                      {otherUserPhoto ? (
-                        <AvatarImage src={otherUserPhoto} alt={otherUserEmail} />
+                      {otherUserDetails?.photoURL ? (
+                        <AvatarImage src={otherUserDetails.photoURL} alt={otherUserDetails.email} />
                       ) : (
                         <AvatarFallback>
-                          {otherUserEmail?.charAt(0).toUpperCase() || '?'}
+                          {otherUserDetails?.email?.charAt(0).toUpperCase() || '?'}
                         </AvatarFallback>
                       )}
                     </Avatar>
                     <div className="flex-1">
-                      <p className="font-medium">{otherUserEmail}</p>
+                      <p className="font-medium">{otherUserDetails?.email || 'Непознат потребител'}</p>
                       {chat.lastMessage ? (
                         <>
                           <p className="text-sm text-muted-foreground line-clamp-1">
