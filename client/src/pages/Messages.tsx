@@ -48,7 +48,8 @@ export default function Messages() {
     // Query for chats where the user is either the owner or requester
     const chatsQuery = query(
       collection(db, "chats"),
-      where("participants", "array-contains", user.uid)
+      where("participants", "array-contains", user.uid),
+      orderBy("updatedAt", "desc")
     );
 
     const unsubscribe = onSnapshot(chatsQuery, async (snapshot) => {

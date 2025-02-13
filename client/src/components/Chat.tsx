@@ -66,7 +66,8 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
         // Fetch listing details
         if (data.listingId) {
           try {
-            const listingDoc = await getDoc(doc(db, 'listings', data.listingId));
+            const listingRef = doc(db, 'listings', data.listingId);
+            const listingDoc = await getDoc(listingRef);
             if (listingDoc.exists()) {
               data.listingDetails = listingDoc.data();
             }
@@ -76,21 +77,21 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
         }
 
         // Fetch participant details
-        const participantsDetails: Record<string, any> = {};
         const userIds = [data.ownerId, data.requesterId].filter(Boolean);
-
         for (const userId of userIds) {
           try {
-            const userDoc = await getDoc(doc(db, 'users', userId));
+            const userRef = doc(db, 'users', userId);
+            const userDoc = await getDoc(userRef);
             if (userDoc.exists()) {
-              participantsDetails[userId] = userDoc.data();
+              const userData = userDoc.data();
+              participantDetails[userId] = userData;
             }
           } catch (error) {
             console.error("Error fetching user:", error);
           }
         }
 
-        setParticipantDetails(participantsDetails);
+        setParticipantDetails({ ...participantDetails });
         setChatData(data);
       }
     });
@@ -121,23 +122,21 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
     setSending(true);
     try {
       const messagesRef = collection(db, 'chats', chatId, 'messages');
-      await addDoc(messagesRef, {
+      const messageData = {
         text: newMessage,
         senderId: user.uid,
         createdAt: serverTimestamp()
-      });
+      };
+
+      await addDoc(messagesRef, messageData);
 
       await updateDoc(doc(db, 'chats', chatId), {
-        lastMessage: {
-          text: newMessage,
-          senderId: user.uid,
-          createdAt: serverTimestamp()
-        },
-        participants: arrayUnion(user.uid)
+        lastMessage: messageData,
+        participants: arrayUnion(user.uid),
+        updatedAt: serverTimestamp()
       });
 
       setNewMessage('');
-      toast({ description: 'Съобщението е изпратено!' });
     } catch (error: any) {
       toast({ 
         description: 'Грешка при изпращане на съобщението: ' + error.message,
