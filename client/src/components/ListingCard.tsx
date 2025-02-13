@@ -27,7 +27,7 @@ export function ListingCard({ listing }: ListingCardProps) {
           setListingUser(userSnap.data());
         }
       } catch (error: any) {
-        console.error("Error fetching listing user:", error);
+        console.error("Грешка при зареждане на потребител:", error);
       }
     };
     fetchListingUser();
@@ -50,25 +50,25 @@ export function ListingCard({ listing }: ListingCardProps) {
   };
 
   return (
-    <Link href={`/listings/${listing.id}`}>
-      <Card className="overflow-hidden hover:shadow-[#01BFFF]/20 transition-shadow">
+    <Link href={`/listings/${listing.id}`} className="no-underline">
+      <Card className="overflow-hidden border border-[#004AAD] hover:shadow-lg transition-shadow rounded-xl">
         <CardContent className="p-0">
           <AspectRatio ratio={4 / 3} className="relative bg-gray-100">
             <img
-              src={listing.images?.[0] || 'https://via.placeholder.com/400x300?text=No+Image'}
+              src={listing.images?.[0] || 'https://via.placeholder.com/400x300?text=Няма+снимка'}
               alt={listing.title}
-              className="object-cover w-full h-full transition-transform duration-300 hover:scale-105"
+              className="object-cover w-full h-full transition-transform duration-300 hover:scale-105 rounded-t-xl"
             />
-            <Badge className="absolute top-3 left-3 bg-white/90 text-primary py-1 px-3 rounded-full shadow-lg backdrop-blur-sm">
+            <Badge className="absolute top-3 left-3 bg-[#01BFFF] text-white py-1 px-3 rounded-full shadow-md">
               {getTypeEmoji(listing.type)} {listing.type}
             </Badge>
           </AspectRatio>
 
           <div className="p-4">
-            <h3 className="font-semibold text-lg text-gray-900 hover:text-primary transition-colors line-clamp-1">
+            <h3 className="font-semibold text-lg text-[#004AAD] hover:text-[#01BFFF] transition-colors line-clamp-1">
               {listing.title}
             </h3>
-            <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+            <div className="mt-2 flex items-center gap-2 text-sm text-gray-700">
               <span className="inline-flex items-center">
                 📅 {formatAge(listing.age)}
               </span>
@@ -82,17 +82,17 @@ export function ListingCard({ listing }: ListingCardProps) {
           </div>
         </CardContent>
 
-        <CardFooter className="p-4 bg-gray-50 flex flex-col gap-2">
+        <CardFooter className="p-4 bg-[#F0F7FF] flex flex-col gap-2 rounded-b-xl">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-[#004AAD] text-white flex items-center justify-center font-bold">
                 {listingUser?.username?.[0]?.toUpperCase() || 'A'}
               </div>
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-700">
                 {listingUser?.username || "Анонимен"}
               </span>
             </div>
-            <Button variant="default" size="sm" className="rounded-full">
+            <Button variant="default" size="sm" className="rounded-full bg-[#01BFFF] hover:bg-[#004AAD] text-white px-4">
               Разгледай →
             </Button>
           </div>
