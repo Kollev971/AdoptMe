@@ -130,9 +130,6 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
       const chatData = chatDoc.data();
       const { ownerId, requesterId } = chatData;
 
-      const chatRef = doc(db, 'chats', chatId);
-      const chatDoc = await getDoc(chatRef);
-
       // Create or update chat document
       if (!chatDoc.exists()) {
         const newChatData = {
