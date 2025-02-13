@@ -87,7 +87,6 @@ export function Navbar() {
                     className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary"
                     style={{ display: unreadCount > 0 ? 'block' : 'none' }} 
                   />
-                  </span>
                 </Button>
               </Link>
               <UserMenu />
