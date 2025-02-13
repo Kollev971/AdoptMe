@@ -96,21 +96,30 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
     const messagesRef = collection(db, 'chats', chatId, 'messages');
     const messagesQuery = query(messagesRef, orderBy('createdAt', 'asc'));
 
-    const unsubscribeMessages = onSnapshot(messagesQuery, (snapshot) => {
-      const messagesData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Message[];
+    const unsubscribeMessages = onSnapshot(messagesQuery, {
+      next: (snapshot) => {
+        const messagesData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Message[];
 
-      // For each message, ensure we have the sender's details
-      messagesData.forEach(msg => {
-        if (msg.senderId) {
-          fetchUserDetails(msg.senderId);
-        }
-      });
+        // For each message, ensure we have the sender's details
+        messagesData.forEach(msg => {
+          if (msg.senderId) {
+            fetchUserDetails(msg.senderId);
+          }
+        });
 
-      setMessages(messagesData);
-      scrollToBottom();
+        setMessages(messagesData);
+        scrollToBottom();
+      },
+      error: (error) => {
+        console.error("Error in messages subscription:", error);
+        toast({
+          description: "Грешка при получаване на съобщенията",
+          variant: "destructive"
+        });
+      }
     });
 
     return () => {
@@ -128,11 +137,11 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
       // Get current chat data instead of splitting ID
       const chatRef = doc(db, 'chats', chatId);
       const chatDoc = await getDoc(chatRef);
-      
+
       if (!chatDoc.exists()) {
         throw new Error('Chat not found');
       }
-      
+
       const chatData = chatDoc.data();
       const { ownerId, requesterId } = chatData;
 
