@@ -17,7 +17,7 @@ interface Chat {
     senderId: string;
     timestamp: number;
   };
-  participantDetails?: Record<string, {
+  participantDetails: Record<string, {
     email: string;
     photoURL?: string;
   }>;
@@ -34,9 +34,7 @@ export default function Messages() {
     if (!user) return;
 
     const chatsRef = ref(database, 'chats');
-    const chatsQuery = query(chatsRef, orderByChild(`participants/${user.uid}`));
-
-    const unsubscribe = onValue(chatsQuery, (snapshot) => {
+    const unsubscribe = onValue(chatsRef, (snapshot) => {
       const chatsData: Chat[] = [];
       snapshot.forEach((childSnapshot) => {
         const chatData = childSnapshot.val();
@@ -55,7 +53,11 @@ export default function Messages() {
       }));
       setLoading(false);
     }, (error) => {
-      toast({ description: 'Error loading chats: ' + error.message });
+      console.error("Error loading chats:", error);
+      toast({ 
+        description: 'Грешка при зареждане на съобщенията: ' + error.message,
+        variant: 'destructive'
+      });
       setLoading(false);
     });
 
@@ -94,7 +96,7 @@ export default function Messages() {
         <CardContent>
           <div className="space-y-4">
             {chats.map((chat) => {
-              const otherUserId = Object.keys(chat.participants).find(id => id !== user?.uid);
+              const otherUserId = Object.keys(chat.participants).find(id => id !== user.uid);
               const otherUserDetails = otherUserId ? chat.participantDetails?.[otherUserId] : undefined;
 
               return (
@@ -118,7 +120,7 @@ export default function Messages() {
                       {chat.lastMessage ? (
                         <>
                           <p className="text-sm text-muted-foreground line-clamp-1">
-                            {chat.lastMessage.senderId === user?.uid ? 'Вие: ' : ''}{chat.lastMessage.text}
+                            {chat.lastMessage.senderId === user.uid ? 'Вие: ' : ''}{chat.lastMessage.text}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
                             {new Date(chat.lastMessage.timestamp).toLocaleString()}

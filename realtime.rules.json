@@ -1,18 +1,19 @@
 
 {
   "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
     "chats": {
-      ".read": "auth != null",
-      ".write": "auth != null",
       "$chatId": {
         "messages": {
           ".read": "auth != null",
-          ".write": "auth != null",
-          "$messageId": {
-            ".validate": "newData.hasChildren(['userId', 'message', 'timestamp'])"
-          }
+          ".write": "auth != null"
         },
         "participants": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        },
+        "participantDetails": {
           ".read": "auth != null",
           ".write": "auth != null"
         },
