@@ -1,27 +1,28 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { database as db, getFirestore } from "@/lib/firebase"; // Assuming this exports both db and old database
-import { ref, onValue } from "firebase/database"; //Keeping this for chatsRef
-import { getDoc, doc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation } from "wouter";
 import { Loader2, MessageCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 interface Chat {
   id: string;
-  participants: Record<string, boolean>;
+  participants: string[];
   lastMessage?: {
     text: string;
     senderId: string;
-    timestamp: number;
+    timestamp: any;
   };
-  participantDetails: Record<string, {
+  participantDetails?: Record<string, {
+    username: string;
     email: string;
     photoURL?: string;
   }>;
-  listingDetails?: any; // Adjust type as needed
+  listingDetails?: any;
 }
 
 export default function Messages() {
@@ -34,56 +35,36 @@ export default function Messages() {
   useEffect(() => {
     if (!user) return;
 
-    const chatsRef = ref(db, 'chats'); //Using old db ref for simplicity
-    const unsubscribe = onValue(chatsRef, async (snapshot) => {
+    const chatsQuery = query(
+      collection(db, 'chats'),
+      where('participants', 'array-contains', user.uid),
+      orderBy('lastMessage.timestamp', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(chatsQuery, async (snapshot) => {
       const chatsData: Chat[] = [];
-      const promises = [];
 
-      for (const childSnapshot of snapshot.val() || []) {
-        const chatData = childSnapshot.val();
-        if (chatData.participants?.[user.uid]) {
-          // Get listing details from Firestore
-          if (chatData.listingId) {
-            const promise = getDoc(doc(getFirestore(), 'listings', chatData.listingId))
-              .then(listingDoc => {
-                if (listingDoc.exists()) {
-                  chatData.listingDetails = listingDoc.data();
-                }
-              });
-            promises.push(promise);
+      for (const doc of snapshot.docs) {
+        const chatData = { id: doc.id, ...doc.data() } as Chat;
+        chatData.participantDetails = {};
 
-            // Get user details from Firestore
-            const otherUserId = Object.keys(chatData.participants).find(id => id !== user.uid);
-            if (otherUserId) {
-              const userPromise = getDoc(doc(getFirestore(), 'users', otherUserId))
-                .then(userDoc => {
-                  if (userDoc.exists()) {
-                    chatData.participantDetails = {
-                      [otherUserId]: userDoc.data()
-                    };
-                  }
-                });
-              promises.push(userPromise);
+        // Get participant details
+        for (const participantId of chatData.participants) {
+          if (participantId !== user.uid) {
+            const userDoc = await db.collection('users').doc(participantId).get();
+            if (userDoc.exists()) {
+              chatData.participantDetails[participantId] = userDoc.data();
             }
           }
-          chatsData.push({
-            id: childSnapshot.key!,
-            ...chatData
-          });
         }
+        chatsData.push(chatData);
       }
 
-      await Promise.all(promises);
-
-      setChats(chatsData.sort((a, b) => {
-        const timeA = a.lastMessage?.timestamp || 0;
-        const timeB = b.lastMessage?.timestamp || 0;
-        return timeB - timeA;
-      }));
+      setChats(chatsData);
       setLoading(false);
     }, (error) => {
       console.error("Error loading chats:", error);
-      toast({ 
+      toast({
         description: 'Грешка при зареждане на съобщенията: ' + error.message,
         variant: 'destructive'
       });
@@ -125,9 +106,8 @@ export default function Messages() {
         <CardContent>
           <div className="space-y-4">
             {chats.map((chat) => {
-              const otherUserId = Object.keys(chat.participants).find(id => id !== user.uid);
+              const otherUserId = chat.participants.find(id => id !== user.uid);
               const otherUserDetails = otherUserId ? chat.participantDetails?.[otherUserId] : undefined;
-              const listingDetails = chat.listingDetails || {};
 
               return (
                 <Card 
@@ -138,18 +118,18 @@ export default function Messages() {
                   <CardContent className="p-4 flex items-center gap-4">
                     <Avatar>
                       {otherUserDetails?.photoURL ? (
-                        <AvatarImage src={otherUserDetails.photoURL} alt={otherUserDetails.email} />
+                        <AvatarImage src={otherUserDetails.photoURL} alt={otherUserDetails.username} />
                       ) : (
                         <AvatarFallback>
-                          {otherUserDetails?.email?.charAt(0).toUpperCase() || '?'}
+                          {otherUserDetails?.username?.charAt(0).toUpperCase() || '?'}
                         </AvatarFallback>
                       )}
                     </Avatar>
                     <div className="flex-1">
                       <div>
-                        <p className="font-medium">{otherUserDetails?.email || 'Непознат потребител'}</p>
-                        {listingDetails.title && (
-                          <p className="text-sm text-muted-foreground">Относно: {listingDetails.title}</p>
+                        <p className="font-medium">{otherUserDetails?.username || 'Непознат потребител'}</p>
+                        {chat.listingDetails?.title && (
+                          <p className="text-sm text-muted-foreground">Относно: {chat.listingDetails.title}</p>
                         )}
                       </div>
                       {chat.lastMessage ? (
@@ -158,7 +138,7 @@ export default function Messages() {
                             {chat.lastMessage.senderId === user.uid ? 'Вие: ' : ''}{chat.lastMessage.text}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {new Date(chat.lastMessage.timestamp).toLocaleString()}
+                            {format(new Date(chat.lastMessage.timestamp?.toDate()), 'dd/MM/yyyy HH:mm')}
                           </p>
                         </>
                       ) : (
