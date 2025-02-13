@@ -17,14 +17,19 @@ export function Navbar() {
 
     const chatsQuery = query(
       collection(db, "chats"),
-      where("participants", "array-contains", user.uid)
+      where("participants", "array-contains", user.uid),
+      orderBy("updatedAt", "desc")
     );
 
     const unsubscribe = onSnapshot(chatsQuery, (snapshot) => {
       const count = snapshot.docs.reduce((acc, doc) => {
         const data = doc.data();
         const lastMessage = data.lastMessage;
-        if (lastMessage && lastMessage.senderId !== user.uid && !data.readBy?.[user.uid]) {
+        const readBy = data.readBy || {};
+        
+        if (lastMessage && 
+            lastMessage.senderId !== user.uid && 
+            (!readBy[user.uid] || new Date(readBy[user.uid]) < new Date(lastMessage.createdAt.toDate()))) {
           return acc + 1;
         }
         return acc;
