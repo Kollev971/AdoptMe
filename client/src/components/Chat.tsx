@@ -177,29 +177,23 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
   const otherParticipantId = chatData?.ownerId === user?.uid ? chatData?.requesterId : chatData?.ownerId;
   const otherParticipant = otherParticipantId ? participantDetails[otherParticipantId] : null;
 
-  console.log("Chat render state:", {
-    currentUser: user?.uid,
-    otherParticipantId,
-    otherParticipant,
-    participantDetails,
-    chatData
-  });
-
   return (
     <Card className="w-full h-[80vh] flex flex-col">
       <CardHeader className="border-b">
         <CardTitle className="flex items-center gap-2">
           <Avatar className="h-8 w-8">
             {otherParticipant?.photoURL ? (
-              <AvatarImage src={otherParticipant.photoURL} alt={otherParticipant.displayName || otherParticipant.email} />
+              <AvatarImage src={otherParticipant.photoURL} alt={otherParticipant.username || 'User'} />
             ) : (
               <AvatarFallback>
-                {(otherParticipant?.displayName || otherParticipant?.email || '?').charAt(0).toUpperCase()}
+                {(otherParticipant?.username || otherParticipant?.fullName || '?').charAt(0).toUpperCase()}
               </AvatarFallback>
             )}
           </Avatar>
           <div>
-            <p className="font-medium">{otherParticipant?.displayName || otherParticipant?.email || 'Непознат потребител'}</p>
+            <p className="font-medium">
+              {otherParticipant?.username || otherParticipant?.fullName || 'Непознат потребител'}
+            </p>
             {chatData?.listingDetails?.title && (
               <p className="text-sm text-muted-foreground">
                 Относно: {chatData.listingDetails.title}
@@ -220,10 +214,10 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
                 {msg.senderId !== user?.uid && (
                   <Avatar className="h-8 w-8">
                     {sender?.photoURL ? (
-                      <AvatarImage src={sender.photoURL} alt="User avatar" />
+                      <AvatarImage src={sender.photoURL} alt={sender.username || 'User avatar'} />
                     ) : (
                       <AvatarFallback>
-                        {(sender?.displayName || sender?.email || '?').charAt(0).toUpperCase()}
+                        {(sender?.username || sender?.fullName || '?').charAt(0).toUpperCase()}
                       </AvatarFallback>
                     )}
                   </Avatar>
@@ -246,7 +240,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
                       <AvatarImage src={user.photoURL} alt="Your avatar" />
                     ) : (
                       <AvatarFallback>
-                        {(user.email || '?').charAt(0).toUpperCase()}
+                        {(user.username || user.email || '?').charAt(0).toUpperCase()}
                       </AvatarFallback>
                     )}
                   </Avatar>

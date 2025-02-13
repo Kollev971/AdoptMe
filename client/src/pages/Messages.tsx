@@ -49,7 +49,7 @@ export default function Messages() {
 
     console.log("Current user ID:", user.uid);
 
-    // Query for chats where the user is a participant
+    // Query for chats where the user is an owner or requester
     const chatsQuery = query(
       collection(db, "chats"),
       where("participants", "array-contains", user.uid),
@@ -65,7 +65,7 @@ export default function Messages() {
           chatData.id = chatDoc.id;
           console.log("Processing chat:", chatDoc.id, chatData);
 
-          // Fetch listing details if available
+          // Fetch listing details
           if (chatData.listingId) {
             try {
               const listingDoc = await getDoc(doc(db, "listings", chatData.listingId));
@@ -78,7 +78,7 @@ export default function Messages() {
             }
           }
 
-          // Fetch owner details if available
+          // Fetch owner details
           if (chatData.ownerId) {
             try {
               const ownerDoc = await getDoc(doc(db, "users", chatData.ownerId));
@@ -91,7 +91,7 @@ export default function Messages() {
             }
           }
 
-          // Fetch requester details if available
+          // Fetch requester details
           if (chatData.requesterId) {
             try {
               const requesterDoc = await getDoc(doc(db, "users", chatData.requesterId));
@@ -143,14 +143,6 @@ export default function Messages() {
                 {chats.map((chat) => {
                   const isOwner = user.uid === chat.ownerId;
                   const otherUser = isOwner ? chat.requesterDetails : chat.ownerDetails;
-                  console.log("Rendering chat:", {
-                    chatId: chat.id,
-                    isOwner,
-                    otherUser,
-                    currentUser: user.uid,
-                    ownerId: chat.ownerId,
-                    requesterId: chat.requesterId
-                  });
 
                   return (
                     <Link key={chat.id} href={`/chat/${chat.id}`}>
@@ -158,17 +150,17 @@ export default function Messages() {
                         <CardContent className="p-4 flex items-center gap-4">
                           <Avatar>
                             {otherUser?.photoURL ? (
-                              <AvatarImage src={otherUser.photoURL} alt={otherUser.displayName || otherUser.email} />
+                              <AvatarImage src={otherUser.photoURL} alt={otherUser.username || otherUser.fullName} />
                             ) : (
                               <AvatarFallback>
-                                {(otherUser?.displayName || otherUser?.email || "?").charAt(0).toUpperCase()}
+                                {(otherUser?.username || otherUser?.fullName || "?").charAt(0).toUpperCase()}
                               </AvatarFallback>
                             )}
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start">
                               <p className="font-medium truncate">
-                                {otherUser?.displayName || otherUser?.email || "Непознат потребител"}
+                                {otherUser?.username || otherUser?.fullName || "Непознат потребител"}
                               </p>
                               {chat.lastMessage?.createdAt && (
                                 <span className="text-xs text-muted-foreground">
