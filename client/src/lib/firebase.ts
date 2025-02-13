@@ -21,7 +21,7 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 export const database = getDatabase(app); // Realtime Database for chat
-export const db = getFirestore(app); // Firestore for everything else
+export const firestore = getFirestore(app); // Firestore for everything else
 export const analytics = getAnalytics(app);
 
 // Helper function for registration
