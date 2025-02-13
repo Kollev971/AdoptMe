@@ -2,7 +2,7 @@ import { initializeApp, getApps } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 import { getDatabase, ref, push, set } from "firebase/database";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, collection, query, getDocs, doc, getDoc, onSnapshot, orderBy } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
@@ -23,6 +23,7 @@ export const storage = getStorage(app);
 export const database = getDatabase(app); // Realtime Database - само за чат
 export const db = getFirestore(app); // Firestore - за всичко останало
 export const analytics = getAnalytics(app);
+export { getFirestore, collection, query, getDocs, doc, getDoc, onSnapshot, orderBy };
 
 export const registerUser = async (email: string, password: string) => {
   try {
