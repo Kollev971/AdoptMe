@@ -59,8 +59,8 @@ export function Navbar() {
       <div className="container flex h-14 items-center justify-between">
         <Link href="/">
           <div className="mr-6 flex items-center space-x-2">
-            <PawPrint className="h-6 w-6 text-primary" />
-            <span className="font-bold">DoggyCat</span>
+            <img src="/paw-house-logo.png" alt="AdoptMe" className="h-6 w-6" />
+            <span className="font-bold">AdoptMe</span>
           </div>
         </Link>
 
