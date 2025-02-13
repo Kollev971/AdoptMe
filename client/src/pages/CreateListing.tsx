@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileUpload } from "@/components/FileUpload";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { firestore } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import { collection, addDoc } from "firebase/firestore";
 import { Loader2 } from "lucide-react";
 
@@ -66,7 +66,7 @@ export default function CreateListing() {
       };
 
       // Create a new listing in Firestore
-      const listingsRef = collection(firestore, 'listings');
+      const listingsRef = collection(db, 'listings');
       await addDoc(listingsRef, listingData);
 
       toast({
