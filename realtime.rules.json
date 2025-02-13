@@ -2,30 +2,23 @@
 {
   "rules": {
     "chats": {
+      ".read": "auth != null",
+      ".write": "auth != null",
       "$chatId": {
-        ".read": "auth != null && root.child('chats').child($chatId).child('participants').child(auth.uid).exists()",
-        ".write": "auth != null && root.child('chats').child($chatId).child('participants').child(auth.uid).exists()",
         "messages": {
+          ".read": "auth != null",
+          ".write": "auth != null",
           "$messageId": {
-            ".validate": "newData.hasChildren(['userId', 'message', 'timestamp'])",
-            "userId": {
-              ".validate": "newData.val() === auth.uid"
-            },
-            "message": {
-              ".validate": "newData.val().length > 0 && newData.val().length <= 1000"
-            },
-            "timestamp": {
-              ".validate": "newData.val() <= now"
-            }
+            ".validate": "newData.hasChildren(['userId', 'message', 'timestamp'])"
           }
         },
         "participants": {
-          "$uid": {
-            ".validate": "auth != null"
-          }
+          ".read": "auth != null",
+          ".write": "auth != null"
         },
         "lastMessage": {
-          ".validate": "newData.hasChildren(['text', 'senderId', 'timestamp'])"
+          ".read": "auth != null",
+          ".write": "auth != null"
         }
       }
     }

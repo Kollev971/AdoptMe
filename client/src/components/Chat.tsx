@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { database } from '@/lib/firebase';
@@ -49,7 +48,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
 
     const messagesRef = ref(database, `chats/${chatId}/messages`);
     const messagesQuery = query(messagesRef, orderByChild('timestamp'));
-    
+
     const messagesUnsubscribe = onValue(messagesQuery, (snapshot) => {
       const messagesData: Message[] = [];
       snapshot.forEach((childSnapshot) => {
@@ -119,21 +118,26 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
               className={`flex items-start gap-2 ${msg.userId === user?.uid ? 'justify-end' : 'justify-start'}`}
             >
               {msg.userId !== user?.uid && (
-                <Avatar className="w-8 h-8">
-                  {participantDetails[msg.userId]?.photoURL ? (
-                    <AvatarImage src={participantDetails[msg.userId].photoURL} />
-                  ) : (
-                    <AvatarFallback>
-                      {participantDetails[msg.userId]?.email?.charAt(0).toUpperCase() || '?'}
-                    </AvatarFallback>
-                  )}
-                </Avatar>
+                <div className="flex flex-col items-center gap-1">
+                  <Avatar className="w-8 h-8">
+                    {participantDetails[msg.userId]?.photoURL ? (
+                      <AvatarImage src={participantDetails[msg.userId].photoURL} alt="User avatar" />
+                    ) : (
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        {participantDetails[msg.userId]?.email?.charAt(0).toUpperCase() || '?'}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  <span className="text-xs text-muted-foreground">
+                    {participantDetails[msg.userId]?.email?.split('@')[0] || 'User'}
+                  </span>
+                </div>
               )}
               <div
                 className={`max-w-[70%] rounded-lg p-3 ${
                   msg.userId === user?.uid
                     ? 'bg-primary text-primary-foreground ml-auto'
-                    : 'bg-muted'
+                    : 'bg-secondary'
                 }`}
               >
                 <p className="text-sm break-words">{msg.message}</p>
@@ -142,15 +146,18 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
                 </span>
               </div>
               {msg.userId === user?.uid && (
-                <Avatar className="w-8 h-8">
-                  {user.photoURL ? (
-                    <AvatarImage src={user.photoURL} />
-                  ) : (
-                    <AvatarFallback>
-                      {user.email?.charAt(0).toUpperCase() || '?'}
-                    </AvatarFallback>
-                  )}
-                </Avatar>
+                <div className="flex flex-col items-center gap-1">
+                  <Avatar className="w-8 h-8">
+                    {user.photoURL ? (
+                      <AvatarImage src={user.photoURL} alt="Your avatar" />
+                    ) : (
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        {user.email?.charAt(0).toUpperCase() || '?'}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  <span className="text-xs text-muted-foreground">You</span>
+                </div>
               )}
             </div>
           ))}
