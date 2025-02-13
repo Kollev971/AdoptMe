@@ -45,7 +45,7 @@ export default function Messages() {
   useEffect(() => {
     if (!user) return;
 
-    // Query for chats where the user is either the owner or requester
+    // Query for chats where the user is a participant
     const chatsQuery = query(
       collection(db, "chats"),
       where("participants", "array-contains", user.uid),
@@ -60,27 +60,39 @@ export default function Messages() {
           // Get listing details
           let listingDetails = null;
           if (chatData.listingId) {
-            const listingDoc = await getDoc(doc(db, "listings", chatData.listingId));
-            if (listingDoc.exists()) {
-              listingDetails = listingDoc.data();
+            try {
+              const listingDoc = await getDoc(doc(db, "listings", chatData.listingId));
+              if (listingDoc.exists()) {
+                listingDetails = listingDoc.data();
+              }
+            } catch (error) {
+              console.error("Error fetching listing:", error);
             }
           }
 
           // Get owner details
           let ownerDetails = null;
           if (chatData.ownerId) {
-            const ownerDoc = await getDoc(doc(db, "users", chatData.ownerId));
-            if (ownerDoc.exists()) {
-              ownerDetails = ownerDoc.data();
+            try {
+              const ownerDoc = await getDoc(doc(db, "users", chatData.ownerId));
+              if (ownerDoc.exists()) {
+                ownerDetails = ownerDoc.data();
+              }
+            } catch (error) {
+              console.error("Error fetching owner:", error);
             }
           }
 
           // Get requester details
           let requesterDetails = null;
           if (chatData.requesterId) {
-            const requesterDoc = await getDoc(doc(db, "users", chatData.requesterId));
-            if (requesterDoc.exists()) {
-              requesterDetails = requesterDoc.data();
+            try {
+              const requesterDoc = await getDoc(doc(db, "users", chatData.requesterId));
+              if (requesterDoc.exists()) {
+                requesterDetails = requesterDoc.data();
+              }
+            } catch (error) {
+              console.error("Error fetching requester:", error);
             }
           }
 
@@ -94,6 +106,7 @@ export default function Messages() {
         });
 
         const resolvedChats = await Promise.all(chatsPromises);
+        console.log("Fetched chats:", resolvedChats); // Debug log
         setChats(resolvedChats);
         setLoading(false);
       } catch (error) {
@@ -135,17 +148,17 @@ export default function Messages() {
                         <CardContent className="p-4 flex items-center gap-4">
                           <Avatar>
                             {otherUser?.photoURL ? (
-                              <AvatarImage src={otherUser.photoURL} alt={otherUser.fullName || otherUser.email} />
+                              <AvatarImage src={otherUser.photoURL} alt={otherUser.displayName || otherUser.email} />
                             ) : (
                               <AvatarFallback>
-                                {(otherUser?.fullName || otherUser?.email || "?").charAt(0).toUpperCase()}
+                                {(otherUser?.displayName || otherUser?.email || "?").charAt(0).toUpperCase()}
                               </AvatarFallback>
                             )}
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start">
                               <p className="font-medium truncate">
-                                {otherUser?.fullName || otherUser?.email || "Непознат потребител"}
+                                {otherUser?.displayName || otherUser?.email || "Непознат потребител"}
                               </p>
                               {chat.lastMessage?.createdAt && (
                                 <span className="text-xs text-muted-foreground">

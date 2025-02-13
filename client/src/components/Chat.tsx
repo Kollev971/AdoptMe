@@ -76,22 +76,37 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
           }
         }
 
-        // Fetch participant details
-        const userIds = [data.ownerId, data.requesterId].filter(Boolean);
-        for (const userId of userIds) {
+        // Fetch participant details immediately when the chat data changes
+        if (data.ownerId) {
           try {
-            const userRef = doc(db, 'users', userId);
-            const userDoc = await getDoc(userRef);
-            if (userDoc.exists()) {
-              const userData = userDoc.data();
-              participantDetails[userId] = userData;
+            const ownerRef = doc(db, 'users', data.ownerId);
+            const ownerDoc = await getDoc(ownerRef);
+            if (ownerDoc.exists()) {
+              setParticipantDetails(prev => ({
+                ...prev,
+                [data.ownerId]: ownerDoc.data()
+              }));
             }
           } catch (error) {
-            console.error("Error fetching user:", error);
+            console.error("Error fetching owner:", error);
           }
         }
 
-        setParticipantDetails({ ...participantDetails });
+        if (data.requesterId) {
+          try {
+            const requesterRef = doc(db, 'users', data.requesterId);
+            const requesterDoc = await getDoc(requesterRef);
+            if (requesterDoc.exists()) {
+              setParticipantDetails(prev => ({
+                ...prev,
+                [data.requesterId]: requesterDoc.data()
+              }));
+            }
+          } catch (error) {
+            console.error("Error fetching requester:", error);
+          }
+        }
+
         setChatData(data);
       }
     });
@@ -121,13 +136,13 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
 
     setSending(true);
     try {
-      const messagesRef = collection(db, 'chats', chatId, 'messages');
       const messageData = {
         text: newMessage,
         senderId: user.uid,
         createdAt: serverTimestamp()
       };
 
+      const messagesRef = collection(db, 'chats', chatId, 'messages');
       await addDoc(messagesRef, messageData);
 
       await updateDoc(doc(db, 'chats', chatId), {
@@ -156,15 +171,15 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
         <CardTitle className="flex items-center gap-2">
           <Avatar className="h-8 w-8">
             {otherParticipant?.photoURL ? (
-              <AvatarImage src={otherParticipant.photoURL} alt={otherParticipant.fullName || otherParticipant.email} />
+              <AvatarImage src={otherParticipant.photoURL} alt={otherParticipant.displayName || otherParticipant.email} />
             ) : (
               <AvatarFallback>
-                {(otherParticipant?.fullName || otherParticipant?.email || '?').charAt(0).toUpperCase()}
+                {(otherParticipant?.displayName || otherParticipant?.email || '?').charAt(0).toUpperCase()}
               </AvatarFallback>
             )}
           </Avatar>
           <div>
-            <p className="font-medium">{otherParticipant?.fullName || otherParticipant?.email || 'Непознат потребител'}</p>
+            <p className="font-medium">{otherParticipant?.displayName || otherParticipant?.email || 'Непознат потребител'}</p>
             {chatData?.listingDetails?.title && (
               <p className="text-sm text-muted-foreground">
                 Относно: {chatData.listingDetails.title}
@@ -186,7 +201,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
                     <AvatarImage src={participantDetails[msg.senderId].photoURL} alt="User avatar" />
                   ) : (
                     <AvatarFallback>
-                      {(participantDetails[msg.senderId]?.fullName || participantDetails[msg.senderId]?.email || '?').charAt(0).toUpperCase()}
+                      {(participantDetails[msg.senderId]?.displayName || participantDetails[msg.senderId]?.email || '?').charAt(0).toUpperCase()}
                     </AvatarFallback>
                   )}
                 </Avatar>
