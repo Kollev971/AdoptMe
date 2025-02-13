@@ -5,7 +5,7 @@ import { Link } from "wouter";
 import { Button } from "./ui/button";
 import { UserMenu } from "./UserMenu";
 import { useState, useEffect } from "react";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export function Navbar() {
