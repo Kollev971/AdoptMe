@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { database } from "@/lib/firebase";
@@ -6,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation } from "wouter";
 import { Loader2, MessageCircle } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
 
 interface Chat {
   id: string;
@@ -23,6 +25,8 @@ export default function Messages() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [lastMessageTimestamps, setLastMessageTimestamps] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!user) return;
@@ -39,6 +43,22 @@ export default function Messages() {
             id: childSnapshot.key!,
             ...chatData
           });
+
+          // Check for new messages
+          if (chatData.lastMessage) {
+            const lastTimestamp = lastMessageTimestamps[childSnapshot.key!] || 0;
+            if (chatData.lastMessage.timestamp > lastTimestamp && chatData.lastMessage.senderId !== user.uid) {
+              toast({
+                title: "Ново съобщение",
+                description: `${chatData.participantEmails[chatData.lastMessage.senderId]}: ${chatData.lastMessage.text}`,
+                duration: 5000,
+              });
+              setLastMessageTimestamps(prev => ({
+                ...prev,
+                [childSnapshot.key!]: chatData.lastMessage.timestamp
+              }));
+            }
+          }
         }
       });
 
@@ -51,7 +71,7 @@ export default function Messages() {
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, toast, lastMessageTimestamps]);
 
   if (loading) {
     return (
@@ -74,12 +94,12 @@ export default function Messages() {
           <div className="space-y-4">
             {chats.map((chat) => {
               const otherUserId = Object.keys(chat.participants).find(id => id !== user?.uid);
-              const otherUserEmail = otherUserId ? chat.participantEmails?.[otherUserId] : 'Unknown User';
+              const otherUserEmail = otherUserId ? chat.participantEmails?.[otherUserId] : 'Непознат потребител';
 
               return (
                 <Card 
                   key={chat.id}
-                  className="cursor-pointer hover:bg-muted/50"
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
                   onClick={() => setLocation(`/chat/${chat.id}`)}
                 >
                   <CardContent className="p-4 flex items-center gap-4">
@@ -93,7 +113,7 @@ export default function Messages() {
                       {chat.lastMessage ? (
                         <>
                           <p className="text-sm text-muted-foreground line-clamp-1">
-                            {chat.lastMessage.text}
+                            {chat.lastMessage.senderId === user?.uid ? 'Вие: ' : ''}{chat.lastMessage.text}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
                             {new Date(chat.lastMessage.timestamp).toLocaleString()}
