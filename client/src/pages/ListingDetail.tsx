@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useRoute, useLocation } from "wouter";
-import { generateChatId } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,7 +15,6 @@ export default function ListingDetail() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [listing, setListing] = useState<Listing | null>(null);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchListing = async () => {
@@ -49,20 +47,15 @@ export default function ListingDetail() {
 
   const handleConnect = async () => {
     if (!user) {
-      toast({
-        description: "Трябва да влезете в профила си",
-        variant: "destructive",
-      });
+      toast({ description: "Трябва да влезете в профила си", variant: "destructive" });
       setLocation("/auth");
       return;
     }
 
     try {
-      // Create chat ID using owner and requester IDs in alphabetical order
       const [id1, id2] = [listing.userId, user.uid].sort();
       const chatId = `${id1}_${id2}`;
 
-      // Initialize chat document if it doesn't exist
       const chatRef = doc(db, 'chats', chatId);
       const chatDoc = await getDoc(chatRef);
 
@@ -80,21 +73,17 @@ export default function ListingDetail() {
       setLocation(`/chat/${chatId}`);
     } catch (error) {
       console.error('Error creating chat:', error);
-      toast({
-        description: "Грешка при създаване на чат",
-        variant: "destructive"
-      });
+      toast({ description: "Грешка при създаване на чат", variant: "destructive" });
     }
   };
-
 
   if (!listing) return null;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 p-6 bg-gray-50 rounded-lg shadow-md min-h-screen flex flex-col items-center justify-center">
-      <Card className="w-full max-w-3xl overflow-hidden rounded-lg shadow-lg bg-white">
-        <CardHeader className="bg-gray-900 text-white p-6 text-center rounded-t-lg">
-          <h1 className="text-3xl font-bold">{listing.title}</h1>
+    <div className="max-w-5xl mx-auto space-y-8 p-6 bg-[#F0F7FF] rounded-lg shadow-md min-h-screen flex flex-col items-center">
+      <Card className="w-full max-w-3xl overflow-hidden rounded-2xl shadow-xl bg-white">
+        <CardHeader className="bg-[#004AAD] text-white p-6 text-center rounded-t-2xl">
+          <h1 className="text-4xl font-extrabold">{listing.title}</h1>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
           <div className="w-full flex justify-center">
@@ -103,11 +92,7 @@ export default function ListingDetail() {
                 {listing.images.map((image, index) => (
                   <CarouselItem key={index} className="flex justify-center">
                     <div className="aspect-square relative max-w-lg">
-                      <img
-                        src={image}
-                        alt={`${listing.title} - изображение ${index + 1}`}
-                        className="object-cover w-full h-full rounded-lg shadow-md"
-                      />
+                      <img src={image} alt={`${listing.title} - изображение ${index + 1}`} className="object-cover w-full h-full rounded-lg shadow-md" />
                     </div>
                   </CarouselItem>
                 ))}
@@ -118,21 +103,18 @@ export default function ListingDetail() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-gray-700 text-lg">
-            <div><span className="font-semibold">Вид:</span> {listing.type}</div>
-            <div><span className="font-semibold">Възраст:</span> {listing.age} години</div>
-            <div><span className="font-semibold">Публикувано на:</span> {new Date(listing.createdAt).toLocaleDateString()}</div>
+            <div><span className="font-semibold text-[#004AAD]">Вид:</span> {listing.type}</div>
+            <div><span className="font-semibold text-[#004AAD]">Възраст:</span> {listing.age} години</div>
+            <div><span className="font-semibold text-[#004AAD]">Публикувано на:</span> {new Date(listing.createdAt).toLocaleDateString()}</div>
           </div>
 
           <div className="border-t border-gray-300 pt-4">
-            <h2 className="font-semibold text-xl">Описание</h2>
+            <h2 className="font-semibold text-2xl text-[#004AAD]">Описание</h2>
             <p className="text-gray-600 leading-relaxed">{listing.description}</p>
           </div>
 
           {user && user.uid !== listing.userId && (
-            <Button
-              onClick={handleConnect}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-lg shadow-md"
-            >
+            <Button onClick={handleConnect} className="w-full bg-[#01BFFF] hover:bg-[#009EDF] text-white py-3 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105">
               Свържи се с потребителя
             </Button>
           )}
