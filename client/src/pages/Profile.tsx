@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -7,9 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { updateProfile } from "firebase/auth";
-import { doc, updateDoc, getDoc } from "firebase/firestore";
+import { doc, updateDoc, getDoc, collection, query, getDocs, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Upload, Star } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FileUpload } from "@/components/FileUpload";
 
@@ -40,15 +41,24 @@ export default function Profile() {
           ratingsSnap.forEach(doc => total += doc.data().rating);
           setAverageRating(total / ratingsSnap.size);
         }
-      const userDoc = await getDoc(doc(db, "users", user.uid));
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        setUserData(data);
-        setNewUsername(data.username || "");
-        setNewBio(data.bio || "");
-        if (data.photoURL) {
-          setProfileImages([data.photoURL]);
+
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setUserData(data);
+          setNewUsername(data.username || "");
+          setNewBio(data.bio || "");
+          if (data.photoURL) {
+            setProfileImages([data.photoURL]);
+          }
         }
+      } catch (error: any) {
+        console.error("Error fetching user profile:", error);
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
       }
     };
 
