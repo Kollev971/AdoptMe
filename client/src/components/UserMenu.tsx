@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -7,13 +8,14 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function UserMenu() {
   const { userData } = useAuth();
   const [, setLocation] = useLocation();
-  const unreadCount = 0; // Placeholder - needs actual implementation to fetch unread count
+  const unreadCount = 0;
 
   const handleLogout = async () => {
     try {
@@ -38,9 +40,12 @@ export function UserMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         {userData.fullName && (
-          <DropdownMenuItem className="font-medium">
-            {userData.fullName}
-          </DropdownMenuItem>
+          <>
+            <DropdownMenuItem className="font-medium text-[#01BFFF]">
+              {userData.fullName}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
         )}
         <DropdownMenuItem onClick={() => setLocation("/create-listing")}>
           Добави обява
@@ -48,6 +53,7 @@ export function UserMenu() {
         <DropdownMenuItem onClick={() => setLocation("/my-listings")}>
           Моите обяви
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => setLocation("/profile")}>
           Профил
         </DropdownMenuItem>
@@ -60,6 +66,7 @@ export function UserMenu() {
             <span className="absolute right-2 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary" />
           )}
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
           Изход
         </DropdownMenuItem>

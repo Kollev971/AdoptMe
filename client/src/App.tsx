@@ -33,6 +33,7 @@ function App() {
             <Route path="/messages" component={Messages} />
             <Route path="/my-listings" component={MyListings} />
             <Route path="/settings" component={Settings} />
+<Route path="/user/:id" component={UserProfile} />
             <Route component={NotFound} />
           </Switch>
         </main>

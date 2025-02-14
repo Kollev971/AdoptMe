@@ -167,9 +167,9 @@ export function ListingCard({ listing, showActions, onDelete }: ListingCardProps
             <div className="w-8 h-8 rounded-full bg-[#004AAD] text-white flex items-center justify-center font-bold">
               {listingUser?.username?.[0]?.toUpperCase() || 'A'}
             </div>
-            <span className="text-sm text-gray-700">
+            <Link href={`/user/${listing.userId}`} className="text-sm text-gray-700 hover:text-[#01BFFF] transition-colors">
               {listingUser?.username || "Анонимен"}
-            </span>
+            </Link>
           </div>
           <div className="flex items-center gap-2">
             <Button
