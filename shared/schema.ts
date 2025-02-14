@@ -13,10 +13,11 @@ export const userSchema = z.object({
 
 export const listingSchema = z.object({
   id: z.string(),
-  title: z.string().min(5),
+  title: z.string().min(5).max(50),
   type: z.enum(['dog', 'cat', 'other']),
-  age: z.number().min(0),
-  description: z.string().min(20),
+  ageYears: z.number().min(0).max(30),
+  ageMonths: z.number().min(0).max(11),
+  description: z.string().min(20).max(300),
   images: z.array(z.string()),
   userId: z.string(),
   createdAt: z.string(),

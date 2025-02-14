@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useRoute } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,14 +13,17 @@ import { FileUpload } from "@/components/FileUpload";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, doc, getDoc, updateDoc } from "firebase/firestore";
 import { Loader2 } from "lucide-react";
 
 const createListingSchema = z.object({
-  title: z.string().min(1, "Заглавието е задължително"),
+  title: z.string().min(1, "Заглавието е задължително").max(50, "Заглавието трябва да е максимум 50 символа"),
   type: z.enum(["dog", "cat", "other"]),
-  age: z.number().min(0, "Възрастта не може да е отрицателна"),
-  description: z.string().min(20, "Описанието трябва да е поне 20 символа"),
+  ageYears: z.number().min(0, "Годините не може да са отрицателни").max(30, "Максималната възраст е 30 години"),
+  ageMonths: z.number().min(0, "Месеците не може да са отрицателни").max(11, "Месеците трябва да са между 0 и 11"),
+  description: z.string()
+    .min(20, "Описанието трябва да е поне 20 символа")
+    .max(300, "Описанието трябва да е максимум 300 символа"),
   images: z.array(z.string()).min(1, "Необходима е поне една снимка"),
 });
 
@@ -33,17 +35,54 @@ export default function CreateListing() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
+  const [, params] = useRoute("/listings/:id/edit");
+  const [isEditing, setIsEditing] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(createListingSchema),
     defaultValues: {
       title: "",
       type: "dog",
-      age: 0,
+      ageYears: 0,
+      ageMonths: 0,
       description: "",
       images: [],
     },
   });
+
+  useEffect(() => {
+    const fetchListing = async () => {
+      if (!params?.id) return;
+      try {
+        const listingRef = doc(db, "listings", params.id);
+        const docSnap = await getDoc(listingRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          form.reset({
+            title: data.title,
+            type: data.type,
+            ageYears: data.ageYears || 0,
+            ageMonths: data.ageMonths || 0,
+            description: data.description,
+            images: data.images,
+          });
+          setImages(data.images);
+          setIsEditing(true);
+        }
+      } catch (error: any) {
+        toast({
+          title: "Грешка",
+          description: "Неуспешно зареждане на обявата",
+          variant: "destructive",
+        });
+      }
+    };
+
+    if (params?.id) {
+      fetchListing();
+    }
+  }, [params?.id]);
 
   const onSubmit = async (data: FormValues) => {
     if (!user) {
@@ -62,24 +101,31 @@ export default function CreateListing() {
         ...data,
         images,
         userId: user.uid,
-        createdAt: new Date().toISOString(),
+        createdAt: isEditing ? undefined : new Date().toISOString(),
       };
 
-      // Create a new listing in Firestore
-      const listingsRef = collection(db, 'listings');
-      await addDoc(listingsRef, listingData);
-
-      toast({
-        title: "Успешно създадена обява",
-        description: "Вашата обява беше публикувана успешно",
-      });
+      if (isEditing && params?.id) {
+        const listingRef = doc(db, 'listings', params.id);
+        await updateDoc(listingRef, listingData);
+        toast({
+          title: "Успешно редактирана обява",
+          description: "Вашата обява беше обновена успешно",
+        });
+      } else {
+        const listingsRef = collection(db, 'listings');
+        await addDoc(listingsRef, listingData);
+        toast({
+          title: "Успешно създадена обява",
+          description: "Вашата обява беше публикувана успешно",
+        });
+      }
 
       setLocation("/listings");
     } catch (error: any) {
-      console.error("Error creating listing:", error);
+      console.error("Error with listing:", error);
       toast({
         title: "Грешка",
-        description: error.message || "Възникна проблем при създаването на обявата",
+        description: error.message || "Възникна проблем при обработката на обявата",
         variant: "destructive",
       });
     } finally {
@@ -95,7 +141,9 @@ export default function CreateListing() {
     <div className="container max-w-2xl mx-auto py-8 px-4">
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">Създай нова обява</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">
+            {isEditing ? "Редактирай обява" : "Създай нова обява"}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -107,7 +155,11 @@ export default function CreateListing() {
                   <FormItem>
                     <FormLabel>Заглавие</FormLabel>
                     <FormControl>
-                      <Input placeholder="Въведете заглавие на обявата" {...field} />
+                      <Input 
+                        placeholder="Въведете заглавие на обявата" 
+                        {...field} 
+                        maxLength={50}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -137,26 +189,49 @@ export default function CreateListing() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="age"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Възраст (години)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        placeholder="Въведете възрастта"
-                        {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="ageYears"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Години</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="30"
+                          placeholder="Години"
+                          {...field}
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="ageMonths"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Месеци</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="11"
+                          placeholder="Месеци"
+                          {...field}
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <FormField
                 control={form.control}
@@ -167,11 +242,15 @@ export default function CreateListing() {
                     <FormControl>
                       <Textarea
                         placeholder="Опишете любимеца подробно..."
-                        className="min-h-[120px] resize-none"
+                        className="min-h-[120px] resize-none whitespace-pre-wrap"
+                        maxLength={300}
                         {...field}
                       />
                     </FormControl>
                     <FormMessage />
+                    <div className="text-sm text-gray-500">
+                      {field.value.length}/300 символа
+                    </div>
                   </FormItem>
                 )}
               />
@@ -202,10 +281,10 @@ export default function CreateListing() {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Създаване...
+                    {isEditing ? "Обновяване..." : "Създаване..."}
                   </>
                 ) : (
-                  "Създай обява"
+                  isEditing ? "Обнови обява" : "Създай обява"
                 )}
               </Button>
             </form>

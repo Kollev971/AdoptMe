@@ -8,13 +8,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
+import { Edit } from "lucide-react";
 
 interface ListingCardProps {
   listing: Listing;
 }
 
 export function ListingCard({ listing }: ListingCardProps) {
-  const { userData } = useAuth();
+  const { user } = useAuth();
   const [listingUser, setListingUser] = useState<any>(null);
 
   useEffect(() => {
@@ -33,12 +34,14 @@ export function ListingCard({ listing }: ListingCardProps) {
     fetchListingUser();
   }, [listing]);
 
-  const formatAge = (age: number) => {
-    if (age < 1) {
-      const months = Math.round(age * 12);
-      return `${months} месеца`;
+  const formatAge = (years: number, months: number) => {
+    const yearText = years > 0 ? `${years} ${years === 1 ? 'година' : 'години'}` : '';
+    const monthText = months > 0 ? `${months} ${months === 1 ? 'месец' : 'месеца'}` : '';
+
+    if (yearText && monthText) {
+      return `${yearText} и ${monthText}`;
     }
-    return `${age} години`;
+    return yearText || monthText || '< 1 месец';
   };
 
   const getTypeEmoji = (type: string) => {
@@ -50,54 +53,71 @@ export function ListingCard({ listing }: ListingCardProps) {
   };
 
   return (
-    <Link href={`/listings/${listing.id}`} className="no-underline">
-      <Card className="overflow-hidden border border-[#004AAD] hover:shadow-lg transition-shadow rounded-xl">
-        <CardContent className="p-0">
-          <AspectRatio ratio={4 / 3} className="relative bg-gray-100">
-            <img
-              src={listing.images?.[0] || 'https://via.placeholder.com/400x300?text=Няма+снимка'}
-              alt={listing.title}
-              className="object-cover w-full h-full transition-transform duration-300 hover:scale-105 rounded-t-xl"
-            />
-            <Badge className="absolute top-3 left-3 bg-[#01BFFF] text-white py-1 px-3 rounded-full shadow-md">
-              {getTypeEmoji(listing.type)} {listing.type}
-            </Badge>
-          </AspectRatio>
+    <Card className="overflow-hidden border border-[#004AAD] hover:shadow-lg transition-shadow rounded-xl">
+      <CardContent className="p-0">
+        <div className="relative">
+          <Link href={`/listings/${listing.id}`}>
+            <AspectRatio ratio={4 / 3} className="relative bg-gray-100">
+              <img
+                src={listing.images?.[0] || 'https://via.placeholder.com/400x300?text=Няма+снимка'}
+                alt={listing.title}
+                className="object-cover w-full h-full transition-transform duration-300 hover:scale-105 rounded-t-xl"
+              />
+              <Badge className="absolute top-3 left-3 bg-[#01BFFF] text-white py-1 px-3 rounded-full shadow-md">
+                {getTypeEmoji(listing.type)} {listing.type}
+              </Badge>
+            </AspectRatio>
+          </Link>
+          {user?.uid === listing.userId && (
+            <Link href={`/listings/${listing.id}/edit`}>
+              <Button 
+                variant="secondary" 
+                size="icon"
+                className="absolute top-3 right-3 bg-white/90 hover:bg-white"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            </Link>
+          )}
+        </div>
 
-          <div className="p-4">
+        <div className="p-4">
+          <Link href={`/listings/${listing.id}`} className="no-underline">
             <h3 className="font-semibold text-lg text-[#004AAD] hover:text-[#01BFFF] transition-colors line-clamp-1">
               {listing.title}
             </h3>
-            <div className="mt-2 flex items-center gap-2 text-sm text-gray-700">
+          </Link>
+          <div className="mt-2 flex items-center gap-2 text-sm text-gray-700">
+            <span className="inline-flex items-center">
+              📅 {formatAge(listing.ageYears, listing.ageMonths)}
+            </span>
+            {listing.location && (
               <span className="inline-flex items-center">
-                📅 {formatAge(listing.age)}
+                • 📍 {listing.location}
               </span>
-              {listing.location && (
-                <span className="inline-flex items-center">
-                  • 📍 {listing.location}
-                </span>
-              )}
-            </div>
-            <p className="mt-2 text-sm text-gray-700 line-clamp-2">{listing.description}</p>
+            )}
           </div>
-        </CardContent>
+          <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap line-clamp-2">{listing.description}</p>
+        </div>
+      </CardContent>
 
-        <CardFooter className="p-4 bg-[#F0F7FF] flex flex-col gap-2 rounded-b-xl">
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-[#004AAD] text-white flex items-center justify-center font-bold">
-                {listingUser?.username?.[0]?.toUpperCase() || 'A'}
-              </div>
-              <span className="text-sm text-gray-700">
-                {listingUser?.username || "Анонимен"}
-              </span>
+      <CardFooter className="p-4 bg-[#F0F7FF] flex flex-col gap-2 rounded-b-xl">
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-[#004AAD] text-white flex items-center justify-center font-bold">
+              {listingUser?.username?.[0]?.toUpperCase() || 'A'}
             </div>
+            <span className="text-sm text-gray-700">
+              {listingUser?.username || "Анонимен"}
+            </span>
+          </div>
+          <Link href={`/listings/${listing.id}`}>
             <Button variant="default" size="sm" className="rounded-full bg-[#01BFFF] hover:bg-[#004AAD] text-white px-4">
               Разгледай →
             </Button>
-          </div>
-        </CardFooter>
-      </Card>
-    </Link>
+          </Link>
+        </div>
+      </CardFooter>
+    </Card>
   );
 }

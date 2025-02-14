@@ -33,6 +33,12 @@ interface ChatProps {
   chatId: string;
 }
 
+const scrollToBottom = () => {
+  if (messagesEndRef.current) {
+    messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+  }
+};
+
 export const Chat: React.FC<ChatProps> = ({ chatId }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -42,10 +48,11 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const fetchUserDetails = async (userId: string) => {
     if (!userId || participantDetails[userId]) return;
@@ -134,7 +141,6 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
 
     setSending(true);
     try {
-      // Get current chat data instead of splitting ID
       const chatRef = doc(db, 'chats', chatId);
       const chatDoc = await getDoc(chatRef);
 
@@ -174,6 +180,8 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
       });
 
       setNewMessage('');
+      inputRef.current?.focus();
+
     } catch (error: any) {
       toast({ 
         description: 'Грешка при изпращане на съобщението: ' + error.message,
@@ -258,11 +266,13 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
       </ScrollArea>
       <form onSubmit={handleSendMessage} className="p-4 flex gap-2 border-t">
         <Input
+          ref={inputRef}
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           placeholder="Напишете съобщение..."
           className="flex-1"
           disabled={sending}
+          autoFocus
         />
         <Button type="submit" disabled={sending}>
           {sending ? (
