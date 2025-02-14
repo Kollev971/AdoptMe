@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import React from 'react';
 import { User as FirebaseUser } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 import type { User } from "@shared/schema";
+
+const { useState, useEffect } = React;
 
 export function useAuth() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
