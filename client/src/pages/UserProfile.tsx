@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useRoute } from "wouter";
 import { doc, getDoc, collection, query, where, getDocs, addDoc } from "firebase/firestore";
@@ -5,10 +6,12 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Star } from "lucide-react";
+import { Star, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ListingCard } from "@/components/ListingCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 
 export default function UserProfile() {
   const [, params] = useRoute("/user/:id");
@@ -29,7 +32,6 @@ export default function UserProfile() {
         setLoading(true);
         let hasError = false;
 
-        // Fetch user profile
         const userDoc = await getDoc(doc(db, "users", params.id));
         if (userDoc.exists()) {
           setUserProfile(userDoc.data());
@@ -37,9 +39,7 @@ export default function UserProfile() {
           hasError = true;
         }
 
-        // Continue fetching data only if user exists
         if (!hasError) {
-          // Fetch user's listings
           const listingsQuery = query(
             collection(db, "listings"),
             where("userId", "==", params.id)
@@ -47,7 +47,6 @@ export default function UserProfile() {
           const listingsSnap = await getDocs(listingsQuery);
           setListings(listingsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
-          // Fetch ratings
           const ratingsQuery = query(
             collection(db, "ratings"),
             where("targetUserId", "==", params.id)
@@ -60,7 +59,6 @@ export default function UserProfile() {
             setAverageRating(total / ratingsSnap.size);
           }
 
-          // Fetch user's rating if they've rated before
           if (user?.uid) {
             const userRatingQuery = query(
               collection(db, "ratings"),
@@ -82,7 +80,6 @@ export default function UserProfile() {
           });
         }
       } catch (error: any) {
-        // Only show error toast for critical errors
         if (error.code !== 'permission-denied') {
           toast({
             title: "Грешка",
@@ -116,7 +113,6 @@ export default function UserProfile() {
         description: "Благодарим за вашата оценка!",
       });
 
-      // Update average rating
       const ratingsQuery = query(
         collection(db, "ratings"),
         where("targetUserId", "==", params.id)
@@ -137,7 +133,7 @@ export default function UserProfile() {
   if (loading) {
     return (
       <div className="container max-w-7xl py-8">
-        <Card>
+        <Card className="border-2 border-primary/20">
           <CardContent className="p-8">
             <div className="flex items-center justify-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -152,53 +148,67 @@ export default function UserProfile() {
 
   return (
     <div className="container max-w-7xl py-8 space-y-8">
-      <Card className="border-2 border-primary">
+      <Card className="border-2 border-primary/20">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
-            <Avatar className="h-32 w-32">
+            <Avatar className="h-32 w-32 border-4 border-primary/20">
               <AvatarImage src={userProfile.photoURL} />
-              <AvatarFallback className="text-4xl bg-primary text-primary-foreground">
+              <AvatarFallback className="text-4xl bg-primary/10 text-primary">
                 {userProfile.username?.[0]?.toUpperCase() || '?'}
               </AvatarFallback>
             </Avatar>
           </div>
-          <div>
-            <CardTitle className="text-3xl">{userProfile.fullName}</CardTitle>
-            <p className="text-xl text-muted-foreground">@{userProfile.username}</p>
+          <div className="space-y-2">
+            <CardTitle className="text-3xl font-bold">{userProfile.username}</CardTitle>
+            {userProfile.email && (
+              <p className="text-muted-foreground">{userProfile.email}</p>
+            )}
             {userProfile.bio && (
-              <p className="mt-4 text-muted-foreground">{userProfile.bio}</p>
+              <p className="mt-4 text-muted-foreground max-w-lg mx-auto">{userProfile.bio}</p>
             )}
           </div>
-          <div className="flex items-center justify-center gap-2">
-            <span className="text-lg">Рейтинг: {averageRating.toFixed(1)}</span>
-            <div className="flex gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  onClick={() => handleRate(star)}
-                  disabled={userRating !== null || user?.uid === params?.id}
-                  className={`p-1 ${
-                    (userRating || rating) >= star 
-                      ? "text-yellow-400" 
-                      : "text-gray-300"
-                  } transition-colors`}
-                  onMouseEnter={() => !userRating && setRating(star)}
-                  onMouseLeave={() => !userRating && setRating(0)}
-                >
-                  <Star className="h-6 w-6" />
-                </button>
-              ))}
+          <div className="flex items-center justify-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-medium">Рейтинг: {averageRating.toFixed(1)}</span>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    onClick={() => handleRate(star)}
+                    disabled={userRating !== null || user?.uid === params?.id}
+                    className={`p-1 ${
+                      (userRating || rating) >= star 
+                        ? "text-yellow-400" 
+                        : "text-gray-300"
+                    } transition-colors hover:scale-110`}
+                    onMouseEnter={() => !userRating && setRating(star)}
+                    onMouseLeave={() => !userRating && setRating(0)}
+                  >
+                    <Star className="h-6 w-6" fill={(userRating || rating) >= star ? "currentColor" : "none"} />
+                  </button>
+                ))}
+              </div>
             </div>
+            {user?.uid && user.uid !== params?.id && (
+              <Link href={`/chat/${params.id}`}>
+                <Button variant="outline" className="gap-2">
+                  <MessageCircle className="w-4 h-4" />
+                  Изпрати съобщение
+                </Button>
+              </Link>
+            )}
           </div>
         </CardHeader>
       </Card>
 
-      <Card>
+      <Card className="border-2 border-primary/20">
         <CardHeader>
-          <CardTitle>Обяви на потребителя</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            Обяви на потребителя
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[600px]">
+          <ScrollArea className="h-[600px] pr-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {listings.length > 0 ? (
                 listings.map(listing => (
@@ -208,7 +218,7 @@ export default function UserProfile() {
                   />
                 ))
               ) : (
-                <p className="col-span-full text-center text-muted-foreground">
+                <p className="col-span-full text-center text-muted-foreground py-8">
                   Този потребител все още няма обяви
                 </p>
               )}

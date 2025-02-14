@@ -1,271 +1,185 @@
-import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { 
-  collection, 
-  doc, 
-  getDoc,
-  onSnapshot,
-  addDoc,
+import { useEffect, useRef, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { db } from "@/lib/firebase";
+import {
+  collection,
   query,
   orderBy,
+  onSnapshot,
+  addDoc,
   serverTimestamp,
-  updateDoc,
+  doc,
+  getDoc,
+  updateDoc
 } from "firebase/firestore";
-import { db } from '@/lib/firebase';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, Send } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { format } from 'date-fns';
-
-interface Message {
-  id: string;
-  senderId: string;
-  text: string;
-  createdAt: any;
-}
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { format } from "date-fns";
+import { Send } from "lucide-react";
 
 interface ChatProps {
   chatId: string;
 }
 
-export const Chat: React.FC<ChatProps> = ({ chatId }) => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [sending, setSending] = useState(false);
-  const [participantDetails, setParticipantDetails] = useState<Record<string, any>>({});
-  const [chatData, setChatData] = useState<any>(null);
-  const { user, userData } = useAuth();
-  const { toast } = useToast();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
-    }
-  };
+export default function ChatComponent({ chatId }: ChatProps) {
+  const { user } = useAuth();
+  const [messages, setMessages] = useState<any[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [otherUser, setOtherUser] = useState<any>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (!user) return;
 
-  useEffect(() => {
-    if (!chatId || !user) return;
+    const messagesQuery = query(
+      collection(db, "chats", chatId, "messages"),
+      orderBy("createdAt", "asc")
+    );
 
-    const chatRef = doc(db, 'chats', chatId);
-    updateDoc(chatRef, {
-      [`readBy.${user.uid}`]: new Date()
-    });
+    const unsubscribe = onSnapshot(messagesQuery, async (snapshot) => {
+      const newMessages = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setMessages(newMessages);
 
-    const chatDocRef = doc(db, 'chats', chatId);
-    const unsubscribeChat = onSnapshot(chatDocRef, async (snapshot) => {
-      const data = snapshot.data();
-      if (data) {
-        if (data.ownerId) await fetchUserDetails(data.ownerId);
-        if (data.requesterId) await fetchUserDetails(data.requesterId);
-        setChatData(data);
+      // Play sound for new messages
+      if (
+        newMessages.length > 0 &&
+        newMessages[newMessages.length - 1].senderId !== user.uid
+      ) {
+        audioRef.current?.play();
       }
+
+      // Auto scroll
+      setTimeout(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+      }, 100);
     });
 
-    const messagesRef = collection(db, 'chats', chatId, 'messages');
-    const messagesQuery = query(messagesRef, orderBy('createdAt', 'asc'));
-
-    const unsubscribeMessages = onSnapshot(messagesQuery, {
-      next: (snapshot) => {
-        const messagesData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Message[];
-
-        messagesData.forEach(msg => {
-          if (msg.senderId) fetchUserDetails(msg.senderId);
-        });
-
-        setMessages(messagesData);
-      },
-      error: (error) => {
-        console.error("Error in messages subscription:", error);
-        toast({
-          description: "Грешка при получаване на съобщенията",
-          variant: "destructive"
-        });
-      }
-    });
-
-    return () => {
-      unsubscribeChat();
-      unsubscribeMessages();
-    };
+    return () => unsubscribe();
   }, [chatId, user]);
 
-  const fetchUserDetails = async (userId: string) => {
-    if (!userId || participantDetails[userId]) return;
+  useEffect(() => {
+    const fetchChatData = async () => {
+      if (!user) return;
 
-    try {
-      const userRef = doc(db, 'users', userId);
-      const userDoc = await getDoc(userRef);
+      const chatDoc = await getDoc(doc(db, "chats", chatId));
+      if (chatDoc.exists()) {
+        const chatData = chatDoc.data();
+        const otherUserId = chatData.participants.find(
+          (id: string) => id !== user.uid
+        );
 
-      if (userDoc.exists()) {
-        setParticipantDetails(prev => ({
-          ...prev,
-          [userId]: userDoc.data()
-        }));
+        if (otherUserId) {
+          const userDoc = await getDoc(doc(db, "users", otherUserId));
+          if (userDoc.exists()) {
+            setOtherUser(userDoc.data());
+          }
+        }
       }
-    } catch (error) {
-      console.error(`Error fetching user ${userId}:`, error);
-    }
-  };
+    };
 
-  const handleSendMessage = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!newMessage.trim() || !user || sending) return;
+    fetchChatData();
+  }, [chatId, user]);
 
-    setSending(true);
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !newMessage.trim()) return;
+
     try {
-      const chatRef = doc(db, 'chats', chatId);
-      const messageData = {
+      const messageRef = collection(db, "chats", chatId, "messages");
+      await addDoc(messageRef, {
         text: newMessage,
         senderId: user.uid,
-        createdAt: serverTimestamp()
-      };
+        createdAt: serverTimestamp(),
+      });
 
-      const messagesRef = collection(db, 'chats', chatId, 'messages');
-      await addDoc(messagesRef, messageData);
-
-      await updateDoc(chatRef, {
-        lastMessage: messageData,
+      await updateDoc(doc(db, "chats", chatId), {
+        lastMessage: {
+          text: newMessage,
+          senderId: user.uid,
+          createdAt: serverTimestamp(),
+        },
         updatedAt: serverTimestamp(),
-        [`readBy.${user.uid}`]: new Date()
       });
 
-      setNewMessage('');
-      inputRef.current?.focus();
-      scrollToBottom();
-
-    } catch (error: any) {
-      toast({ 
-        description: 'Грешка при изпращане на съобщението: ' + error.message,
-        variant: 'destructive'
-      });
-    } finally {
-      setSending(false);
+      setNewMessage("");
+    } catch (error) {
+      console.error("Error sending message:", error);
     }
   };
 
-  const otherParticipantId = chatData?.ownerId === user?.uid ? chatData?.requesterId : chatData?.ownerId;
-  const otherParticipant = otherParticipantId ? participantDetails[otherParticipantId] : null;
-
   return (
-    <Card className="w-full h-[80vh] flex flex-col border-2 border-primary/20">
-      <CardHeader className="border-b bg-primary/5 pb-4">
+    <Card className="border-2 border-primary/20">
+      <CardHeader className="border-b bg-primary/5">
         <CardTitle className="flex items-center gap-3">
-          <Avatar className="h-10 w-10 border-2 border-primary/20">
-            {otherParticipant?.photoURL ? (
-              <AvatarImage src={otherParticipant.photoURL} alt={otherParticipant.username || 'User'} />
-            ) : (
-              <AvatarFallback className="bg-primary/10 text-primary">
-                {(otherParticipant?.username || otherParticipant?.fullName || '?').charAt(0).toUpperCase()}
-              </AvatarFallback>
-            )}
-          </Avatar>
-          <div>
-            <p className="font-medium text-lg">
-              {otherParticipant?.username || otherParticipant?.fullName || 'Непознат потребител'}
-            </p>
-          </div>
+          {otherUser && (
+            <>
+              <Avatar className="h-8 w-8 border border-primary/20">
+                <AvatarImage src={otherUser.photoURL} />
+                <AvatarFallback className="bg-primary/10 text-primary">
+                  {otherUser.username?.[0]?.toUpperCase() || "?"}
+                </AvatarFallback>
+              </Avatar>
+              <span>{otherUser.username}</span>
+            </>
+          )}
         </CardTitle>
       </CardHeader>
-      <ScrollArea 
-        ref={scrollAreaRef}
-        className="flex-1 p-4" 
-        style={{ scrollBehavior: 'smooth' }}
-      >
-        <div className="space-y-4">
-          {messages.map((msg, index) => {
-            const sender = participantDetails[msg.senderId];
-            const isCurrentUser = msg.senderId === user?.uid;
-            const showAvatar = index === 0 || 
-              messages[index - 1].senderId !== msg.senderId;
-
-            return (
-              <div
-                key={msg.id}
-                className={`flex items-end gap-2 ${
-                  isCurrentUser ? 'justify-end' : 'justify-start'
-                }`}
-              >
-                {!isCurrentUser && showAvatar && (
-                  <Avatar className="h-8 w-8 mb-4">
-                    {sender?.photoURL ? (
-                      <AvatarImage src={sender.photoURL} alt={sender.username || 'User avatar'} />
-                    ) : (
-                      <AvatarFallback className="bg-primary/10 text-primary">
-                        {(sender?.username || sender?.fullName || '?').charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    )}
-                  </Avatar>
-                )}
+      <CardContent className="p-0">
+        <ScrollArea ref={scrollRef} className="h-[600px] p-4">
+          <div className="space-y-4">
+            {messages.map((message) => {
+              const isSender = message.senderId === user?.uid;
+              return (
                 <div
-                  className={`max-w-[70%] rounded-2xl p-3 ${
-                    isCurrentUser
-                      ? 'bg-[#97D8C4] text-black rounded-br-sm shadow-md'
-                      : 'bg-[#B8E0D2] text-black rounded-bl-sm shadow-md'
-                  }`}
+                  key={message.id}
+                  className={`flex ${isSender ? "justify-end" : "justify-start"}`}
                 >
-                  <p className="text-sm break-words">{msg.text}</p>
-                  <span className={`text-xs block mt-1 ${
-                    isCurrentUser ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                  }`}>
-                    {msg.createdAt && format(msg.createdAt.toDate(), 'HH:mm')}
-                  </span>
+                  <div
+                    className={`max-w-[70%] break-words rounded-lg p-3 ${
+                      isSender
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted"
+                    }`}
+                  >
+                    <p>{message.text}</p>
+                    <p
+                      className={`text-xs mt-1 ${
+                        isSender ? "text-primary-foreground/80" : "text-muted-foreground"
+                      }`}
+                    >
+                      {message.createdAt &&
+                        format(message.createdAt.toDate(), "HH:mm")}
+                    </p>
+                  </div>
                 </div>
-                {isCurrentUser && showAvatar && (
-                  <Avatar className="h-8 w-8 mb-4">
-                    {userData?.photoURL ? (
-                      <AvatarImage src={userData.photoURL} alt={userData.username || 'Your avatar'} />
-                    ) : (
-                      <AvatarFallback className="bg-primary/10 text-primary">
-                        {(userData?.username || '?').charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    )}
-                  </Avatar>
-                )}
-              </div>
-            );
-          })}
-          <div ref={messagesEndRef} />
-        </div>
-      </ScrollArea>
-      <form onSubmit={handleSendMessage} className="p-4 flex gap-2 border-t bg-background">
-        <Input
-          ref={inputRef}
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          placeholder="Напишете съобщение..."
-          className="flex-1"
-          disabled={sending}
-          autoFocus
-        />
-        <Button 
-          type="submit" 
-          disabled={sending}
-          size="icon"
-          className="bg-primary hover:bg-primary/90"
-        >
-          {sending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Send className="h-4 w-4" />
-          )}
-        </Button>
-      </form>
+              );
+            })}
+          </div>
+        </ScrollArea>
+        <form onSubmit={sendMessage} className="border-t p-4">
+          <div className="flex gap-2">
+            <Input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Напишете съобщение..."
+              className="flex-1"
+            />
+            <Button type="submit" size="icon" disabled={!newMessage.trim()}>
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+      <audio ref={audioRef} src="/notification.wav" />
     </Card>
   );
-};
-
-export default Chat;
+}
