@@ -13,6 +13,7 @@ export function Navbar() {
   const { user, userData, loading } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const audioRef = useRef(null);
+  const lastPlayedRef = useRef(0);
 
   useEffect(() => {
     if (!user) return;
@@ -25,22 +26,32 @@ export function Navbar() {
 
     const unsubscribe = onSnapshot(chatsQuery, (snapshot) => {
       let count = 0;
+      let latestMessageTime = 0;
+      
       snapshot.docs.forEach((docSnap) => {
         const data = docSnap.data();
         const lastMessage = data.lastMessage;
         const readBy = data.readBy || {};
 
+        if (lastMessage?.createdAt) {
+          const messageTime = lastMessage.createdAt.seconds * 1000;
+          latestMessageTime = Math.max(latestMessageTime, messageTime);
+        }
+
         if (
           lastMessage &&
           lastMessage.senderId !== user.uid &&
-          (!readBy[user.uid] || new Date(readBy[user.uid]) < new Date(lastMessage.createdAt.toDate()))
+          (!readBy[user.uid] || 
+            (readBy[user.uid].seconds * 1000 < lastMessage.createdAt.seconds * 1000))
         ) {
           count += 1;
         }
       });
+      
       setUnreadCount(count);
-      if (count > 0 && audioRef.current) {
+      if (count > 0 && audioRef.current && latestMessageTime > lastPlayedRef.current) {
         audioRef.current.play();
+        lastPlayedRef.current = latestMessageTime;
       }
     });
 
