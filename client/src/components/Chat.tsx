@@ -50,45 +50,25 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Автоматично скролване при нови съобщения
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  const fetchUserDetails = async (userId: string) => {
-    if (!userId || participantDetails[userId]) return;
-
-    try {
-      const userRef = doc(db, 'users', userId);
-      const userDoc = await getDoc(userRef);
-
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        setParticipantDetails(prev => ({
-          ...prev,
-          [userId]: userData
-        }));
-      }
-    } catch (error) {
-      console.error(`Error fetching user ${userId}:`, error);
-    }
-  };
-
+  // Маркиране на съобщенията като прочетени при отваряне на чата
   useEffect(() => {
     if (!chatId || !user) return;
 
-    // Mark chat as read
     const chatRef = doc(db, 'chats', chatId);
     updateDoc(chatRef, {
-      [`readBy.${user.uid}`]: true
+      [`readBy.${user.uid}`]: new Date()
     });
 
-    // Subscribe to chat document
     const chatDocRef = doc(db, 'chats', chatId);
     const unsubscribeChat = onSnapshot(chatDocRef, async (snapshot) => {
       const data = snapshot.data();
 
       if (data) {
-        // Ensure we have both owner and requester details
         if (data.ownerId) {
           await fetchUserDetails(data.ownerId);
         }
@@ -99,7 +79,6 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
       }
     });
 
-    // Subscribe to messages collection
     const messagesRef = collection(db, 'chats', chatId, 'messages');
     const messagesQuery = query(messagesRef, orderBy('createdAt', 'asc'));
 
@@ -110,7 +89,6 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
           ...doc.data()
         })) as Message[];
 
-        // For each message, ensure we have the sender's details
         messagesData.forEach(msg => {
           if (msg.senderId) {
             fetchUserDetails(msg.senderId);
@@ -135,6 +113,25 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
     };
   }, [chatId, user]);
 
+  const fetchUserDetails = async (userId: string) => {
+    if (!userId || participantDetails[userId]) return;
+
+    try {
+      const userRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userRef);
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        setParticipantDetails(prev => ({
+          ...prev,
+          [userId]: userData
+        }));
+      }
+    } catch (error) {
+      console.error(`Error fetching user ${userId}:`, error);
+    }
+  };
+
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!newMessage.trim() || !user || sending) return;
@@ -142,28 +139,6 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
     setSending(true);
     try {
       const chatRef = doc(db, 'chats', chatId);
-      const chatDoc = await getDoc(chatRef);
-
-      if (!chatDoc.exists()) {
-        throw new Error('Chat not found');
-      }
-
-      const chatData = chatDoc.data();
-      const { ownerId, requesterId } = chatData;
-
-      // Create or update chat document
-      if (!chatDoc.exists()) {
-        const newChatData = {
-          ownerId,
-          requesterId,
-          participants: [ownerId, requesterId],
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        };
-        await setDoc(chatRef, newChatData);
-      }
-
-      // Add the message
       const messageData = {
         text: newMessage,
         senderId: user.uid,
@@ -173,10 +148,10 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
       const messagesRef = collection(db, 'chats', chatId, 'messages');
       await addDoc(messagesRef, messageData);
 
-      // Update chat document with last message
       await updateDoc(chatRef, {
         lastMessage: messageData,
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
+        [`readBy.${user.uid}`]: new Date()
       });
 
       setNewMessage('');

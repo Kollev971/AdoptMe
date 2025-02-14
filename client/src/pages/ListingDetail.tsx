@@ -104,13 +104,19 @@ export default function ListingDetail() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-gray-700 text-lg">
             <div><span className="font-semibold text-[#004AAD]">Вид:</span> {listing.type}</div>
-            <div><span className="font-semibold text-[#004AAD]">Възраст:</span> {listing.age} години</div>
+            <div>
+              <span className="font-semibold text-[#004AAD]">Възраст:</span>{' '}
+              {listing.ageYears > 0 && `${listing.ageYears} ${listing.ageYears === 1 ? 'година' : 'години'}`}
+              {listing.ageYears > 0 && listing.ageMonths > 0 && ' и '}
+              {listing.ageMonths > 0 && `${listing.ageMonths} ${listing.ageMonths === 1 ? 'месец' : 'месеца'}`}
+              {listing.ageYears === 0 && listing.ageMonths === 0 && '< 1 месец'}
+            </div>
             <div><span className="font-semibold text-[#004AAD]">Публикувано на:</span> {new Date(listing.createdAt).toLocaleDateString()}</div>
           </div>
 
           <div className="border-t border-gray-300 pt-4">
             <h2 className="font-semibold text-2xl text-[#004AAD]">Описание</h2>
-            <p className="text-gray-600 leading-relaxed">{listing.description}</p>
+            <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">{listing.description}</p>
           </div>
 
           {user && user.uid !== listing.userId && (

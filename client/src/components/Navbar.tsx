@@ -105,9 +105,6 @@ export function Navbar() {
         <div className="flex items-center space-x-4">
           {user ? (
             <>
-              <Link href="/create-listing">
-                <Button className="bg-[#004AAD] hover:bg-[#01BFFF] text-white">Добави обява</Button>
-              </Link>
               <Link href="/messages" className="relative" onClick={markMessagesAsRead}>
                 <Button variant="ghost" size="icon" className="relative hover:bg-[#01BFFF]/10">
                   <MessageSquare className="h-5 w-5 text-[#004AAD]" />
