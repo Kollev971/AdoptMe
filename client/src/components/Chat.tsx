@@ -33,12 +33,6 @@ interface ChatProps {
   chatId: string;
 }
 
-const scrollToBottom = () => {
-  if (messagesEndRef.current) {
-    messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-  }
-};
-
 export const Chat: React.FC<ChatProps> = ({ chatId }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -49,6 +43,12 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   // Автоматично скролване при нови съобщения
   useEffect(() => {
