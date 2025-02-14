@@ -12,7 +12,7 @@ import { Badge } from "./ui/badge";
 export function Navbar() {
   const { user, userData, loading } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
-  const audioRef = useRef(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastPlayedRef = useRef(0);
 
   useEffect(() => {
@@ -50,7 +50,9 @@ export function Navbar() {
       
       setUnreadCount(count);
       if (count > 0 && audioRef.current && latestMessageTime > lastPlayedRef.current) {
-        audioRef.current.play();
+        audioRef.current.play().catch(err => {
+          console.warn('Failed to play notification sound:', err);
+        });
         lastPlayedRef.current = latestMessageTime;
       }
     });
