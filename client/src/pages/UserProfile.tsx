@@ -26,11 +26,19 @@ export default function UserProfile() {
       if (!params?.id) return;
 
       try {
+        setLoading(true);
+        let hasError = false;
+
         // Fetch user profile
         const userDoc = await getDoc(doc(db, "users", params.id));
         if (userDoc.exists()) {
           setUserProfile(userDoc.data());
+        } else {
+          hasError = true;
+        }
 
+        // Continue fetching data only if user exists
+        if (!hasError) {
           // Fetch user's listings
           const listingsQuery = query(
             collection(db, "listings"),
@@ -39,12 +47,18 @@ export default function UserProfile() {
           const listingsSnap = await getDocs(listingsQuery);
           setListings(listingsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
-          // Fetch average rating
-          const ratingsQuery = query(collection(db, "ratings"), where("targetUserId", "==", params.id));
+          // Fetch ratings
+          const ratingsQuery = query(
+            collection(db, "ratings"),
+            where("targetUserId", "==", params.id)
+          );
           const ratingsSnap = await getDocs(ratingsQuery);
-          let total = 0;
-          ratingsSnap.forEach(doc => total += doc.data().rating);
-          setAverageRating(ratingsSnap.size > 0 ? total / ratingsSnap.size : 0);
+
+          if (!ratingsSnap.empty) {
+            let total = 0;
+            ratingsSnap.forEach(doc => total += doc.data().rating);
+            setAverageRating(total / ratingsSnap.size);
+          }
 
           // Fetch user's rating if they've rated before
           if (user?.uid) {
@@ -58,7 +72,9 @@ export default function UserProfile() {
               setUserRating(userRatingSnap.docs[0].data().rating);
             }
           }
-        } else {
+        }
+
+        if (hasError) {
           toast({
             title: "Грешка",
             description: "Потребителят не беше намерен",
@@ -66,12 +82,14 @@ export default function UserProfile() {
           });
         }
       } catch (error: any) {
-        console.error("Error fetching user profile:", error);
-        toast({
-          title: "Грешка",
-          description: "Проблем при зареждането на профила",
-          variant: "destructive",
-        });
+        // Only show error toast for critical errors
+        if (error.code !== 'permission-denied') {
+          toast({
+            title: "Грешка",
+            description: "Проблем при зареждането на профила",
+            variant: "destructive",
+          });
+        }
       } finally {
         setLoading(false);
       }
@@ -99,7 +117,10 @@ export default function UserProfile() {
       });
 
       // Update average rating
-      const ratingsQuery = query(collection(db, "ratings"), where("targetUserId", "==", params.id));
+      const ratingsQuery = query(
+        collection(db, "ratings"),
+        where("targetUserId", "==", params.id)
+      );
       const ratingsSnap = await getDocs(ratingsQuery);
       let total = 0;
       ratingsSnap.forEach(doc => total += doc.data().rating);
