@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import { db } from "@/lib/firebase";
@@ -7,7 +8,18 @@ import { useToast } from "@/hooks/use-toast";
 import type { Listing } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { MapPin, Calendar, User, Phone, Mail } from "lucide-react";
+
+const tagLabels: Record<string, string> = {
+  vaccinated: 'Ваксиниран',
+  neutered: 'Кастриран',
+  dewormed: 'Обезпаразитен',
+  special_needs: 'Специални нужди',
+  child_friendly: 'Подходящ за деца',
+  trained: 'Обучен'
+};
 
 export default function ListingDetail() {
   const [, params] = useRoute("/listings/:id");
@@ -15,6 +27,7 @@ export default function ListingDetail() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [listing, setListing] = useState<Listing | null>(null);
+  const [ownerDetails, setOwnerDetails] = useState<any>(null);
 
   useEffect(() => {
     const fetchListing = async () => {
@@ -26,6 +39,13 @@ export default function ListingDetail() {
 
         if (docSnap.exists()) {
           setListing({ id: docSnap.id, ...docSnap.data() } as Listing);
+          
+          // Fetch owner details
+          const ownerRef = doc(db, "users", docSnap.data().userId);
+          const ownerSnap = await getDoc(ownerRef);
+          if (ownerSnap.exists()) {
+            setOwnerDetails(ownerSnap.data());
+          }
         } else {
           toast({
             title: "Грешка",
@@ -80,19 +100,34 @@ export default function ListingDetail() {
   if (!listing) return null;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 p-6 bg-[#F0F7FF] rounded-lg shadow-md min-h-screen flex flex-col items-center">
-      <Card className="w-full max-w-3xl overflow-hidden rounded-2xl shadow-xl bg-white">
-        <CardHeader className="bg-[#004AAD] text-white p-6 text-center rounded-t-2xl">
-          <h1 className="text-4xl font-extrabold">{listing.title}</h1>
+    <div className="max-w-5xl mx-auto space-y-8 p-6 bg-[#F0F7FF] min-h-screen">
+      <Card className="overflow-hidden border border-[#004AAD] shadow-xl">
+        <CardHeader className="bg-[#004AAD] text-white p-6">
+          <h1 className="text-4xl font-extrabold text-center">{listing.title}</h1>
+          <div className="flex justify-center gap-2 mt-4">
+            <Badge variant="secondary" className="text-lg px-4 py-1">
+              {listing.type === 'dog' ? '🐶 Куче' : listing.type === 'cat' ? '🐱 Котка' : '🐾 Друго'}
+            </Badge>
+            {listing.status === 'adopted' && (
+              <Badge variant="success" className="text-lg px-4 py-1">
+                Осиновен
+              </Badge>
+            )}
+          </div>
         </CardHeader>
-        <CardContent className="p-6 space-y-6">
+        
+        <CardContent className="p-6 space-y-8">
           <div className="w-full flex justify-center">
-            <Carousel className="w-full max-w-2xl">
+            <Carousel className="w-full max-w-3xl">
               <CarouselContent>
                 {listing.images.map((image, index) => (
-                  <CarouselItem key={index} className="flex justify-center">
-                    <div className="aspect-square relative max-w-lg">
-                      <img src={image} alt={`${listing.title} - изображение ${index + 1}`} className="object-cover w-full h-full rounded-lg shadow-md" />
+                  <CarouselItem key={index}>
+                    <div className="aspect-video relative">
+                      <img 
+                        src={image} 
+                        alt={`${listing.title} - изображение ${index + 1}`} 
+                        className="object-cover w-full h-full rounded-lg shadow-md"
+                      />
                     </div>
                   </CarouselItem>
                 ))}
@@ -102,27 +137,71 @@ export default function ListingDetail() {
             </Carousel>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-gray-700 text-lg">
-            <div><span className="font-semibold text-[#004AAD]">Вид:</span> {listing.type}</div>
-            <div>
-              <span className="font-semibold text-[#004AAD]">Възраст:</span>{' '}
-              {listing.ageYears > 0 && `${listing.ageYears} ${listing.ageYears === 1 ? 'година' : 'години'}`}
-              {listing.ageYears > 0 && listing.ageMonths > 0 && ' и '}
-              {listing.ageMonths > 0 && `${listing.ageMonths} ${listing.ageMonths === 1 ? 'месец' : 'месеца'}`}
-              {listing.ageYears === 0 && listing.ageMonths === 0 && '< 1 месец'}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <h2 className="text-2xl font-semibold text-[#004AAD]">Информация за любимеца</h2>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-[#004AAD]" />
+                  <span>
+                    Възраст:{' '}
+                    {listing.ageYears > 0 && `${listing.ageYears} ${listing.ageYears === 1 ? 'година' : 'години'}`}
+                    {listing.ageYears > 0 && listing.ageMonths > 0 && ' и '}
+                    {listing.ageMonths > 0 && `${listing.ageMonths} ${listing.ageMonths === 1 ? 'месец' : 'месеца'}`}
+                    {listing.ageYears === 0 && listing.ageMonths === 0 && '< 1 месец'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-[#004AAD]" />
+                  <span>Локация: {listing.location}</span>
+                </div>
+                {listing.tags && listing.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    {listing.tags.map((tag) => (
+                      <Badge key={tag} variant="outline" className="px-3 py-1">
+                        {tagLabels[tag]}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-            <div><span className="font-semibold text-[#004AAD]">Публикувано на:</span> {new Date(listing.createdAt).toLocaleDateString()}</div>
+
+            {ownerDetails && (
+              <div className="space-y-4">
+                <h2 className="text-2xl font-semibold text-[#004AAD]">Информация за стопанина</h2>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <User className="h-5 w-5 text-[#004AAD]" />
+                    <span>Име: {ownerDetails.fullName}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-5 w-5 text-[#004AAD]" />
+                    <span>Телефон: {ownerDetails.phone}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-5 w-5 text-[#004AAD]" />
+                    <span>Имейл: {ownerDetails.email}</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="border-t border-gray-300 pt-4">
-            <h2 className="font-semibold text-2xl text-[#004AAD]">Описание</h2>
-            <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">{listing.description}</p>
+          <div className="border-t border-gray-200 pt-6">
+            <h2 className="text-2xl font-semibold text-[#004AAD] mb-4">Описание</h2>
+            <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{listing.description}</p>
           </div>
 
           {user && user.uid !== listing.userId && (
-            <Button onClick={handleConnect} className="w-full bg-[#01BFFF] hover:bg-[#009EDF] text-white py-3 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105">
-              Свържи се с потребителя
-            </Button>
+            <div className="flex justify-center pt-6">
+              <Button 
+                onClick={handleConnect} 
+                className="bg-[#01BFFF] hover:bg-[#004AAD] text-white px-8 py-6 text-lg rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-105"
+              >
+                Свържи се със стопанина
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
