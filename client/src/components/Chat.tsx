@@ -39,7 +39,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
   const [sending, setSending] = useState(false);
   const [participantDetails, setParticipantDetails] = useState<Record<string, any>>({});
   const [chatData, setChatData] = useState<any>(null);
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
