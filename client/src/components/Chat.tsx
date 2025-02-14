@@ -224,11 +224,11 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
                 </div>
                 {msg.senderId === user?.uid && (
                   <Avatar className="h-8 w-8">
-                    {user.photoURL ? (
-                      <AvatarImage src={user.photoURL} alt="Your avatar" />
+                    {userData?.photoURL ? (
+                      <AvatarImage src={userData.photoURL} alt={userData.username || 'Your avatar'} />
                     ) : (
                       <AvatarFallback>
-                        {(user.displayName || '?').charAt(0).toUpperCase()}
+                        {(userData?.username || '?').charAt(0).toUpperCase()}
                       </AvatarFallback>
                     )}
                   </Avatar>
