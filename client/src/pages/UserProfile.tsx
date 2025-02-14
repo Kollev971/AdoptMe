@@ -12,6 +12,7 @@ import { ListingCard } from "@/components/ListingCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { serverTimestamp } from "firebase/firestore";
 
 export default function UserProfile() {
   const [, params] = useRoute("/user/:id");
@@ -23,6 +24,7 @@ export default function UserProfile() {
   const [userRating, setUserRating] = useState<number | null>(null);
   const [averageRating, setAverageRating] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [location, setLocation] = useState("/");
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -184,28 +186,6 @@ export default function UserProfile() {
             {userProfile.bio && (
               <p className="mt-4 text-muted-foreground max-w-lg mx-auto">{userProfile.bio}</p>
             )}
-          </div>
-          <div className="flex items-center justify-center gap-4 flex-wrap mt-4">
-              <span className="text-lg font-medium">Рейтинг: {averageRating.toFixed(1)}</span>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    onClick={() => handleRate(star)}
-                    disabled={userRating !== null || user?.uid === params?.id}
-                    className={`p-1 ${
-                      (userRating || rating) >= star 
-                        ? "text-yellow-400" 
-                        : "text-gray-300"
-                    } transition-colors hover:scale-110`}
-                    onMouseEnter={() => !userRating && setRating(star)}
-                    onMouseLeave={() => !userRating && setRating(0)}
-                  >
-                    <Star className="h-6 w-6" fill={(userRating || rating) >= star ? "currentColor" : "none"} />
-                  </button>
-                ))}
-              </div>
-            </div>
             {user?.uid && user.uid !== params?.id && (
               <Button 
                 variant="outline" 
