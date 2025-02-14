@@ -137,7 +137,9 @@ export function Navbar() {
                 </div>
               </Link>
               <UserMenu />
-              <audio ref={audioRef} src="/notification.mp3" />
+              <audio ref={audioRef} preload="auto">
+                <source src="/notification.mp3.wav" type="audio/wav" />
+              </audio>
             </>
           ) : (
             <Link href="/auth">
