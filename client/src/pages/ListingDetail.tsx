@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import { db } from "@/lib/firebase";
@@ -11,6 +10,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { MapPin, Calendar, User, Phone, Mail } from "lucide-react";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 const tagLabels: Record<string, string> = {
   vaccinated: 'Ваксиниран',
@@ -39,7 +39,7 @@ export default function ListingDetail() {
 
         if (docSnap.exists()) {
           setListing({ id: docSnap.id, ...docSnap.data() } as Listing);
-          
+
           // Fetch owner details
           const ownerRef = doc(db, "users", docSnap.data().userId);
           const ownerSnap = await getDoc(ownerRef);
@@ -71,6 +71,8 @@ export default function ListingDetail() {
       setLocation("/auth");
       return;
     }
+
+    if (!listing) return;
 
     try {
       const [id1, id2] = [listing.userId, user.uid].sort();
@@ -109,26 +111,26 @@ export default function ListingDetail() {
               {listing.type === 'dog' ? '🐶 Куче' : listing.type === 'cat' ? '🐱 Котка' : '🐾 Друго'}
             </Badge>
             {listing.status === 'adopted' && (
-              <Badge variant="success" className="text-lg px-4 py-1">
+              <Badge variant="outline" className="text-lg px-4 py-1 bg-green-500 text-white border-none">
                 Осиновен
               </Badge>
             )}
           </div>
         </CardHeader>
-        
+
         <CardContent className="p-6 space-y-8">
           <div className="w-full flex justify-center">
             <Carousel className="w-full max-w-3xl">
               <CarouselContent>
                 {listing.images.map((image, index) => (
                   <CarouselItem key={index}>
-                    <div className="aspect-video relative">
-                      <img 
-                        src={image} 
-                        alt={`${listing.title} - изображение ${index + 1}`} 
-                        className="object-cover w-full h-full rounded-lg shadow-md"
+                    <AspectRatio ratio={16 / 9}>
+                      <img
+                        src={image}
+                        alt={`${listing.title} - изображение ${index + 1}`}
+                        className="absolute inset-0 w-full h-full object-contain bg-black/5 rounded-lg"
                       />
-                    </div>
+                    </AspectRatio>
                   </CarouselItem>
                 ))}
               </CarouselContent>
@@ -144,11 +146,11 @@ export default function ListingDetail() {
                 <div className="flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-[#004AAD]" />
                   <span>
-                    Възраст:{' '}
-                    {listing.ageYears > 0 && `${listing.ageYears} ${listing.ageYears === 1 ? 'година' : 'години'}`}
+                    Възраст:
+                    {listing.ageYears > 0 && ` ${listing.ageYears} ${listing.ageYears === 1 ? 'година' : 'години'}`}
                     {listing.ageYears > 0 && listing.ageMonths > 0 && ' и '}
-                    {listing.ageMonths > 0 && `${listing.ageMonths} ${listing.ageMonths === 1 ? 'месец' : 'месеца'}`}
-                    {listing.ageYears === 0 && listing.ageMonths === 0 && '< 1 месец'}
+                    {listing.ageMonths > 0 && ` ${listing.ageMonths} ${listing.ageMonths === 1 ? 'месец' : 'месеца'}`}
+                    {listing.ageYears === 0 && listing.ageMonths === 0 && ' < 1 месец'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -195,8 +197,8 @@ export default function ListingDetail() {
 
           {user && user.uid !== listing.userId && (
             <div className="flex justify-center pt-6">
-              <Button 
-                onClick={handleConnect} 
+              <Button
+                onClick={handleConnect}
                 className="bg-[#01BFFF] hover:bg-[#004AAD] text-white px-8 py-6 text-lg rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-105"
               >
                 Свържи се със стопанина

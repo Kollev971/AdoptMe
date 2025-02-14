@@ -8,7 +8,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
-import { Edit, MapPin } from "lucide-react";
+import { Edit, MapPin, Share2, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const tagLabels: Record<string, string> = {
   vaccinated: 'Ваксиниран',
@@ -21,10 +22,13 @@ const tagLabels: Record<string, string> = {
 
 interface ListingCardProps {
   listing: Listing;
+  showActions?: boolean;
+  onDelete?: () => void;
 }
 
-export function ListingCard({ listing }: ListingCardProps) {
+export function ListingCard({ listing, showActions, onDelete }: ListingCardProps) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [listingUser, setListingUser] = useState<any>(null);
 
   useEffect(() => {
@@ -61,6 +65,25 @@ export function ListingCard({ listing }: ListingCardProps) {
     }
   };
 
+  const handleShare = async () => {
+    try {
+      const shareData = {
+        title: listing.title,
+        text: `Разгледайте тази обява за осиновяване: ${listing.title}`,
+        url: window.location.origin + `/listings/${listing.id}`
+      };
+
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(shareData.url);
+        toast({ description: "Линкът е копиран в клипборда" });
+      }
+    } catch (error) {
+      console.error("Error sharing:", error);
+    }
+  };
+
   return (
     <Card className="overflow-hidden border border-[#004AAD] hover:shadow-lg transition-shadow rounded-xl">
       <CardContent className="p-0">
@@ -70,11 +93,12 @@ export function ListingCard({ listing }: ListingCardProps) {
               <img
                 src={listing.images?.[0] || 'https://via.placeholder.com/400x300?text=Няма+снимка'}
                 alt={listing.title}
-                className="object-cover w-full h-full transition-transform duration-300 hover:scale-105 rounded-t-xl"
+                className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-300 hover:scale-105 rounded-t-xl"
+                loading="lazy"
               />
-              <div className="absolute top-3 left-3 flex gap-2">
+              <div className="absolute top-3 left-3 flex gap-2 z-10">
                 <Badge className="bg-[#01BFFF] text-white py-1 px-3 rounded-full shadow-md">
-                  {getTypeEmoji(listing.type)} {listing.type}
+                  {getTypeEmoji(listing.type)} {listing.type === 'dog' ? 'Куче' : listing.type === 'cat' ? 'Котка' : 'Друго'}
                 </Badge>
                 {listing.status === 'adopted' && (
                   <Badge className="bg-green-500 text-white py-1 px-3 rounded-full shadow-md">
@@ -84,16 +108,26 @@ export function ListingCard({ listing }: ListingCardProps) {
               </div>
             </AspectRatio>
           </Link>
-          {user?.uid === listing.userId && (
-            <Link href={`/listings/${listing.id}/edit`}>
-              <Button 
-                variant="secondary" 
+          {showActions && user?.uid === listing.userId && (
+            <div className="absolute top-3 right-3 flex gap-2 z-10">
+              <Link href={`/listings/${listing.id}/edit`}>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="bg-white/90 hover:bg-white"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </Link>
+              <Button
+                variant="destructive"
                 size="icon"
-                className="absolute top-3 right-3 bg-white/90 hover:bg-white"
+                onClick={onDelete}
+                className="bg-white/90 hover:bg-red-500 hover:text-white"
               >
-                <Edit className="h-4 w-4" />
+                <Trash2 className="h-4 w-4" />
               </Button>
-            </Link>
+            </div>
           )}
         </div>
 
@@ -137,11 +171,21 @@ export function ListingCard({ listing }: ListingCardProps) {
               {listingUser?.username || "Анонимен"}
             </span>
           </div>
-          <Link href={`/listings/${listing.id}`}>
-            <Button variant="default" size="sm" className="rounded-full bg-[#01BFFF] hover:bg-[#004AAD] text-white px-4">
-              Разгледай →
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleShare}
+              className="hover:bg-[#01BFFF]/10"
+            >
+              <Share2 className="h-4 w-4 text-[#004AAD]" />
             </Button>
-          </Link>
+            <Link href={`/listings/${listing.id}`}>
+              <Button variant="default" size="sm" className="rounded-full bg-[#01BFFF] hover:bg-[#004AAD] text-white px-4">
+                Разгледай →
+              </Button>
+            </Link>
+          </div>
         </div>
       </CardFooter>
     </Card>
