@@ -21,11 +21,25 @@ export default function Profile() {
   const [newBio, setNewBio] = useState("");
   const [userData, setUserData] = useState<any>(null);
   const [profileImages, setProfileImages] = useState<string[]>([]);
+  const [averageRating, setAverageRating] = useState<number>(0);
 
   useEffect(() => {
     if (!user) return;
 
     const fetchUserData = async () => {
+      try {
+        // Fetch ratings
+        const ratingsQuery = query(
+          collection(db, "ratings"),
+          where("targetUserId", "==", user.uid)
+        );
+        const ratingsSnap = await getDocs(ratingsQuery);
+        
+        if (!ratingsSnap.empty) {
+          let total = 0;
+          ratingsSnap.forEach(doc => total += doc.data().rating);
+          setAverageRating(total / ratingsSnap.size);
+        }
       const userDoc = await getDoc(doc(db, "users", user.uid));
       if (userDoc.exists()) {
         const data = userDoc.data();
@@ -96,6 +110,21 @@ export default function Profile() {
             </div>
             <CardTitle className="text-2xl">{userData.username}</CardTitle>
             <p className="text-muted-foreground">{userData.email}</p>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-primary">Рейтинг: {averageRating.toFixed(1)}</span>
+              <div className="flex">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className={`h-5 w-5 ${
+                      star <= averageRating
+                        ? "text-yellow-400 fill-yellow-400"
+                        : "text-gray-300"
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
             {userData.bio && (
               <p className="mt-2 text-sm text-muted-foreground">{userData.bio}</p>
             )}

@@ -145,6 +145,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
 
       setNewMessage('');
       inputRef.current?.focus();
+      scrollToBottom();
 
     } catch (error: any) {
       toast({ 
@@ -212,8 +213,8 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
                 <div
                   className={`max-w-[70%] rounded-2xl p-3 ${
                     isCurrentUser
-                      ? 'bg-primary text-primary-foreground rounded-br-sm'
-                      : 'bg-accent rounded-bl-sm'
+                      ? 'bg-[#97D8C4] text-black rounded-br-sm shadow-md'
+                      : 'bg-[#B8E0D2] text-black rounded-bl-sm shadow-md'
                   }`}
                 >
                   <p className="text-sm break-words">{msg.text}</p>
