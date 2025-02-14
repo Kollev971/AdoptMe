@@ -4,23 +4,21 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { updatePassword, updateProfile } from "firebase/auth";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Label } from "@/components/ui/label";
+import { updateProfile, updateEmail, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
+import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc, updateDoc, getDoc } from "firebase/firestore";
+import { Loader2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function Profile() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [username, setUsername] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
   const [loading, setLoading] = useState(false);
-  const [listings, setListings] = useState([]);
-  const [loadingListings, setLoadingListings] = useState(true);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newUsername, setNewUsername] = useState("");
+  const [userData, setUserData] = useState<any>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -28,123 +26,154 @@ export default function Profile() {
     const fetchUserData = async () => {
       const userDoc = await getDoc(doc(db, "users", user.uid));
       if (userDoc.exists()) {
-        const userData = userDoc.data();
-        setDisplayName(userData.fullName || "");
-        setUsername(userData.username || "");
-        setPhoneNumber(userData.phone || "");
+        setUserData(userDoc.data());
+        setNewEmail(user.email || "");
+        setNewUsername(userDoc.data().username || "");
       }
     };
 
     fetchUserData();
-
-    const q = query(
-      collection(db, "listings"),
-      where("userId", "==", user.uid),
-      orderBy("createdAt", "desc")
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setListings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      setLoadingListings(false);
-    }, (error) => {
-      toast({ title: "Грешка", description: "Проблем при зареждането на обявите", variant: "destructive" });
-      setLoadingListings(false);
-    });
-
-    return () => unsubscribe();
   }, [user]);
 
-  const handlePasswordChange = async () => {
-    if (!user || !newPassword || newPassword !== confirmPassword) return;
+  const handleEmailChange = async () => {
+    if (!user || !newEmail || !currentPassword) return;
 
     try {
       setLoading(true);
-      await updatePassword(user, newPassword);
-      await updateDoc(doc(db, "users", user.uid), { password: newPassword });
-      toast({ title: "Успешно", description: "Паролата е променена успешно" });
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch (error) {
-      toast({ title: "Грешка", description: error.message, variant: "destructive" });
+      const credential = EmailAuthProvider.credential(
+        user.email!,
+        currentPassword
+      );
+
+      await reauthenticateWithCredential(user, credential);
+      await updateEmail(user, newEmail);
+      await updateDoc(doc(db, "users", user.uid), { email: newEmail });
+
+      toast({ title: "Успешно", description: "Имейлът е променен успешно" });
+      setCurrentPassword("");
+    } catch (error: any) {
+      toast({ 
+        title: "Грешка", 
+        description: error.message, 
+        variant: "destructive" 
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteListing = async (listingId) => {
+  const handleUsernameChange = async () => {
+    if (!user || !newUsername) return;
+
     try {
-      await deleteDoc(doc(db, "listings", listingId));
-      toast({ title: "Успешно", description: "Обявата беше изтрита успешно" });
-    } catch (error) {
-      toast({ title: "Грешка", description: "Възникна проблем при изтриването на обявата", variant: "destructive" });
+      setLoading(true);
+      await updateProfile(user, { displayName: newUsername });
+      await updateDoc(doc(db, "users", user.uid), { username: newUsername });
+      toast({ title: "Успешно", description: "Потребителското име е променено успешно" });
+    } catch (error: any) {
+      toast({ 
+        title: "Грешка", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
+  if (!userData) return null;
+
   return (
     <div className="container mx-auto p-6">
-      <Card className="mb-6 p-6">
-        <CardHeader>
-          <CardTitle>Информация за профила</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <h3 className="text-lg font-medium">Имейл</h3>
-            <p className="text-muted-foreground">{user?.email}</p>
-          </div>
-          <div>
-            <h3 className="text-lg font-medium">Име</h3>
-            <p className="text-muted-foreground">{displayName}</p>
-          </div>
-          <div>
-            <h3 className="text-lg font-medium">Потребителско име</h3>
-            <p className="text-muted-foreground">{username}</p>
-          </div>
-          <div>
-            <h3 className="text-lg font-medium">Телефонен номер</h3>
-            <p className="text-muted-foreground">{phoneNumber}</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Tabs defaultValue="listings" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="listings">Моите обяви</TabsTrigger>
-          <TabsTrigger value="settings">Настройки</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="listings">
-          <ScrollArea className="h-[70vh]">
-            <div className="space-y-4 pr-4">
-              {listings.length > 0 ? listings.map(listing => (
-                <Card key={listing.id} className="overflow-hidden">
-                  <CardContent className="p-6">
-                    <div className="flex flex-col md:flex-row gap-6">
-                      {listing.images?.[0] && (
-                        <div className="w-full md:w-48 h-48 relative">
-                          <img
-                            src={listing.images[0]}
-                            alt={listing.title}
-                            className="absolute inset-0 w-full h-full object-cover rounded-lg"
-                          />
-                        </div>
-                      )}
-                      <div className="flex-1">
-                        <h3 className="text-xl font-semibold mb-2">{listing.title}</h3>
-                        <p className="text-muted-foreground mb-4">{listing.description}</p>
-                        <Button variant="destructive" onClick={() => handleDeleteListing(listing.id)}>
-                          Изтрий обява
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )) : (
-                <p className="text-center text-muted-foreground">Нямате създадени обяви</p>
-              )}
+      <div className="max-w-2xl mx-auto space-y-6">
+        <Card className="border-2 border-primary">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <Avatar className="h-24 w-24">
+                <AvatarImage src={userData.photoURL} />
+                <AvatarFallback className="text-2xl">
+                  {userData.username?.[0]?.toUpperCase() || '?'}
+                </AvatarFallback>
+              </Avatar>
             </div>
-          </ScrollArea>
-        </TabsContent>
-      </Tabs>
+            <CardTitle className="text-2xl">{userData.username}</CardTitle>
+            <p className="text-muted-foreground">{userData.email}</p>
+          </CardHeader>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Промяна на имейл</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="current-password">Текуща парола</Label>
+              <Input
+                id="current-password"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Въведете текущата парола"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-email">Нов имейл</Label>
+              <Input
+                id="new-email"
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="Въведете нов имейл"
+              />
+            </div>
+            <Button 
+              onClick={handleEmailChange} 
+              disabled={loading}
+              className="w-full"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Промяна...
+                </>
+              ) : (
+                "Промени имейл"
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Промяна на потребителско име</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-username">Ново потребителско име</Label>
+              <Input
+                id="new-username"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                placeholder="Въведете ново потребителско име"
+              />
+            </div>
+            <Button 
+              onClick={handleUsernameChange} 
+              disabled={loading}
+              className="w-full"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Промяна...
+                </>
+              ) : (
+                "Промени потребителско име"
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

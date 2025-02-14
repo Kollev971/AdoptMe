@@ -12,6 +12,8 @@ import ListingDetail from "./pages/ListingDetail";
 import Chat from "./pages/Chat";
 import Messages from "./pages/Messages";
 import NotFound from "./pages/not-found";
+import MyListings from "./pages/MyListings";
+import Settings from "./pages/Settings";
 
 function App() {
   return (
@@ -26,8 +28,11 @@ function App() {
             <Route path="/create-listing" component={CreateListing} />
             <Route path="/listings" component={Listings} />
             <Route path="/listings/:id" component={ListingDetail} />
+            <Route path="/listings/:id/edit" component={CreateListing} />
             <Route path="/chat/:chatId" component={Chat} />
             <Route path="/messages" component={Messages} />
+            <Route path="/my-listings" component={MyListings} />
+            <Route path="/settings" component={Settings} />
             <Route component={NotFound} />
           </Switch>
         </main>

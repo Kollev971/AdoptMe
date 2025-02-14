@@ -42,17 +42,17 @@ export function UserMenu() {
             {userData.fullName}
           </DropdownMenuItem>
         )}
-        {/*<DropdownMenuItem onClick={() => setLocation("/create-listing")}>
+        <DropdownMenuItem onClick={() => setLocation("/create-listing")}>
           Добави обява
         </DropdownMenuItem>
-        {/* <DropdownMenuItem onClick={() => setLocation("/my-listings")}>
+        <DropdownMenuItem onClick={() => setLocation("/my-listings")}>
           Моите обяви
-        </DropdownMenuItem> */}
-        {/* <DropdownMenuItem onClick={() => setLocation("/settings")}>
-          Настройки
-        </DropdownMenuItem> */}
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setLocation("/profile")}>
           Профил
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setLocation("/settings")}>
+          Настройки
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setLocation("/messages")} className="relative">
           Съобщения
