@@ -10,7 +10,6 @@ import {
   orderBy,
   serverTimestamp,
   updateDoc,
-  setDoc,
 } from "firebase/firestore";
 import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
@@ -43,19 +42,18 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
   };
 
-  // Автоматично скролване при нови съобщения
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  // Маркиране на съобщенията като прочетени при отваряне на чата
   useEffect(() => {
     if (!chatId || !user) return;
 
@@ -67,14 +65,9 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
     const chatDocRef = doc(db, 'chats', chatId);
     const unsubscribeChat = onSnapshot(chatDocRef, async (snapshot) => {
       const data = snapshot.data();
-
       if (data) {
-        if (data.ownerId) {
-          await fetchUserDetails(data.ownerId);
-        }
-        if (data.requesterId) {
-          await fetchUserDetails(data.requesterId);
-        }
+        if (data.ownerId) await fetchUserDetails(data.ownerId);
+        if (data.requesterId) await fetchUserDetails(data.requesterId);
         setChatData(data);
       }
     });
@@ -90,13 +83,10 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
         })) as Message[];
 
         messagesData.forEach(msg => {
-          if (msg.senderId) {
-            fetchUserDetails(msg.senderId);
-          }
+          if (msg.senderId) fetchUserDetails(msg.senderId);
         });
 
         setMessages(messagesData);
-        scrollToBottom();
       },
       error: (error) => {
         console.error("Error in messages subscription:", error);
@@ -121,10 +111,9 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
       const userDoc = await getDoc(userRef);
 
       if (userDoc.exists()) {
-        const userData = userDoc.data();
         setParticipantDetails(prev => ({
           ...prev,
-          [userId]: userData
+          [userId]: userDoc.data()
         }));
       }
     } catch (error) {
@@ -171,63 +160,75 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
   const otherParticipant = otherParticipantId ? participantDetails[otherParticipantId] : null;
 
   return (
-    <Card className="w-full h-[80vh] flex flex-col">
-      <CardHeader className="border-b">
-        <CardTitle className="flex items-center gap-2">
-          <Avatar className="h-8 w-8">
+    <Card className="w-full h-[80vh] flex flex-col border-2 border-primary/20">
+      <CardHeader className="border-b bg-primary/5 pb-4">
+        <CardTitle className="flex items-center gap-3">
+          <Avatar className="h-10 w-10 border-2 border-primary/20">
             {otherParticipant?.photoURL ? (
               <AvatarImage src={otherParticipant.photoURL} alt={otherParticipant.username || 'User'} />
             ) : (
-              <AvatarFallback>
+              <AvatarFallback className="bg-primary/10 text-primary">
                 {(otherParticipant?.username || otherParticipant?.fullName || '?').charAt(0).toUpperCase()}
               </AvatarFallback>
             )}
           </Avatar>
           <div>
-            <p className="font-medium">
+            <p className="font-medium text-lg">
               {otherParticipant?.username || otherParticipant?.fullName || 'Непознат потребител'}
             </p>
           </div>
         </CardTitle>
       </CardHeader>
-      <ScrollArea className="flex-1 p-4">
+      <ScrollArea 
+        ref={scrollAreaRef}
+        className="flex-1 p-4" 
+        style={{ scrollBehavior: 'smooth' }}
+      >
         <div className="space-y-4">
-          {messages.map((msg) => {
+          {messages.map((msg, index) => {
             const sender = participantDetails[msg.senderId];
+            const isCurrentUser = msg.senderId === user?.uid;
+            const showAvatar = index === 0 || 
+              messages[index - 1].senderId !== msg.senderId;
+
             return (
               <div
                 key={msg.id}
-                className={`flex items-start gap-2 ${msg.senderId === user?.uid ? 'justify-end' : 'justify-start'}`}
+                className={`flex items-end gap-2 ${
+                  isCurrentUser ? 'justify-end' : 'justify-start'
+                }`}
               >
-                {msg.senderId !== user?.uid && (
-                  <Avatar className="h-8 w-8">
+                {!isCurrentUser && showAvatar && (
+                  <Avatar className="h-8 w-8 mb-4">
                     {sender?.photoURL ? (
                       <AvatarImage src={sender.photoURL} alt={sender.username || 'User avatar'} />
                     ) : (
-                      <AvatarFallback>
+                      <AvatarFallback className="bg-primary/10 text-primary">
                         {(sender?.username || sender?.fullName || '?').charAt(0).toUpperCase()}
                       </AvatarFallback>
                     )}
                   </Avatar>
                 )}
                 <div
-                  className={`max-w-[70%] rounded-lg p-3 ${
-                    msg.senderId === user?.uid
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-secondary'
+                  className={`max-w-[70%] rounded-2xl p-3 ${
+                    isCurrentUser
+                      ? 'bg-primary text-primary-foreground rounded-br-sm'
+                      : 'bg-accent rounded-bl-sm'
                   }`}
                 >
                   <p className="text-sm break-words">{msg.text}</p>
-                  <span className="text-xs opacity-70 block mt-1">
+                  <span className={`text-xs block mt-1 ${
+                    isCurrentUser ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                  }`}>
                     {msg.createdAt && format(msg.createdAt.toDate(), 'HH:mm')}
                   </span>
                 </div>
-                {msg.senderId === user?.uid && (
-                  <Avatar className="h-8 w-8">
+                {isCurrentUser && showAvatar && (
+                  <Avatar className="h-8 w-8 mb-4">
                     {userData?.photoURL ? (
                       <AvatarImage src={userData.photoURL} alt={userData.username || 'Your avatar'} />
                     ) : (
-                      <AvatarFallback>
+                      <AvatarFallback className="bg-primary/10 text-primary">
                         {(userData?.username || '?').charAt(0).toUpperCase()}
                       </AvatarFallback>
                     )}
@@ -239,7 +240,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
-      <form onSubmit={handleSendMessage} className="p-4 flex gap-2 border-t">
+      <form onSubmit={handleSendMessage} className="p-4 flex gap-2 border-t bg-background">
         <Input
           ref={inputRef}
           value={newMessage}
@@ -249,7 +250,12 @@ export const Chat: React.FC<ChatProps> = ({ chatId }) => {
           disabled={sending}
           autoFocus
         />
-        <Button type="submit" disabled={sending}>
+        <Button 
+          type="submit" 
+          disabled={sending}
+          size="icon"
+          className="bg-primary hover:bg-primary/90"
+        >
           {sending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (

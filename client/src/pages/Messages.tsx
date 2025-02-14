@@ -20,7 +20,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
-import { Loader2 } from "lucide-react";
+import { Loader2, MessageCircle } from "lucide-react";
 
 interface ChatPreview {
   id: string;
@@ -35,6 +35,7 @@ interface ChatPreview {
   requesterDetails?: any;
   participants: string[];
   updatedAt: any;
+  readBy?: Record<string, any>;
 }
 
 export default function Messages() {
@@ -45,9 +46,6 @@ export default function Messages() {
   useEffect(() => {
     if (!user) return;
 
-    console.log("Current user ID:", user.uid);
-
-    // Query for chats where the user is a participant
     const chatsQuery = query(
       collection(db, "chats"),
       where("participants", "array-contains", user.uid),
@@ -56,18 +54,14 @@ export default function Messages() {
 
     const unsubscribe = onSnapshot(chatsQuery, async (snapshot) => {
       try {
-        console.log("Chats snapshot received:", snapshot.docs.map(doc => ({ id: doc.id, data: doc.data() })));
-
         const chatsPromises = snapshot.docs.map(async (chatDoc) => {
           const chatData = chatDoc.data() as ChatPreview;
           chatData.id = chatDoc.id;
-          console.log("Processing chat:", chatDoc.id, chatData);
 
           // Fetch owner details
           if (chatData.ownerId) {
             try {
               const ownerDoc = await getDoc(doc(db, "users", chatData.ownerId));
-              console.log("Owner details for chat:", chatDoc.id, ownerDoc.data());
               if (ownerDoc.exists()) {
                 chatData.ownerDetails = ownerDoc.data();
               }
@@ -80,7 +74,6 @@ export default function Messages() {
           if (chatData.requesterId) {
             try {
               const requesterDoc = await getDoc(doc(db, "users", chatData.requesterId));
-              console.log("Requester details for chat:", chatDoc.id, requesterDoc.data());
               if (requesterDoc.exists()) {
                 chatData.requesterDetails = requesterDoc.data();
               }
@@ -93,7 +86,6 @@ export default function Messages() {
         });
 
         const resolvedChats = await Promise.all(chatsPromises);
-        console.log("Final resolved chats:", resolvedChats);
         setChats(resolvedChats);
         setLoading(false);
       } catch (error) {
@@ -109,69 +101,81 @@ export default function Messages() {
 
   return (
     <div className="container mx-auto p-4 max-w-4xl">
-      <Card>
-        <CardHeader>
-          <CardTitle>Съобщения</CardTitle>
+      <Card className="border-2 border-primary/20">
+        <CardHeader className="border-b bg-primary/5">
+          <CardTitle className="flex items-center gap-2">
+            <MessageCircle className="w-5 h-5" />
+            Съобщения
+          </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <ScrollArea className="h-[70vh]">
             {loading ? (
-              <div className="flex justify-center p-4">
-                <Loader2 className="h-6 w-6 animate-spin" />
+              <div className="flex justify-center p-6">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : chats.length === 0 ? (
-              <p className="text-center text-muted-foreground">
-                Нямате съобщения
-              </p>
+              <div className="flex flex-col items-center justify-center p-8 text-center">
+                <MessageCircle className="w-12 h-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">
+                  Все още нямате съобщения
+                </p>
+              </div>
             ) : (
-              <div className="space-y-2">
+              <div className="divide-y">
                 {chats.map((chat) => {
                   const isOwner = user.uid === chat.ownerId;
                   const otherUser = isOwner ? chat.requesterDetails : chat.ownerDetails;
+                  const isUnread = chat.lastMessage?.senderId !== user.uid && 
+                    (!chat.readBy?.[user.uid] || 
+                    (chat.readBy[user.uid] && chat.lastMessage?.createdAt && 
+                     new Date(chat.readBy[user.uid].seconds * 1000) < 
+                     new Date(chat.lastMessage.createdAt.seconds * 1000)));
 
                   return (
                     <Link key={chat.id} href={`/chat/${chat.id}`}>
-                      <Card className={`cursor-pointer hover:bg-accent transition-colors relative ${
-                        chat.lastMessage?.senderId !== user.uid && 
-                        (!chat.readBy?.[user.uid] || 
-                          (typeof chat.readBy[user.uid] === 'object' && 
-                           chat.lastMessage?.createdAt && 
-                           new Date(chat.readBy[user.uid].seconds * 1000) < new Date(chat.lastMessage.createdAt.seconds * 1000))) 
-                        ? 'border-primary bg-primary/5' : ''
-                      }`}>
-                        {chat.lastMessage?.senderId !== user.uid && !chat.readBy?.[user.uid] && (
-                          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
+                      <div className={`hover:bg-accent/50 transition-colors relative p-4
+                        ${isUnread ? 'bg-primary/5' : ''}`}>
+                        {isUnread && (
+                          <span className="absolute right-4 top-4 h-2 w-2 rounded-full bg-primary" />
                         )}
-                        <CardContent className="p-4 flex items-center gap-4">
-                          <Avatar>
+                        <div className="flex items-center gap-4">
+                          <Avatar className="h-12 w-12 border-2 border-primary/20">
                             {otherUser?.photoURL ? (
-                              <AvatarImage src={otherUser.photoURL} alt={otherUser.username || otherUser.fullName} />
+                              <AvatarImage 
+                                src={otherUser.photoURL} 
+                                alt={otherUser.username || otherUser.fullName} 
+                              />
                             ) : (
-                              <AvatarFallback>
-                                {(otherUser?.username || otherUser?.fullName || "?").charAt(0).toUpperCase()}
+                              <AvatarFallback className="bg-primary/10 text-primary">
+                                {(otherUser?.username || otherUser?.fullName || "?")
+                                  .charAt(0)
+                                  .toUpperCase()}
                               </AvatarFallback>
                             )}
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start">
-                              <p className="font-medium truncate">
+                              <p className={`font-medium truncate ${isUnread ? 'text-primary' : ''}`}>
                                 {otherUser?.username || otherUser?.fullName || "Непознат потребител"}
                               </p>
                               {chat.lastMessage?.createdAt && (
-                                <span className="text-xs text-muted-foreground">
-                                  {format(chat.lastMessage.createdAt.toDate(), "HH:mm")}
+                                <span className="text-xs text-muted-foreground ml-2">
+                                  {format(new Date(chat.lastMessage.createdAt.seconds * 1000), "HH:mm")}
                                 </span>
                               )}
                             </div>
                             {chat.lastMessage && (
-                              <p className="text-sm truncate">
+                              <p className={`text-sm truncate ${
+                                isUnread ? 'text-foreground' : 'text-muted-foreground'
+                              }`}>
                                 {chat.lastMessage.senderId === user.uid ? "Вие: " : ""}
                                 {chat.lastMessage.text}
                               </p>
                             )}
                           </div>
-                        </CardContent>
-                      </Card>
+                        </div>
+                      </div>
                     </Link>
                   );
                 })}
