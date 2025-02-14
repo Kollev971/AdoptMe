@@ -7,6 +7,7 @@ export const userSchema = z.object({
   fullName: z.string().min(2),
   phone: z.string().min(10),
   photoURL: z.string().optional(),
+  bio: z.string().optional(),
   createdAt: z.string(),
   emailVerified: z.boolean(),
 });
@@ -21,6 +22,16 @@ export const listingSchema = z.object({
   images: z.array(z.string()),
   userId: z.string(),
   createdAt: z.string(),
+  location: z.string().optional(),
+  status: z.enum(['available', 'adopted']).default('available'),
+  tags: z.array(z.enum([
+    'vaccinated',      // ваксиниран
+    'neutered',        // кастриран
+    'dewormed',        // обезпаразитен
+    'special_needs',   // специални нужди
+    'child_friendly',  // подходящ за деца
+    'trained'          // обучен
+  ])).default([]),
 });
 
 export const adoptionRequestSchema = z.object({

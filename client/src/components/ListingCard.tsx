@@ -8,7 +8,16 @@ import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
-import { Edit } from "lucide-react";
+import { Edit, MapPin } from "lucide-react";
+
+const tagLabels: Record<string, string> = {
+  vaccinated: 'Ваксиниран',
+  neutered: 'Кастриран',
+  dewormed: 'Обезпаразитен',
+  special_needs: 'Специални нужди',
+  child_friendly: 'Подходящ за деца',
+  trained: 'Обучен'
+};
 
 interface ListingCardProps {
   listing: Listing;
@@ -63,9 +72,16 @@ export function ListingCard({ listing }: ListingCardProps) {
                 alt={listing.title}
                 className="object-cover w-full h-full transition-transform duration-300 hover:scale-105 rounded-t-xl"
               />
-              <Badge className="absolute top-3 left-3 bg-[#01BFFF] text-white py-1 px-3 rounded-full shadow-md">
-                {getTypeEmoji(listing.type)} {listing.type}
-              </Badge>
+              <div className="absolute top-3 left-3 flex gap-2">
+                <Badge className="bg-[#01BFFF] text-white py-1 px-3 rounded-full shadow-md">
+                  {getTypeEmoji(listing.type)} {listing.type}
+                </Badge>
+                {listing.status === 'adopted' && (
+                  <Badge className="bg-green-500 text-white py-1 px-3 rounded-full shadow-md">
+                    Осиновен
+                  </Badge>
+                )}
+              </div>
             </AspectRatio>
           </Link>
           {user?.uid === listing.userId && (
@@ -92,12 +108,22 @@ export function ListingCard({ listing }: ListingCardProps) {
               📅 {formatAge(listing.ageYears, listing.ageMonths)}
             </span>
             {listing.location && (
-              <span className="inline-flex items-center">
-                • 📍 {listing.location}
+              <span className="inline-flex items-center gap-1">
+                • <MapPin className="h-4 w-4" /> {listing.location}
               </span>
             )}
           </div>
           <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap line-clamp-2">{listing.description}</p>
+
+          {listing.tags && listing.tags.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {listing.tags.map((tag) => (
+                <Badge key={tag} variant="outline" className="text-xs">
+                  {tagLabels[tag]}
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
       </CardContent>
 

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { FileUpload } from "@/components/FileUpload";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,13 +26,26 @@ const createListingSchema = z.object({
     .min(20, "Описанието трябва да е поне 20 символа")
     .max(300, "Описанието трябва да е максимум 300 символа"),
   images: z.array(z.string()).min(1, "Необходима е поне една снимка"),
+  location: z.string().min(3, "Моля, въведете локация"),
+  status: z.enum(["available", "adopted"]).default("available"),
+  tags: z.array(z.string()).default([])
 });
+
+const availableTags = [
+  { id: 'vaccinated', label: 'Ваксиниран' },
+  { id: 'neutered', label: 'Кастриран' },
+  { id: 'dewormed', label: 'Обезпаразитен' },
+  { id: 'special_needs', label: 'Специални нужди' },
+  { id: 'child_friendly', label: 'Подходящ за деца' },
+  { id: 'trained', label: 'Обучен' }
+];
 
 type FormValues = z.infer<typeof createListingSchema>;
 
 export default function CreateListing() {
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -47,6 +61,9 @@ export default function CreateListing() {
       ageMonths: 0,
       description: "",
       images: [],
+      location: "",
+      status: "available",
+      tags: []
     },
   });
 
@@ -66,8 +83,12 @@ export default function CreateListing() {
             ageMonths: data.ageMonths || 0,
             description: data.description,
             images: data.images,
+            location: data.location || "",
+            status: data.status || "available",
+            tags: data.tags || []
           });
           setImages(data.images);
+          setSelectedTags(data.tags || []);
           setIsEditing(true);
         }
       } catch (error: any) {
@@ -100,6 +121,7 @@ export default function CreateListing() {
       const listingData = {
         ...data,
         images,
+        tags: selectedTags,
         userId: user.uid,
         createdAt: isEditing ? undefined : new Date().toISOString(),
       };
@@ -136,6 +158,16 @@ export default function CreateListing() {
   useEffect(() => {
     form.setValue("images", images);
   }, [images, form]);
+
+  const handleTagToggle = (tagId: string) => {
+    setSelectedTags(current => {
+      const newTags = current.includes(tagId)
+        ? current.filter(id => id !== tagId)
+        : [...current, tagId];
+      form.setValue("tags", newTags);
+      return newTags;
+    });
+  };
 
   return (
     <div className="container max-w-2xl mx-auto py-8 px-4">
@@ -231,6 +263,66 @@ export default function CreateListing() {
                     </FormItem>
                   )}
                 />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Локация</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Въведете локация (град, квартал)"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Статус</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Изберете статус" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="available">За осиновяване</SelectItem>
+                        <SelectItem value="adopted">Осиновен</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="space-y-4">
+                <FormLabel>Тагове</FormLabel>
+                <div className="grid grid-cols-2 gap-4">
+                  {availableTags.map((tag) => (
+                    <div key={tag.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={tag.id}
+                        checked={selectedTags.includes(tag.id)}
+                        onCheckedChange={() => handleTagToggle(tag.id)}
+                      />
+                      <label
+                        htmlFor={tag.id}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        {tag.label}
+                      </label>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <FormField
