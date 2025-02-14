@@ -160,15 +160,32 @@ export default function UserProfile() {
           </div>
           <div className="space-y-2">
             <CardTitle className="text-3xl font-bold">{userProfile.username}</CardTitle>
-            {userProfile.email && (
-              <p className="text-muted-foreground">{userProfile.email}</p>
-            )}
+            <div className="flex items-center justify-center gap-2 mt-4">
+              <span className="text-lg font-medium">Рейтинг: {averageRating.toFixed(1)}</span>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    onClick={() => handleRate(star)}
+                    disabled={userRating !== null || user?.uid === params?.id}
+                    className={`p-1 ${
+                      (userRating || rating) >= star 
+                        ? "text-yellow-400" 
+                        : "text-gray-300"
+                    } transition-colors hover:scale-110`}
+                    onMouseEnter={() => !userRating && setRating(star)}
+                    onMouseLeave={() => !userRating && setRating(0)}
+                  >
+                    <Star className="h-6 w-6" fill={(userRating || rating) >= star ? "currentColor" : "none"} />
+                  </button>
+                ))}
+              </div>
+            </div>
             {userProfile.bio && (
               <p className="mt-4 text-muted-foreground max-w-lg mx-auto">{userProfile.bio}</p>
             )}
           </div>
-          <div className="flex items-center justify-center gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-4 flex-wrap mt-4">
               <span className="text-lg font-medium">Рейтинг: {averageRating.toFixed(1)}</span>
               <div className="flex gap-1">
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -190,12 +207,45 @@ export default function UserProfile() {
               </div>
             </div>
             {user?.uid && user.uid !== params?.id && (
-              <Link href={`/chat/${params.id}`}>
-                <Button variant="outline" className="gap-2">
-                  <MessageCircle className="w-4 h-4" />
-                  Изпрати съобщение
-                </Button>
-              </Link>
+              <Button 
+                variant="outline" 
+                className="gap-2"
+                onClick={async () => {
+                  try {
+                    const chatRef = collection(db, "chats");
+                    const chatQuery = query(
+                      chatRef,
+                      where("participants", "array-contains", user.uid),
+                      where("participants", "array-contains", params.id)
+                    );
+                    const chatSnap = await getDocs(chatQuery);
+                    let chatId;
+                    
+                    if (chatSnap.empty) {
+                      const newChatRef = await addDoc(chatRef, {
+                        participants: [user.uid, params.id],
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp(),
+                      });
+                      chatId = newChatRef.id;
+                    } else {
+                      chatId = chatSnap.docs[0].id;
+                    }
+                    
+                    setLocation(`/chat/${chatId}`);
+                  } catch (error) {
+                    console.error("Error creating chat:", error);
+                    toast({
+                      title: "Грешка",
+                      description: "Възникна проблем при създаването на чат",
+                      variant: "destructive"
+                    });
+                  }
+                }}
+              >
+                <MessageCircle className="w-4 h-4" />
+                Изпрати съобщение
+              </Button>
             )}
           </div>
         </CardHeader>

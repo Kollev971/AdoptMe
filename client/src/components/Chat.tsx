@@ -128,7 +128,9 @@ export default function ChatComponent({ chatId }: ChatProps) {
                   {otherUser.username?.[0]?.toUpperCase() || "?"}
                 </AvatarFallback>
               </Avatar>
-              <span>{otherUser.username}</span>
+              <Link href={`/user/${otherUser.userId}`} className="hover:text-primary">
+                <span>{otherUser.username}</span>
+              </Link>
             </>
           )}
         </CardTitle>

@@ -119,8 +119,7 @@ export default function Profile() {
               </Avatar>
             </div>
             <CardTitle className="text-2xl">{userData.username}</CardTitle>
-            <p className="text-muted-foreground">{userData.email}</p>
-            <div className="flex items-center gap-2 mt-2">
+            <div className="flex items-center justify-center gap-2 mt-4">
               <span className="text-primary">Рейтинг: {averageRating.toFixed(1)}</span>
               <div className="flex">
                 {[1, 2, 3, 4, 5].map((star) => (
