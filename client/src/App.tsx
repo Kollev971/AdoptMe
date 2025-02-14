@@ -14,6 +14,7 @@ import Messages from "./pages/Messages";
 import NotFound from "./pages/not-found";
 import MyListings from "./pages/MyListings";
 import Settings from "./pages/Settings";
+import UserProfile from "./pages/UserProfile";
 
 function App() {
   return (
