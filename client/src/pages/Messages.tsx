@@ -132,7 +132,9 @@ export default function Messages() {
                   return (
                     <Link key={chat.id} href={`/chat/${chat.id}`}>
                       <Card className={`cursor-pointer hover:bg-accent transition-colors relative ${
-                        chat.lastMessage?.senderId !== user.uid && !chat.readBy?.[user.uid] ? 'border-primary' : ''
+                        chat.lastMessage?.senderId !== user.uid && 
+                        (!chat.readBy?.[user.uid] || new Date(chat.readBy[user.uid]) < new Date(chat.lastMessage.createdAt.toDate())) 
+                        ? 'border-primary bg-primary/5' : ''
                       }`}>
                         {chat.lastMessage?.senderId !== user.uid && !chat.readBy?.[user.uid] && (
                           <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />

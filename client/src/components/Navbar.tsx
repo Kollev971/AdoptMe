@@ -3,13 +3,16 @@ import { MessageSquare, PawPrint } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "./ui/button";
 import { UserMenu } from "./UserMenu";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { collection, query, where, onSnapshot, orderBy, updateDoc, doc, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { Badge } from "./ui/badge";
+
 
 export function Navbar() {
   const { user, userData, loading } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
+  const audioRef = useRef(null);
 
   useEffect(() => {
     if (!user) return;
@@ -36,6 +39,9 @@ export function Navbar() {
         }
       });
       setUnreadCount(count);
+      if (count > 0 && audioRef.current) {
+        audioRef.current.play();
+      }
     });
 
     return () => unsubscribe();
@@ -106,16 +112,19 @@ export function Navbar() {
           {user ? (
             <>
               <Link href="/messages" className="relative" onClick={markMessagesAsRead}>
-                <Button variant="ghost" size="icon" className="relative hover:bg-[#01BFFF]/10">
-                  <MessageSquare className="h-5 w-5 text-[#004AAD]" />
+                <div className="relative">
+                  <Button variant="ghost" size="icon" className="relative hover:bg-[#01BFFF]/10">
+                    <MessageSquare className="h-5 w-5 text-[#004AAD]" />
+                  </Button>
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center">
+                    <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs">
                       {unreadCount}
-                    </span>
+                    </Badge>
                   )}
-                </Button>
+                </div>
               </Link>
               <UserMenu />
+              <audio ref={audioRef} src="/notification.mp3" />
             </>
           ) : (
             <Link href="/auth">
