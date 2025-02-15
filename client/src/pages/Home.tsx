@@ -22,6 +22,7 @@ export default function Home() {
             <p className="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
               Намерете своя перфектен домашен любимец или помогнете на животно в нужда да намери своя дом.
             </p>
+            <AdoptionCounter />
             <p className="text-primary font-semibold mt-2">"Всяко животно заслужава любов и грижа!"</p>
             <div className="mt-10 flex gap-6 justify-center">
               <Link href="/listings">
