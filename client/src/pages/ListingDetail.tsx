@@ -177,14 +177,16 @@ export default function ListingDetail() {
                     <User className="h-5 w-5 text-[#004AAD]" />
                     <span>Име: {ownerDetails.fullName}</span>
                   </div>
-                  <div className="flex justify-center mt-4">
-                    <Button 
-                      onClick={handleConnect}
-                      className="bg-[#01BFFF] hover:bg-[#004AAD] text-white"
-                    >
-                      Свържи се със стопанина
-                    </Button>
-                  </div>
+                  {user && user.uid !== listing.userId && (
+                    <div className="flex justify-center mt-4">
+                      <Button 
+                        onClick={handleConnect}
+                        className="bg-[#01BFFF] hover:bg-[#004AAD] text-white"
+                      >
+                        Свържи се със стопанина
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -195,7 +197,7 @@ export default function ListingDetail() {
             <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{listing.description}</p>
           </div>
 
-          {user && user.uid !== listing.userId && (
+          {user && user.uid !== listing.userId && listing.status !== 'adopted' && (
             <div className="flex justify-center pt-6">
               <Button
                 onClick={handleConnect}
