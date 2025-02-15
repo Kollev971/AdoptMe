@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from "firebase/app";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 import { getFirestore, serverTimestamp, setDoc } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
@@ -44,6 +44,30 @@ export const auth = getAuth(app);
 export const storage = getStorage(app);
 export const db = getFirestore(app);
 export const analytics = getAnalytics(app);
+
+export const signInWithGoogle = async () => {
+  try {
+    const provider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+
+    // Create/update user document in Firestore
+    const userDoc = doc(db, 'users', user.uid);
+    await setDoc(userDoc, {
+      email: user.email,
+      fullName: user.displayName,
+      photoURL: user.photoURL,
+      createdAt: serverTimestamp(),
+      isAdmin: user.email === 'delyank97@gmail.com',
+      role: user.email === 'delyank97@gmail.com' ? 'admin' : 'user',
+      lastSeen: serverTimestamp()
+    }, { merge: true });
+
+    return user;
+  } catch (error: any) {
+    throw new Error(handleFirebaseError(error));
+  }
+};
 
 // Rate limiting configuration
 const rateLimits = {
