@@ -141,10 +141,17 @@ export default function ChatComponent({ chatId }: ChatProps) {
       if (!user) return;
 
       try {
-        const chatDoc = await getDoc(doc(db, "chats", chatId));
+        const chatRef = doc(db, "chats", chatId);
+        const chatDoc = await getDoc(chatRef);
+        
         if (chatDoc.exists()) {
           const chatData = chatDoc.data();
-          const otherUserId = chatData.participants.find(
+          // Convert participants from object to array if needed
+          const participants = Array.isArray(chatData.participants) 
+            ? chatData.participants 
+            : Object.keys(chatData.participants);
+            
+          const otherUserId = participants.find(
             (id: string) => id !== user.uid
           );
 
