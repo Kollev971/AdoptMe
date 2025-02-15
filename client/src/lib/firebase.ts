@@ -51,17 +51,29 @@ export const signInWithGoogle = async () => {
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
 
-    // Create/update user document in Firestore
+    // Check if user exists
     const userDoc = doc(db, 'users', user.uid);
-    await setDoc(userDoc, {
-      email: user.email,
-      fullName: user.displayName,
-      photoURL: user.photoURL,
-      createdAt: serverTimestamp(),
-      isAdmin: user.email === 'delyank97@gmail.com',
-      role: user.email === 'delyank97@gmail.com' ? 'admin' : 'user',
-      lastSeen: serverTimestamp()
-    }, { merge: true });
+    const userSnapshot = await getDoc(userDoc);
+
+    if (!userSnapshot.exists()) {
+      // New user - create profile
+      await setDoc(userDoc, {
+        email: user.email,
+        fullName: user.displayName || '',
+        username: user.email?.split('@')[0] || '',
+        photoURL: user.photoURL,
+        phone: '',
+        createdAt: serverTimestamp(),
+        isAdmin: user.email === 'delyank97@gmail.com',
+        role: user.email === 'delyank97@gmail.com' ? 'admin' : 'user',
+        lastSeen: serverTimestamp()
+      });
+    } else {
+      // Existing user - update lastSeen
+      await updateDoc(userDoc, {
+        lastSeen: serverTimestamp()
+      });
+    }
 
     return user;
   } catch (error: any) {
