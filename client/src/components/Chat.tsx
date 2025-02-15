@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase";
+import EmojiPicker from "emoji-picker-react";
 import {
   collection,
   query,
@@ -13,6 +14,7 @@ import {
   updateDoc,
   setDoc,
   Timestamp,
+  arrayUnion,
   limit,
 } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,8 +22,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { Send } from "lucide-react";
+import { Send, Smile } from "lucide-react";
 import { Link } from "wouter";
 
 interface Message {
@@ -29,6 +32,7 @@ interface Message {
   text: string;
   senderId: string;
   createdAt: Timestamp;
+  reactions?: { emoji: string; userId: string }[];
 }
 
 interface ChatProps {
@@ -41,6 +45,7 @@ export default function ChatComponent({ chatId }: ChatProps) {
   const [newMessage, setNewMessage] = useState("");
   const [otherUser, setOtherUser] = useState<any>(null);
   const [isTyping, setIsTyping] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
@@ -209,6 +214,28 @@ export default function ChatComponent({ chatId }: ChatProps) {
     }
   };
 
+  const handleEmojiSelect = (emojiData: any) => {
+    setNewMessage(prev => prev + emojiData.emoji);
+    setShowEmojiPicker(false);
+  };
+
+  const addReaction = async (messageId: string, emoji: string) => {
+    if (!user) return;
+
+    try {
+      const messageRef = doc(db, "chats", chatId, "messages", messageId);
+      await updateDoc(messageRef, {
+        reactions: arrayUnion({
+          emoji,
+          userId: user.uid,
+          timestamp: serverTimestamp()
+        })
+      });
+    } catch (error) {
+      console.error("Error adding reaction:", error);
+    }
+  };
+
   return (
     <Card className="overflow-hidden border-none shadow-lg bg-white dark:bg-zinc-950">
       <CardHeader className="border-b bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20">
@@ -252,19 +279,97 @@ export default function ChatComponent({ chatId }: ChatProps) {
                           : "bg-zinc-100 dark:bg-zinc-900 shadow-sm"
                       }
                       transition-all duration-200
+                      group relative
                     `}
                   >
                     <p className="leading-relaxed">{message.text}</p>
-                    <p
-                      className={`text-xs mt-1 ${
-                        isSender
-                          ? "text-primary-foreground/80"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      {message.createdAt &&
-                        format(message.createdAt.toDate(), "HH:mm")}
-                    </p>
+                    {!isSender && (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="opacity-0 group-hover:opacity-100 absolute -right-10 top-2 p-2 h-8 w-8"
+                          >
+                            <Smile className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="p-0 w-full" side="right">
+                          <EmojiPicker
+                            onEmojiClick={(emojiData) => {
+                              addReaction(message.id, emojiData.emoji);
+                            }}
+                            width={300}
+                            height={400}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                    <div className="flex items-center justify-between gap-2 mt-1">
+                      <p
+                        className={`text-xs ${
+                          isSender
+                            ? "text-primary-foreground/80"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        {message.createdAt &&
+                          format(message.createdAt.toDate(), "HH:mm")}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        {message.reactions && message.reactions.length > 0 && (
+                          <div className="flex -space-x-1">
+                            {message.reactions.map((reaction, index) => (
+                              <div
+                                key={index}
+                                className="bg-background rounded-full p-1 shadow-sm text-sm"
+                              >
+                                {reaction.emoji}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {isSender && (
+                          <span 
+                            className={`text-xs ${
+                              message.read 
+                                ? "text-primary-foreground/80" 
+                                : "text-primary-foreground/40"
+                            }`}
+                          >
+                            {message.read ? (
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            ) : (
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               );
@@ -294,16 +399,37 @@ export default function ChatComponent({ chatId }: ChatProps) {
         </ScrollArea>
         <form onSubmit={sendMessage} className="border-t p-4 bg-background/50">
           <div className="flex gap-2">
-            <Input
-              ref={inputRef}
-              value={newMessage}
-              onChange={(e) => {
-                setNewMessage(e.target.value);
-                handleTyping();
-              }}
-              placeholder="Напишете съобщение..."
-              className="flex-1 rounded-full bg-zinc-100 dark:bg-zinc-900 border-none focus-visible:ring-primary/20 px-4"
-            />
+            <div className="relative flex-1">
+              <Input
+                ref={inputRef}
+                value={newMessage}
+                onChange={(e) => {
+                  setNewMessage(e.target.value);
+                  handleTyping();
+                }}
+                placeholder="Напишете съобщение..."
+                className="rounded-full bg-zinc-100 dark:bg-zinc-900 border-none focus-visible:ring-primary/20 pl-10 pr-4"
+              />
+              <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 p-1 h-8 w-8"
+                  >
+                    <Smile className="h-5 w-5 text-muted-foreground" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="p-0 w-full" side="top">
+                  <EmojiPicker
+                    onEmojiClick={handleEmojiSelect}
+                    width={350}
+                    height={400}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
             <Button
               type="submit"
               size="icon"

@@ -7,9 +7,10 @@ import {
   query,
   where,
   onSnapshot,
-  getDoc,
   doc,
+  getDoc,
   orderBy,
+  getDocs
 } from "firebase/firestore";
 import {
   Card,
@@ -42,6 +43,30 @@ export default function Messages() {
   const { user } = useAuth();
   const [chats, setChats] = useState<ChatPreview[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userDetailsCache, setUserDetailsCache] = useState<Record<string, any>>({});
+
+  // Fetch user details in batch
+  const fetchUserDetails = async (userIds: string[]) => {
+    const uniqueIds = [...new Set(userIds)];
+    const newCache: Record<string, any> = { ...userDetailsCache };
+    const idsToFetch = uniqueIds.filter(id => !userDetailsCache[id]);
+
+    if (idsToFetch.length > 0) {
+      const userDocs = await Promise.all(
+        idsToFetch.map(id => getDoc(doc(db, "users", id)))
+      );
+
+      userDocs.forEach((doc, index) => {
+        if (doc.exists()) {
+          newCache[idsToFetch[index]] = doc.data();
+        }
+      });
+
+      setUserDetailsCache(newCache);
+    }
+
+    return newCache;
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -54,39 +79,35 @@ export default function Messages() {
 
     const unsubscribe = onSnapshot(chatsQuery, async (snapshot) => {
       try {
-        const chatsPromises = snapshot.docs.map(async (chatDoc) => {
-          const chatData = chatDoc.data() as ChatPreview;
-          chatData.id = chatDoc.id;
+        const chatDocs = snapshot.docs;
+        const userIds = new Set<string>();
+
+        // Collect all user IDs first
+        chatDocs.forEach(doc => {
+          const data = doc.data();
+          if (data.ownerId) userIds.add(data.ownerId);
+          if (data.requesterId) userIds.add(data.requesterId);
+        });
+
+        // Fetch all user details at once
+        const userDetails = await fetchUserDetails([...userIds]);
+
+        // Map chats with user details
+        const processedChats = chatDocs.map(doc => {
+          const chatData = doc.data() as ChatPreview;
+          chatData.id = doc.id;
 
           if (chatData.ownerId) {
-            try {
-              const ownerDoc = await getDoc(doc(db, "users", chatData.ownerId));
-              if (ownerDoc.exists()) {
-                chatData.ownerDetails = ownerDoc.data();
-              }
-            } catch (error) {
-              console.error("Error fetching owner:", error);
-            }
+            chatData.ownerDetails = userDetails[chatData.ownerId];
           }
-
           if (chatData.requesterId) {
-            try {
-              const requesterDoc = await getDoc(
-                doc(db, "users", chatData.requesterId)
-              );
-              if (requesterDoc.exists()) {
-                chatData.requesterDetails = requesterDoc.data();
-              }
-            } catch (error) {
-              console.error("Error fetching requester:", error);
-            }
+            chatData.requesterDetails = userDetails[chatData.requesterId];
           }
 
           return chatData;
         });
 
-        const resolvedChats = await Promise.all(chatsPromises);
-        setChats(resolvedChats);
+        setChats(processedChats);
         setLoading(false);
       } catch (error) {
         console.error("Error processing chats:", error);
