@@ -66,57 +66,71 @@ export default function ChatComponent({ chatId }: ChatProps) {
 
   // Fetch messages and handle real-time updates
   useEffect(() => {
-    if (!user) return;
+    if (!user || !chatId) return;
+    
+    let unsubscribe: () => void;
 
-    const messagesQuery = query(
-      collection(db, "chats", chatId, "messages"),
-      orderBy("createdAt", "asc"),
-      limit(100)
-    );
-
-    const unsubscribe = onSnapshot(
-      messagesQuery,
-      (snapshot) => {
-        try {
-          const newMessages = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }) as Message);
-          setMessages(newMessages);
-
-          // Play sound only for new messages from other user and not on initial load
-          const lastMessage = newMessages[newMessages.length - 1];
-          if (
-            lastMessage &&
-            !initialLoadRef.current &&
-            lastMessage.senderId !== user.uid &&
-            lastMessage.createdAt?.toMillis() > lastPlayedRef.current
-          ) {
-            audioRef.current?.play().catch(() => {});
-            lastPlayedRef.current = lastMessage.createdAt?.toMillis() || Date.now();
-          }
-
-          // Mark chat as read
-          if (lastMessage && lastMessage.senderId !== user.uid) {
-            updateDoc(doc(db, "chats", chatId), {
-              [`readBy.${user.uid}`]: serverTimestamp(),
-            }).catch((error) => {
-              console.error("Error updating readBy:", error);
-            });
-          }
-
-          initialLoadRef.current = false;
-        } catch (error) {
-          console.error("Error processing messages:", error);
+    const setupListener = async () => {
+      try {
+        const chatRef = doc(db, "chats", chatId);
+        const chatDoc = await getDoc(chatRef);
+        
+        if (!chatDoc.exists()) {
+          console.error("Chat does not exist");
+          return;
         }
-      },
-      (error) => {
-        console.error("Messages listener error:", error);
+
+        const messagesQuery = query(
+          collection(db, "chats", chatId, "messages"),
+          orderBy("createdAt", "asc"),
+          limit(100)
+        );
+
+        unsubscribe = onSnapshot(
+          messagesQuery,
+          (snapshot) => {
+            const newMessages = snapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }) as Message);
+            setMessages(newMessages);
+
+            const lastMessage = newMessages[newMessages.length - 1];
+            if (
+              lastMessage &&
+              !initialLoadRef.current &&
+              lastMessage.senderId !== user.uid &&
+              lastMessage.createdAt?.toMillis() > lastPlayedRef.current
+            ) {
+              audioRef.current?.play().catch(() => {});
+              lastPlayedRef.current = lastMessage.createdAt?.toMillis() || Date.now();
+
+              updateDoc(chatRef, {
+                [`readBy.${user.uid}`]: serverTimestamp(),
+              }).catch((error) => {
+                console.error("Error updating readBy:", error);
+              });
+            }
+
+            initialLoadRef.current = false;
+          },
+          (error) => {
+            if (error.code !== 'permission-denied') {
+              console.error("Messages listener error:", error);
+            }
+          }
+        );
+      } catch (error) {
+        console.error("Error setting up chat listener:", error);
       }
-    );
+    };
+
+    setupListener();
 
     return () => {
-      unsubscribe();
+      if (unsubscribe) {
+        unsubscribe();
+      }
       initialLoadRef.current = true;
     };
   }, [chatId, user]);
