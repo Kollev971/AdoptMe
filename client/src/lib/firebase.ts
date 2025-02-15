@@ -5,7 +5,7 @@ import { getDatabase, ref, push, set, get } from "firebase/database";
 import { getFirestore, serverTimestamp } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 import type { FirebaseError } from "firebase/app";
-import { getDoc, doc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { getDoc, doc, updateDoc, collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 
 // Validate required environment variables
 const requiredEnvVars = [
@@ -115,6 +115,120 @@ const handleFirebaseError = (error: FirebaseError): string => {
   }
 };
 
+export const sendMessage = async (chatId: string, userId: string, message: string) => {
+  try {
+    if (!checkRateLimit('message')) {
+      throw new Error('Message rate limit exceeded. Please wait before sending more messages.');
+    }
+
+    // Sanitize message input
+    const sanitizedMessage = message.trim().slice(0, 1000); // Limit message length
+
+    // Store message in both Realtime Database and Firestore
+    // Realtime Database for instant updates
+    const messagesRef = ref(database, `chats/${chatId}/messages`);
+    const newMessageRef = push(messagesRef);
+    const timestamp = Date.now();
+
+    await set(newMessageRef, {
+      userId,
+      message: sanitizedMessage,
+      timestamp
+    });
+
+    // Firestore for persistence and querying
+    const chatRef = doc(db, 'chats', chatId);
+    await updateDoc(chatRef, {
+      lastMessage: {
+        text: sanitizedMessage,
+        senderId: userId,
+        createdAt: serverTimestamp()
+      },
+      updatedAt: serverTimestamp()
+    });
+
+    // Store the chat message in Firestore subcollection
+    const messageCollection = collection(db, 'chats', chatId, 'messages');
+    await addDoc(messageCollection, {
+      text: sanitizedMessage,
+      senderId: userId,
+      createdAt: serverTimestamp()
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Error sending message:", error);
+    throw error;
+  }
+};
+
+// Function to play notification sound
+const notificationSound = new Audio('/notification.mp3');
+
+export const playMessageNotification = () => {
+  notificationSound.play().catch(error => {
+    console.error('Error playing notification sound:', error);
+  });
+};
+
+// Function to mark messages as read
+export const markMessagesAsRead = async (chatId: string, userId: string) => {
+  try {
+    const chatRef = doc(db, 'chats', chatId);
+    await updateDoc(chatRef, {
+      [`readBy.${userId}`]: serverTimestamp()
+    });
+    return true;
+  } catch (error) {
+    console.error('Error marking messages as read:', error);
+    throw error;
+  }
+};
+
+// Function to get unread messages count
+export const getUnreadMessagesCount = async (userId: string) => {
+  try {
+    const chatsRef = collection(db, 'chats');
+    const q = query(chatsRef, where('participants', 'array-contains', userId));
+    const querySnapshot = await getDocs(q);
+
+    let unreadCount = 0;
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (
+        data.lastMessage &&
+        data.lastMessage.senderId !== userId &&
+        (!data.readBy?.[userId] ||
+          (data.readBy[userId] && 
+           data.lastMessage.createdAt > data.readBy[userId]))
+      ) {
+        unreadCount++;
+      }
+    });
+
+    return unreadCount;
+  } catch (error) {
+    console.error('Error getting unread messages count:', error);
+    return 0;
+  }
+};
+
+// Re-export all necessary Firestore functions
+export { 
+  getFirestore, 
+  collection, 
+  query, 
+  getDocs, 
+  doc, 
+  getDoc, 
+  onSnapshot, 
+  orderBy,
+  serverTimestamp,
+  updateDoc,
+  where,
+  addDoc 
+} from 'firebase/firestore';
+
 export const registerUser = async (email: string, password: string) => {
   try {
     if (!checkRateLimit('request')) {
@@ -160,49 +274,6 @@ export const loginUser = async (email: string, password: string) => {
   }
 };
 
-export const sendMessage = async (chatId: string, userId: string, message: string) => {
-  try {
-    if (!checkRateLimit('message')) {
-      throw new Error('Message rate limit exceeded. Please wait before sending more messages.');
-    }
-
-    // Sanitize message input
-    const sanitizedMessage = message.trim().slice(0, 1000); // Limit message length
-
-    const messagesRef = ref(database, `chats/${chatId}/messages`);
-    const newMessageRef = push(messagesRef);
-
-    // First check if user is participant in chat
-    const chatRef = ref(database, `chats/${chatId}`);
-    const chatSnapshot = await get(chatRef);
-    const chatData = chatSnapshot.val();
-
-    if (!chatData || !chatData.participants || !chatData.participants.includes(userId)) {
-      throw new Error('You are not authorized to send messages in this chat');
-    }
-
-    await set(newMessageRef, {
-      userId,
-      message: sanitizedMessage,
-      timestamp: Date.now()
-    });
-
-    // Update last message
-    await set(chatRef, {
-      lastMessage: {
-        text: sanitizedMessage,
-        senderId: userId,
-        timestamp: Date.now()
-      }
-    }, { merge: true });
-
-    return true;
-  } catch (error) {
-    console.error("Error sending message:", error);
-    throw error;
-  }
-};
-
 // Utility function to verify admin status
 export const isUserAdmin = async (uid: string): Promise<boolean> => {
   try {
@@ -213,70 +284,3 @@ export const isUserAdmin = async (uid: string): Promise<boolean> => {
     return false;
   }
 };
-
-
-// Function to play notification sound
-const notificationSound = new Audio('/notification.mp3');
-
-export const playMessageNotification = () => {
-  notificationSound.play().catch(error => {
-    console.error('Error playing notification sound:', error);
-  });
-};
-
-// Function to mark messages as read
-export const markMessagesAsRead = async (chatId: string, userId: string) => {
-  try {
-    const chatRef = doc(db, 'chats', chatId);
-    await updateDoc(chatRef, {
-      [`readBy.${userId}`]: serverTimestamp()
-    });
-    return true;
-  } catch (error) {
-    console.error('Error marking messages as read:', error);
-    throw error;
-  }
-};
-
-// Function to get unread messages count
-export const getUnreadMessagesCount = async (userId: string) => {
-  try {
-    const chatsRef = collection(db, 'chats');
-    const q = query(chatsRef, where('participants', 'array-contains', userId));
-    const querySnapshot = await getDocs(q);
-
-    let unreadCount = 0;
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      if (
-        data.lastMessage &&
-        data.lastMessage.senderId !== userId &&
-        (!data.readBy?.[userId] ||
-          (data.readBy[userId] && 
-           data.lastMessage.timestamp > data.readBy[userId]))
-      ) {
-        unreadCount++;
-      }
-    });
-
-    return unreadCount;
-  } catch (error) {
-    console.error('Error getting unread messages count:', error);
-    return 0;
-  }
-};
-
-// Re-export all necessary Firestore functions
-export { 
-  getFirestore, 
-  collection, 
-  query, 
-  getDocs, 
-  doc, 
-  getDoc, 
-  onSnapshot, 
-  orderBy,
-  serverTimestamp,
-  updateDoc,
-  where 
-} from 'firebase/firestore';
