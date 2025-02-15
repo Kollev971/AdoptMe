@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { Edit, MapPin, Share2, Trash2, PawPrint } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
