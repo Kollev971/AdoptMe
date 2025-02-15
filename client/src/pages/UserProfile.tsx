@@ -169,7 +169,7 @@ export default function UserProfile() {
             )}
             <div className="flex flex-col items-center gap-2">
               <p className="text-muted-foreground">
-                Регистриран от {new Date(userProfile.createdAt?.toDate()).toLocaleDateString('bg-BG')}
+                Регистриран от {new Date(userProfile.createdAt instanceof Date ? userProfile.createdAt : new Date(userProfile.createdAt)).toLocaleDateString('bg-BG')}
               </p>
               {userProfile.successfulAdoptions > 0 && (
                 <Badge variant="outline" className="bg-green-50">

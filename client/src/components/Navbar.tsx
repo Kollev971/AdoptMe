@@ -13,6 +13,7 @@ export function Navbar() {
   const [unreadCount, setUnreadCount] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastPlayedRef = useRef(0);
+  const notificationTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     if (!user) return;
@@ -22,6 +23,11 @@ export function Navbar() {
       where("participants", "array-contains", user.uid),
       orderBy("updatedAt", "desc")
     );
+
+    // Clear any existing timeout
+    if (notificationTimeoutRef.current) {
+      clearTimeout(notificationTimeoutRef.current);
+    }
 
     const unsubscribe = onSnapshot(chatsQuery, (snapshot) => {
       let count = 0;
@@ -48,11 +54,16 @@ export function Navbar() {
       });
 
       setUnreadCount(count);
-      if (count > 0 && audioRef.current && latestMessageTime > lastPlayedRef.current) {
-        audioRef.current.play().catch(err => {
-          console.warn('Failed to play notification sound:', err);
-        });
-        lastPlayedRef.current = latestMessageTime;
+      if (count > 0 && latestMessageTime > lastPlayedRef.current) {
+        // Add a small delay to prevent rapid-fire notifications
+        notificationTimeoutRef.current = setTimeout(() => {
+          if (audioRef.current) {
+            audioRef.current.play().catch(err => {
+              console.warn('Failed to play notification sound:', err);
+            });
+          }
+          lastPlayedRef.current = latestMessageTime;
+        }, 500);
       }
     });
 
