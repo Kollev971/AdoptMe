@@ -8,7 +8,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Listings() {
   const [listings, setListings] = useState<Listing[]>([]);
-  const [filter, setFilter] = useState<string>("all");
+  const [animalType, setAnimalType] = useState<string>("all");
+  const [ageRange, setAgeRange] = useState<string>("all");
+  const [location, setLocation] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 9;
@@ -29,9 +31,31 @@ export default function Listings() {
     return () => unsubscribe();
   }, []);
 
-  const filteredListings = listings.filter((listing) =>
-    filter === "all" ? true : listing.type === filter
-  );
+  const filteredListings = listings.filter((listing) => {
+    const matchesType = animalType === "all" ? true : listing.type === animalType;
+    const matchesLocation = !location ? true : listing.location?.toLowerCase().includes(location.toLowerCase());
+    
+    let matchesAge = true;
+    if (ageRange !== "all") {
+      const totalMonths = (listing.ageYears * 12) + listing.ageMonths;
+      switch (ageRange) {
+        case "baby": // 0-6 месеца
+          matchesAge = totalMonths <= 6;
+          break;
+        case "young": // 6 месеца - 2 години
+          matchesAge = totalMonths > 6 && totalMonths <= 24;
+          break;
+        case "adult": // 2-8 години
+          matchesAge = totalMonths > 24 && totalMonths <= 96;
+          break;
+        case "senior": // над 8 години
+          matchesAge = totalMonths > 96;
+          break;
+      }
+    }
+    
+    return matchesType && matchesLocation && matchesAge;
+  });
   
   const totalPages = Math.ceil(filteredListings.length / itemsPerPage);
   const paginatedListings = filteredListings.slice(
@@ -42,19 +66,45 @@ export default function Listings() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
       {/* Филтър и заглавие */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+      <div className="space-y-4">
         <h1 className="text-3xl font-bold text-gray-800">🏡 Намери своя бъдещ любимец</h1>
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-[200px] bg-white border border-gray-300 shadow-md rounded-lg">
-            <SelectValue placeholder="Филтрирай по вид" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Всички</SelectItem>
-            <SelectItem value="dog">🐶 Кучета</SelectItem>
-            <SelectItem value="cat">🐱 Котки</SelectItem>
-            <SelectItem value="other">🐾 Други</SelectItem>
-          </SelectContent>
-        </Select>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Select value={animalType} onValueChange={setAnimalType}>
+            <SelectTrigger className="w-full bg-white border border-gray-300 shadow-md rounded-lg">
+              <SelectValue placeholder="Вид животно" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Всички</SelectItem>
+              <SelectItem value="dog">🐶 Кучета</SelectItem>
+              <SelectItem value="cat">🐱 Котки</SelectItem>
+              <SelectItem value="other">🐾 Други</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={ageRange} onValueChange={setAgeRange}>
+            <SelectTrigger className="w-full bg-white border border-gray-300 shadow-md rounded-lg">
+              <SelectValue placeholder="Възраст" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Всички възрасти</SelectItem>
+              <SelectItem value="baby">Бебета (0-6 месеца)</SelectItem>
+              <SelectItem value="young">Млади (6м-2г)</SelectItem>
+              <SelectItem value="adult">Възрастни (2-8г)</SelectItem>
+              <SelectItem value="senior">Старши (8+г)</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Търсене по локация..."
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="w-full h-10 px-3 bg-white border border-gray-300 shadow-md rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Обяви */}
