@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, collection, addDoc } from "firebase/firestore";
 import { Edit, MapPin, Share2, Trash2, PawPrint } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -122,14 +122,28 @@ export function ListingCard({ listing, showActions, onDelete }: ListingCardProps
               <Button
                 variant="secondary"
                 size="icon"
-                onClick={() => {
-                  const newStatus = listing.status === 'adopted' ? 'available' : 'adopted';
-                  const listingRef = doc(db, "listings", listing.id);
-                  updateDoc(listingRef, { status: newStatus });
+                onClick={async () => {
+                  try {
+                    const newStatus = listing.status === 'adopted' ? 'available' : 'adopted';
+                    const listingRef = doc(db, "listings", listing.id);
+                    await updateDoc(listingRef, { status: newStatus });
+
+                    if (newStatus === 'adopted') {
+                      const adoptionRef = collection(db, "adoptionRequests");
+                      await addDoc(adoptionRef, {
+                        listingId: listing.id,
+                        userId: user.uid,
+                        status: 'completed',
+                        createdAt: new Date().toISOString()
+                      });
+                    }
+                  } catch (error) {
+                    console.error("Error updating status:", error);
+                  }
                 }}
                 className={`${
-                  listing.status === 'adopted' 
-                    ? 'bg-green-500 hover:bg-green-600' 
+                  listing.status === 'adopted'
+                    ? 'bg-green-500 hover:bg-green-600'
                     : 'bg-white/90 hover:bg-green-500'
                 } text-white`}
               >

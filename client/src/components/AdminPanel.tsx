@@ -17,6 +17,31 @@ export default function AdminPanel() {
     activeListings: 0,
     recentActivity: 0
   });
+  const [adoptions, setAdoptions] = useState([]);
+
+  const fetchAdoptions = async () => {
+    const adoptionsQuery = query(
+      collection(db, "adoptionRequests"),
+      where("status", "==", "completed"),
+      orderBy("createdAt", "desc")
+    );
+    const adoptionsSnap = await getDocs(adoptionsQuery);
+    setAdoptions(adoptionsSnap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })));
+  };
+
+  const handleStatusChange = async (adoptionId, newStatus) => {
+    try {
+      await updateDoc(doc(db, "adoptionRequests", adoptionId), {
+        status: newStatus
+      });
+      await fetchAdoptions();
+    } catch (error) {
+      console.error("Error updating adoption status:", error);
+    }
+  };
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -112,6 +137,28 @@ export default function AdminPanel() {
                   <p className="text-sm text-muted-foreground">Общо обяви</p>
                   <p className="text-2xl font-semibold">{stats.totalListings}</p>
                 </div>
+              </div>
+            </div>
+            
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-4">Осиновявания</h3>
+              <div className="space-y-4">
+                {adoptions.map((adoption) => (
+                  <div key={adoption.id} className="flex items-center justify-between p-4 bg-white rounded-lg shadow">
+                    <div>
+                      <p>ID: {adoption.listingId}</p>
+                      <p>Дата: {new Date(adoption.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <select
+                      value={adoption.status}
+                      onChange={(e) => handleStatusChange(adoption.id, e.target.value)}
+                      className="border rounded p-2"
+                    >
+                      <option value="completed">Осиновен</option>
+                      <option value="cancelled">Отказано</option>
+                    </select>
+                  </div>
+                ))}
               </div>
             </div>
           </CardContent>
