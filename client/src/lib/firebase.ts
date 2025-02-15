@@ -1,7 +1,6 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { getStorage } from "firebase/storage";
-import { getDatabase, ref, push, set, get } from "firebase/database";
 import { getFirestore, serverTimestamp, setDoc } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 import type { FirebaseError } from "firebase/app";
@@ -11,7 +10,6 @@ import { getDoc, doc, updateDoc, collection, query, where, getDocs, addDoc } fro
 const requiredEnvVars = [
   'VITE_FIREBASE_API_KEY',
   'VITE_FIREBASE_AUTH_DOMAIN',
-  'VITE_FIREBASE_DATABASE_URL',
   'VITE_FIREBASE_PROJECT_ID',
   'VITE_FIREBASE_STORAGE_BUCKET',
   'VITE_FIREBASE_MESSAGING_SENDER_ID',
@@ -27,7 +25,6 @@ for (const envVar of requiredEnvVars) {
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
@@ -45,7 +42,6 @@ try {
 
 export const auth = getAuth(app);
 export const storage = getStorage(app);
-export const database = getDatabase(app);
 export const db = getFirestore(app);
 export const analytics = getAnalytics(app);
 
@@ -123,33 +119,10 @@ export const sendMessage = async (chatId: string, userId: string, message: strin
 
     // Sanitize message input
     const sanitizedMessage = message.trim().slice(0, 1000); // Limit message length
-    const timestamp = Date.now();
 
-    // First, update Realtime Database for instant updates
-    const messagesRef = ref(database, `chats/${chatId}/messages`);
-    const newMessageRef = push(messagesRef);
-
-    await set(newMessageRef, {
-      userId,
-      message: sanitizedMessage,
-      timestamp,
-      createdAt: timestamp // Add this for consistency with Firestore
-    });
-
-    // Update chat metadata in Realtime Database
-    const chatRef = ref(database, `chats/${chatId}`);
-    await set(chatRef, {
-      lastMessage: {
-        text: sanitizedMessage,
-        senderId: userId,
-        timestamp
-      },
-      updatedAt: timestamp
-    }, { merge: true }); // Use merge to preserve other data
-
-    // Then, update Firestore for persistence
-    const firestoreChatRef = doc(db, 'chats', chatId);
-    await updateDoc(firestoreChatRef, {
+    // Update chat metadata in Firestore
+    const chatRef = doc(db, 'chats', chatId);
+    await updateDoc(chatRef, {
       lastMessage: {
         text: sanitizedMessage,
         senderId: userId,
@@ -196,7 +169,7 @@ export const markMessagesAsRead = async (chatId: string, userId: string) => {
   }
 };
 
-// Update the getUnreadMessagesCount function to check both databases
+// Get unread messages count
 export const getUnreadMessagesCount = async (userId: string) => {
   try {
     const chatsRef = collection(db, 'chats');

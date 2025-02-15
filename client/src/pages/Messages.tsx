@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
-import { db, database } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import {
   collection,
   query,
@@ -13,7 +13,6 @@ import {
   updateDoc,
   serverTimestamp,
 } from "firebase/firestore";
-import { ref, onValue } from "firebase/database";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -68,15 +67,14 @@ export default function Messages() {
   useEffect(() => {
     if (!user) return;
 
-    // Subscribe to Firestore for chat metadata
+    // Subscribe to Firestore for chat updates
     const chatsQuery = query(
       collection(db, "chats"),
       where("participants", "array-contains", user.uid),
       orderBy("updatedAt", "desc")
     );
 
-    // Subscribe to real-time updates
-    const unsubscribeFirestore = onSnapshot(chatsQuery, async (snapshot) => {
+    const unsubscribe = onSnapshot(chatsQuery, async (snapshot) => {
       try {
         const chatDocs = snapshot.docs;
         const userIds = new Set<string>();
@@ -126,18 +124,8 @@ export default function Messages() {
       }
     });
 
-    // Subscribe to Realtime Database for instant updates
-    const realtimeChatsRef = ref(database, 'chats');
-    const unsubscribeRealtime = onValue(realtimeChatsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        // This will trigger for real-time message updates
-        // The Firestore listener above will handle the UI updates
-      }
-    });
-
     return () => {
-      unsubscribeFirestore();
-      unsubscribeRealtime();
+      unsubscribe();
     };
   }, [user]);
 
