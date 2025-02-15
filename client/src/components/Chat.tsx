@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase";
@@ -10,7 +11,8 @@ import {
   serverTimestamp,
   doc,
   getDoc,
-  updateDoc
+  updateDoc,
+  Timestamp
 } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
-import { Send } from "lucide-react";
+import { Send, Check, CheckCheck } from "lucide-react";
 import { Link } from "wouter";
 
 interface ChatProps {
@@ -31,7 +33,17 @@ export default function ChatComponent({ chatId }: ChatProps) {
   const [newMessage, setNewMessage] = useState("");
   const [otherUser, setOtherUser] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const lastMessageRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const scrollToBottom = () => {
+      if (lastMessageRef.current) {
+        lastMessageRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+    };
+
+    scrollToBottom();
+  }, [messages]);
 
   useEffect(() => {
     if (!user) return;
@@ -48,18 +60,12 @@ export default function ChatComponent({ chatId }: ChatProps) {
       }));
       setMessages(newMessages);
 
-      if (
-        newMessages.length > 0 &&
-        newMessages[newMessages.length - 1].senderId !== user.uid
-      ) {
-        audioRef.current?.play();
+      // Update read status
+      if (newMessages.length > 0) {
+        await updateDoc(doc(db, "chats", chatId), {
+          [`readBy.${user.uid}`]: serverTimestamp()
+        });
       }
-
-      setTimeout(() => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-      }, 100);
     });
 
     return () => unsubscribe();
@@ -69,27 +75,32 @@ export default function ChatComponent({ chatId }: ChatProps) {
     const fetchChatData = async () => {
       if (!user) return;
 
-      const chatDoc = await getDoc(doc(db, "chats", chatId));
-      if (chatDoc.exists()) {
-        const chatData = chatDoc.data();
-        const otherUserId = chatData.participants.find(
-          (id: string) => id !== user.uid
-        );
+      try {
+        const chatRef = doc(db, "chats", chatId);
+        const chatDoc = await getDoc(chatRef);
+        
+        if (chatDoc.exists()) {
+          const chatData = chatDoc.data();
+          const participants = Array.isArray(chatData.participants) 
+            ? chatData.participants 
+            : Object.keys(chatData.participants);
+            
+          const otherUserId = participants.find(
+            (id: string) => id !== user.uid
+          );
 
-        if (otherUserId) {
-          const userDoc = await getDoc(doc(db, "users", otherUserId));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            setOtherUser({
-              userId: otherUserId,
-              username: userData.username,
-              photoURL: userData.photoURL,
-              // Add other necessary fields from user profile
-            });
-          } else {
-            console.error("User not found in users collection");
+          if (otherUserId) {
+            const userDoc = await getDoc(doc(db, "users", otherUserId));
+            if (userDoc.exists()) {
+              setOtherUser({
+                userId: otherUserId,
+                ...userDoc.data()
+              });
+            }
           }
         }
+      } catch (error) {
+        console.error("Error fetching chat data:", error);
       }
     };
 
@@ -124,60 +135,83 @@ export default function ChatComponent({ chatId }: ChatProps) {
   };
 
   return (
-    <Card className="border-2 border-primary/20">
-      <CardHeader className="border-b bg-primary/5">
+    <Card className="border-none shadow-xl bg-white/50 backdrop-blur-lg dark:bg-zinc-900/50">
+      <CardHeader className="border-b border-zinc-200 dark:border-zinc-800 bg-white/50 backdrop-blur-lg dark:bg-zinc-900/50">
         <CardTitle className="flex items-center gap-3">
           {otherUser && (
             <>
-              <Avatar className="h-8 w-8 border border-primary/20">
+              <Avatar className="h-10 w-10 ring-2 ring-primary/20 ring-offset-2 ring-offset-background">
                 <AvatarImage src={otherUser.photoURL} />
                 <AvatarFallback className="bg-primary/10 text-primary">
                   {otherUser.username?.[0]?.toUpperCase() || "?"}
                 </AvatarFallback>
               </Avatar>
-              <Link href={`/user/${otherUser.userId}`} className="hover:text-primary">
-                <span>{otherUser.username || "User Not Found"}</span>
+              <Link href={`/user/${otherUser.userId}`} className="hover:text-primary transition-colors">
+                <span className="font-semibold">{otherUser.username || "Unknown User"}</span>
               </Link>
             </>
           )}
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <ScrollArea ref={scrollRef} className="h-[600px] p-4">
+        <ScrollArea className="h-[calc(100vh-12rem)] p-6">
           <div className="space-y-4">
-            {messages.map((message) => {
+            {messages.map((message, index) => {
               const isSender = message.senderId === user?.uid;
+              const isRead = message.readBy?.[otherUser?.userId];
+              const showRead = isSender && index === messages.length - 1;
+
               return (
                 <div
                   key={message.id}
                   className={`flex ${isSender ? "justify-end" : "justify-start"}`}
+                  ref={index === messages.length - 1 ? lastMessageRef : null}
                 >
                   <div
-                    className={`max-w-[70%] break-words rounded-lg p-3 ${
-                      isSender ? "bg-primary text-primary-foreground" : "bg-muted"
-                    }`}
+                    className={`
+                      max-w-[70%] group relative
+                      rounded-2xl p-3
+                      ${isSender 
+                        ? "bg-primary text-primary-foreground" 
+                        : "bg-zinc-100 dark:bg-zinc-800"
+                      }
+                    `}
                   >
-                    <p>{message.text}</p>
-                    <p
-                      className={`text-xs mt-1 ${
-                        isSender ? "text-primary-foreground/80" : "text-muted-foreground"
-                      }`}
-                    >
-                      {message.createdAt &&
-                        format(message.createdAt.toDate(), "HH:mm")}
-                    </p>
+                    <p className="break-words">{message.text}</p>
+                    <div className={`
+                      flex items-center gap-1 text-xs mt-1
+                      ${isSender 
+                        ? "text-primary-foreground/80" 
+                        : "text-muted-foreground"
+                      }
+                    `}>
+                      {message.createdAt && (
+                        <span>
+                          {format(message.createdAt.toDate(), "HH:mm")}
+                        </span>
+                      )}
+                      {showRead && (
+                        <span className="ml-1">
+                          {isRead ? (
+                            <CheckCheck className="w-4 h-4" />
+                          ) : (
+                            <Check className="w-4 h-4" />
+                          )}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
             })}
           </div>
         </ScrollArea>
-        <form onSubmit={sendMessage} className="border-t p-4">
+        <form onSubmit={sendMessage} className="border-t border-zinc-200 dark:border-zinc-800 p-4 bg-white/50 backdrop-blur-lg dark:bg-zinc-900/50">
           <div className="flex gap-2">
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Напишете съобщение..."
+              placeholder="Type a message..."
               className="flex-1"
             />
             <Button type="submit" size="icon" disabled={!newMessage.trim()}>
@@ -186,7 +220,6 @@ export default function ChatComponent({ chatId }: ChatProps) {
           </div>
         </form>
       </CardContent>
-      <audio ref={audioRef} src="/notification.wav" />
     </Card>
   );
 }

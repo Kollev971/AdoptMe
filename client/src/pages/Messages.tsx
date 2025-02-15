@@ -10,18 +10,13 @@ import {
   doc,
   getDoc,
   orderBy,
-  getDocs
+  updateDoc,
 } from "firebase/firestore";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
-import { Loader2, MessageCircle, MessageSquareMore } from "lucide-react";
+import { MessageCircle, MessageSquareMore, Loader2 } from "lucide-react";
 
 interface ChatPreview {
   id: string;
@@ -45,7 +40,6 @@ export default function Messages() {
   const [loading, setLoading] = useState(true);
   const [userDetailsCache, setUserDetailsCache] = useState<Record<string, any>>({});
 
-  // Fetch user details in batch
   const fetchUserDetails = async (userIds: string[]) => {
     const uniqueIds = [...new Set(userIds)];
     const newCache: Record<string, any> = { ...userDetailsCache };
@@ -82,17 +76,14 @@ export default function Messages() {
         const chatDocs = snapshot.docs;
         const userIds = new Set<string>();
 
-        // Collect all user IDs first
         chatDocs.forEach(doc => {
           const data = doc.data();
           if (data.ownerId) userIds.add(data.ownerId);
           if (data.requesterId) userIds.add(data.requesterId);
         });
 
-        // Fetch all user details at once
         const userDetails = await fetchUserDetails([...userIds]);
 
-        // Map chats with user details
         const processedChats = chatDocs.map(doc => {
           const chatData = doc.data() as ChatPreview;
           chatData.id = doc.id;
@@ -121,114 +112,78 @@ export default function Messages() {
   if (!user) return null;
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
-      <Card className="overflow-hidden border-none shadow-lg bg-white dark:bg-zinc-950">
-        <CardHeader className="border-b bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 dark:from-primary/10 dark:via-primary/20 dark:to-primary/10">
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquareMore className="w-5 h-5 text-primary" />
-            <span className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-              Съобщения
-            </span>
-          </CardTitle>
-        </CardHeader>
+    <div className="container mx-auto p-4 max-w-2xl">
+      <Card className="bg-white/50 backdrop-blur-lg border-none shadow-xl dark:bg-zinc-900/50">
+        <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
+          <h2 className="text-2xl font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
+            <MessageSquareMore className="w-6 h-6 text-primary" />
+            Messages
+          </h2>
+        </div>
         <CardContent className="p-0">
-          <ScrollArea className="h-[70vh]">
+          <ScrollArea className="h-[calc(100vh-12rem)]">
             {loading ? (
-              <div className="flex justify-center p-6">
+              <div className="flex justify-center p-8">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : chats.length === 0 ? (
-              <div className="flex flex-col items-center justify-center p-8 text-center">
-                <MessageCircle className="w-12 h-12 text-muted-foreground/50 mb-4" />
-                <p className="text-muted-foreground">
-                  Все още нямате съобщения
-                </p>
+              <div className="flex flex-col items-center justify-center p-12 text-center">
+                <MessageCircle className="w-12 h-12 text-zinc-400 dark:text-zinc-600 mb-4" />
+                <p className="text-zinc-600 dark:text-zinc-400">No messages yet</p>
               </div>
             ) : (
-              <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+              <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
                 {chats.map((chat) => {
                   const isOwner = user.uid === chat.ownerId;
-                  const otherUser = isOwner
-                    ? chat.requesterDetails
-                    : chat.ownerDetails;
-                  const isUnread =
-                    chat.lastMessage?.senderId !== user.uid &&
-                    (!chat.readBy?.[user.uid] ||
-                      (chat.readBy[user.uid] &&
-                        chat.lastMessage?.createdAt &&
-                        new Date(chat.readBy[user.uid].seconds * 1000) <
-                          new Date(chat.lastMessage.createdAt.seconds * 1000)));
+                  const otherUser = isOwner ? chat.requesterDetails : chat.ownerDetails;
+                  const isUnread = chat.lastMessage?.senderId !== user.uid && 
+                    (!chat.readBy?.[user.uid] || 
+                    (chat.readBy[user.uid] && 
+                     chat.lastMessage?.createdAt && 
+                     chat.readBy[user.uid].toDate() < chat.lastMessage.createdAt.toDate()));
 
                   return (
                     <Link key={chat.id} href={`/chat/${chat.id}`}>
-                      <div
-                        className={`
-                          group relative p-4 
-                          hover:bg-gradient-to-r hover:from-primary/5 hover:to-transparent
-                          dark:hover:from-primary/10 dark:hover:to-transparent
-                          transition-all duration-300
-                          ${isUnread ? "bg-primary/5 dark:bg-primary/10" : ""}
-                        `}
-                      >
-                        {isUnread && (
-                          <span className="absolute right-4 top-4 h-2 w-2 rounded-full bg-primary animate-pulse" />
-                        )}
+                      <div className={`
+                        relative p-4 transition-all duration-200
+                        hover:bg-zinc-50 dark:hover:bg-zinc-800/50
+                        ${isUnread ? 'bg-primary/5 dark:bg-primary/10' : ''}
+                      `}>
                         <div className="flex items-center gap-4">
-                          <Avatar className="h-12 w-12 ring-2 ring-primary/20 ring-offset-2 ring-offset-background transition-all duration-300 group-hover:ring-primary/40">
+                          <Avatar className="h-12 w-12 ring-2 ring-primary/20 ring-offset-2 ring-offset-background">
                             {otherUser?.photoURL ? (
-                              <AvatarImage
-                                src={otherUser.photoURL}
-                                alt={otherUser.username || otherUser.fullName}
-                              />
+                              <AvatarImage src={otherUser.photoURL} />
                             ) : (
                               <AvatarFallback className="bg-primary/10 text-primary">
-                                {(
-                                  otherUser?.username ||
-                                  otherUser?.fullName ||
-                                  "?"
-                                )
-                                  .charAt(0)
-                                  .toUpperCase()}
+                                {otherUser?.username?.[0]?.toUpperCase() || "?"}
                               </AvatarFallback>
                             )}
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <div className="flex justify-between items-start">
-                              <p
-                                className={`font-medium truncate transition-colors ${
-                                  isUnread ? "text-primary" : ""
-                                }`}
-                              >
-                                {otherUser?.username ||
-                                  otherUser?.fullName ||
-                                  "Непознат потребител"}
+                            <div className="flex justify-between items-start mb-1">
+                              <p className={`font-medium truncate ${isUnread ? 'text-primary' : ''}`}>
+                                {otherUser?.username || "Unknown User"}
                               </p>
                               {chat.lastMessage?.createdAt && (
-                                <span className="text-xs text-muted-foreground ml-2">
-                                  {format(
-                                    new Date(
-                                      chat.lastMessage.createdAt.seconds * 1000
-                                    ),
-                                    "HH:mm"
-                                  )}
+                                <span className="text-xs text-zinc-500 dark:text-zinc-400 ml-2">
+                                  {format(chat.lastMessage.createdAt.toDate(), "HH:mm")}
                                 </span>
                               )}
                             </div>
                             {chat.lastMessage && (
-                              <p
-                                className={`text-sm truncate transition-colors ${
-                                  isUnread
-                                    ? "text-foreground font-medium"
-                                    : "text-muted-foreground"
-                                }`}
-                              >
+                              <p className={`text-sm truncate ${
+                                isUnread ? 'text-zinc-900 dark:text-zinc-100 font-medium' : 'text-zinc-600 dark:text-zinc-400'
+                              }`}>
                                 {chat.lastMessage.senderId === user.uid && (
-                                  <span className="text-primary/80">Вие: </span>
+                                  <span className="text-primary">You: </span>
                                 )}
                                 {chat.lastMessage.text}
                               </p>
                             )}
                           </div>
+                          {isUnread && (
+                            <span className="absolute right-4 top-4 h-2 w-2 rounded-full bg-primary animate-pulse" />
+                          )}
                         </div>
                       </div>
                     </Link>
