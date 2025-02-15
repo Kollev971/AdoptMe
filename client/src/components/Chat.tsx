@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase";
 import EmojiPicker from "emoji-picker-react";
@@ -32,7 +32,7 @@ interface Message {
   text: string;
   senderId: string;
   createdAt: any;
-  parentId?: string; // For message threading
+  parentId?: string;
   reactions?: { emoji: string; userId: string }[];
   replyTo?: {
     id: string;
@@ -45,7 +45,7 @@ interface ChatProps {
   chatId: string;
 }
 
-export default function ChatComponent({ chatId }: ChatProps) {
+const Chat: React.FC<ChatProps> = ({ chatId }) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -66,6 +66,11 @@ export default function ChatComponent({ chatId }: ChatProps) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   };
+
+  // Effect for scrolling to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   // Update user's last seen status
   useEffect(() => {
@@ -126,6 +131,26 @@ export default function ChatComponent({ chatId }: ChatProps) {
   useEffect(() => {
     if (!user) return;
 
+    const fetchChatData = async () => {
+      try {
+        const chatDoc = await getDoc(doc(db, "chats", chatId));
+        if (chatDoc.exists()) {
+          const data = chatDoc.data();
+          const otherUserId = data.participants.find((id: string) => id !== user.uid);
+          if (otherUserId) {
+            const userDoc = await getDoc(doc(db, "users", otherUserId));
+            if (userDoc.exists()) {
+              setOtherUser({ userId: otherUserId, ...userDoc.data() });
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching chat data:", error);
+      }
+    };
+
+    fetchChatData();
+
     const messagesQuery = query(
       collection(db, "chats", chatId, "messages"),
       orderBy("createdAt", "asc"),
@@ -156,7 +181,6 @@ export default function ChatComponent({ chatId }: ChatProps) {
         }
 
         initialLoadRef.current = false;
-        scrollToBottom();
       } catch (error) {
         console.error("Error processing messages:", error);
       }
@@ -178,7 +202,6 @@ export default function ChatComponent({ chatId }: ChatProps) {
     };
   }, [chatId, user, otherUser]);
 
-  // Handle typing indicator
   const handleTyping = async () => {
     if (!user || !otherUser) return;
 
@@ -195,7 +218,7 @@ export default function ChatComponent({ chatId }: ChatProps) {
 
       typingTimeoutRef.current = setTimeout(async () => {
         await updateDoc(typingRef, {
-          timestamp: new Date(0) // Set to past date to indicate stopped typing
+          timestamp: new Date(0)
         });
       }, 5000);
     } catch (error) {
@@ -242,6 +265,8 @@ export default function ChatComponent({ chatId }: ChatProps) {
     if (lastSeen.toMillis() > Date.now() - 60000) return "Online";
     return `Last seen ${formatDistanceToNow(lastSeen.toDate(), { addSuffix: true })}`;
   };
+
+  if (!user) return null;
 
   return (
     <Card className="overflow-hidden border-none shadow-lg bg-white dark:bg-zinc-950">
@@ -437,4 +462,6 @@ export default function ChatComponent({ chatId }: ChatProps) {
       </CardContent>
     </Card>
   );
-}
+};
+
+export default Chat;

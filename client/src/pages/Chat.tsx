@@ -11,7 +11,6 @@ export default function ChatPage() {
   const [, params] = useRoute("/chat/:chatId");
   const { user } = useAuth();
   const { toast } = useToast();
-  const [chatData, setChatData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,7 +26,6 @@ export default function ChatPage() {
           if (!data.participants.includes(user.uid)) {
             throw new Error("Нямате достъп до този чат");
           }
-          setChatData(data);
         }
         setLoading(false);
       } catch (error: any) {
