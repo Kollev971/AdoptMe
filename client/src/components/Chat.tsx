@@ -214,20 +214,28 @@ export default function ChatComponent({ chatId }: ChatProps) {
     if (!user || !newMessage.trim()) return;
 
     try {
-      const messageRef = collection(db, "chats", chatId, "messages");
-      await addDoc(messageRef, {
+      const chatDoc = doc(db, "chats", chatId);
+      const messageRef = collection(chatDoc, "messages");
+      
+      const messageData = {
         text: newMessage,
         senderId: user.uid,
         createdAt: serverTimestamp(),
-      });
+        readBy: {
+          [user.uid]: serverTimestamp()
+        }
+      };
 
-      await updateDoc(doc(db, "chats", chatId), {
+      await addDoc(messageRef, messageData);
+
+      await updateDoc(chatDoc, {
         lastMessage: {
           text: newMessage,
           senderId: user.uid,
           createdAt: serverTimestamp(),
         },
         updatedAt: serverTimestamp(),
+        [`readBy.${user.uid}`]: serverTimestamp()
       });
 
       setNewMessage("");
@@ -249,12 +257,32 @@ export default function ChatComponent({ chatId }: ChatProps) {
   };
 
   useEffect(() => {
-    if (unreadCount > 0 && notificationSound && document.hasFocus()) {
-      notificationSound.play().catch(err => {
-        console.warn('Could not play notification sound:', err);
-      });
-    }
-  }, [unreadCount, notificationSound]);
+    if (!user || !chatId) return;
+
+    const messagesQuery = query(
+      collection(db, "chats", chatId, "messages"),
+      orderBy("createdAt", "asc")
+    );
+
+    const unsubscribe = onSnapshot(messagesQuery, async (snapshot) => {
+      const newMessages = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setMessages(newMessages);
+
+      // Mark messages as read when in chat
+      if (document.hasFocus() && newMessages.length > 0) {
+        await updateDoc(doc(db, "chats", chatId), {
+          [`readBy.${user.uid}`]: serverTimestamp()
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [chatId, user]);
+
+  // Remove the unreadCount effect since we handle notifications in Navbar
 
 
   return (

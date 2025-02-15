@@ -24,14 +24,11 @@ export function Navbar() {
       orderBy("updatedAt", "desc")
     );
 
-    // Clear any existing timeout
-    if (notificationTimeoutRef.current) {
-      clearTimeout(notificationTimeoutRef.current);
-    }
-
     const unsubscribe = onSnapshot(chatsQuery, (snapshot) => {
       let count = 0;
       let latestMessageTime = 0;
+      const currentPath = window.location.pathname;
+      const currentChatId = currentPath.startsWith('/chat/') ? currentPath.split('/')[2] : null;
 
       snapshot.docs.forEach((docSnap) => {
         const data = docSnap.data();
@@ -41,30 +38,28 @@ export function Navbar() {
         if (lastMessage?.createdAt) {
           const messageTime = lastMessage.createdAt.seconds * 1000;
           latestMessageTime = Math.max(latestMessageTime, messageTime);
-        }
 
-        if (
-          lastMessage &&
-          lastMessage.senderId !== user.uid &&
-          (!readBy[user.uid] || 
-            (readBy[user.uid].seconds * 1000 < lastMessage.createdAt.seconds * 1000))
-        ) {
-          count += 1;
+          if (
+            lastMessage.senderId !== user.uid &&
+            (!readBy[user.uid] || readBy[user.uid].seconds * 1000 < messageTime)
+          ) {
+            // Only count messages from chats we're not currently viewing
+            if (docSnap.id !== currentChatId) {
+              count += 1;
+              
+              // Play sound only for new messages in other chats
+              if (messageTime > lastPlayedRef.current && document.hasFocus()) {
+                audioRef.current?.play().catch(err => {
+                  console.warn('Failed to play notification sound:', err);
+                });
+              }
+            }
+          }
         }
       });
 
       setUnreadCount(count);
-      if (count > 0 && latestMessageTime > lastPlayedRef.current) {
-        // Add a small delay to prevent rapid-fire notifications
-        notificationTimeoutRef.current = setTimeout(() => {
-          if (audioRef.current && document.hasFocus()) {
-            audioRef.current.play().catch(err => {
-              console.warn('Failed to play notification sound:', err);
-            });
-          }
-          lastPlayedRef.current = latestMessageTime;
-        }, 500);
-      }
+      lastPlayedRef.current = latestMessageTime;
     });
 
     return () => unsubscribe();
