@@ -10,6 +10,8 @@ export default function Listings() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [filter, setFilter] = useState<string>("all");
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 9;
 
   useEffect(() => {
     const listingsRef = collection(db, "listings");
@@ -29,6 +31,12 @@ export default function Listings() {
 
   const filteredListings = listings.filter((listing) =>
     filter === "all" ? true : listing.type === filter
+  );
+  
+  const totalPages = Math.ceil(filteredListings.length / itemsPerPage);
+  const paginatedListings = filteredListings.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
   );
 
   return (
@@ -59,10 +67,36 @@ export default function Listings() {
       ) : (
         <>
           {filteredListings.length > 0 ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredListings.map((listing) => (
-                <ListingCard key={listing.id} listing={listing} />
-              ))}
+            <div className="space-y-6">
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {paginatedListings.map((listing) => (
+                  <ListingCard key={listing.id} listing={listing} />
+                ))}
+              </div>
+              
+              {totalPages > 1 && (
+                <div className="flex justify-center mt-8">
+                  <nav className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1 rounded-md bg-gray-100 disabled:opacity-50"
+                    >
+                      Предишна
+                    </button>
+                    <span className="px-4 py-1">
+                      Страница {currentPage} от {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-1 rounded-md bg-gray-100 disabled:opacity-50"
+                    >
+                      Следваща
+                    </button>
+                  </nav>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-16">
