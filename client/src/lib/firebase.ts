@@ -228,10 +228,25 @@ export const registerUser = async (email: string, password: string) => {
       await setDoc(userDoc, {
         email: userCredential.user.email,
         createdAt: serverTimestamp(),
-        isAdmin: false,
-        role: 'user',
+        isAdmin: email === 'delyank97@gmail.com', // Set admin flag based on email
+        role: email === 'delyank97@gmail.com' ? 'admin' : 'user',
         lastSeen: serverTimestamp()
       });
+
+      // If this is the admin email, set custom claims
+      if (email === 'delyank97@gmail.com') {
+        // Make an API call to set admin role
+        try {
+          await fetch('/api/admin/setup', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
+        } catch (error) {
+          console.error('Error setting admin role:', error);
+        }
+      }
     }
     return userCredential.user;
   } catch (error: any) {
@@ -263,7 +278,11 @@ export const loginUser = async (email: string, password: string) => {
 export const isUserAdmin = async (uid: string): Promise<boolean> => {
   try {
     const userDoc = await getDoc(doc(db, "users", uid));
-    return userDoc.exists() && userDoc.data()?.isAdmin === true;
+    // Check both isAdmin flag and email
+    return userDoc.exists() && (
+      userDoc.data()?.isAdmin === true ||
+      userDoc.data()?.email === 'delyank97@gmail.com'
+    );
   } catch (error) {
     console.error("Error checking admin status:", error);
     return false;

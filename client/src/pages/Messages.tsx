@@ -41,6 +41,7 @@ export default function Messages() {
   const [chats, setChats] = useState<ChatPreview[]>([]);
   const [loading, setLoading] = useState(true);
   const [userDetailsCache, setUserDetailsCache] = useState<Record<string, any>>({});
+  const [lastNotificationTime, setLastNotificationTime] = useState(Date.now());
 
   const fetchUserDetails = async (userIds: string[]) => {
     const uniqueIds = Array.from(new Set(userIds));
@@ -67,7 +68,6 @@ export default function Messages() {
   useEffect(() => {
     if (!user) return;
 
-    // Subscribe to Firestore for chat updates
     const chatsQuery = query(
       collection(db, "chats"),
       where("participants", "array-contains", user.uid),
@@ -78,19 +78,19 @@ export default function Messages() {
       try {
         const chatDocs = snapshot.docs;
         const userIds = new Set<string>();
+        const currentTime = Date.now();
         let newMessageReceived = false;
 
+        // Gather all user IDs and check for new messages
         chatDocs.forEach(doc => {
           const data = doc.data();
           if (data.ownerId) userIds.add(data.ownerId);
           if (data.requesterId) userIds.add(data.requesterId);
 
-          // Check if there's a new unread message
+          // Check if there's a new unread message that's newer than our last notification
           if (data.lastMessage && 
               data.lastMessage.senderId !== user.uid && 
-              (!data.readBy?.[user.uid] || 
-               (data.readBy[user.uid] && 
-                data.lastMessage.createdAt?.toDate() > data.readBy[user.uid]?.toDate()))) {
+              data.lastMessage.createdAt?.toDate().getTime() > lastNotificationTime) {
             newMessageReceived = true;
           }
         });
@@ -98,6 +98,7 @@ export default function Messages() {
         // Play notification sound if new message is received
         if (newMessageReceived) {
           playMessageNotification();
+          setLastNotificationTime(currentTime);
         }
 
         const userDetails = await fetchUserDetails(Array.from(userIds));
@@ -127,7 +128,7 @@ export default function Messages() {
     return () => {
       unsubscribe();
     };
-  }, [user]);
+  }, [user, lastNotificationTime]);
 
   if (!user) return null;
 
@@ -156,14 +157,15 @@ export default function Messages() {
                 {chats.map((chat) => {
                   const isOwner = user.uid === chat.ownerId;
                   const otherUser = isOwner ? chat.requesterDetails : chat.ownerDetails;
-                  const isUnread = chat.lastMessage?.senderId !== user.uid && 
+                  const isUnread = chat.lastMessage && 
+                    chat.lastMessage.senderId !== user.uid && 
                     (!chat.readBy?.[user.uid] || 
-                    (chat.readBy[user.uid] && 
-                     chat.lastMessage?.createdAt?.toDate() > chat.readBy[user.uid]?.toDate()));
+                      (chat.readBy[user.uid] && 
+                       chat.lastMessage.createdAt?.toDate() > chat.readBy[user.uid]?.toDate()));
 
                   return (
                     <Link key={chat.id} href={`/chat/${chat.id}`} onClick={() => {
-                      if (user) {
+                      if (user && isUnread) {
                         markMessagesAsRead(chat.id, user.uid).catch(console.error);
                       }
                     }}>
