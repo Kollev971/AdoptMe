@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { serverTimestamp } from "firebase/firestore";
+import { Badge } from "@/components/ui/badge";
 
 export default function UserProfile() {
   const [, params] = useRoute("/user/:id");
@@ -159,8 +160,23 @@ export default function UserProfile() {
               </AvatarFallback>
             </Avatar>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-4">
             <CardTitle className="text-3xl font-bold">{userProfile.username}</CardTitle>
+            {userProfile.isAdmin && (
+              <Badge variant="secondary" className="bg-primary text-primary-foreground">
+                Администратор
+              </Badge>
+            )}
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-muted-foreground">
+                Регистриран от {new Date(userProfile.createdAt?.toDate()).toLocaleDateString('bg-BG')}
+              </p>
+              {userProfile.successfulAdoptions > 0 && (
+                <Badge variant="outline" className="bg-green-50">
+                  {userProfile.successfulAdoptions} Успешни осиновявания
+                </Badge>
+              )}
+            </div>
             <div className="flex items-center justify-center gap-2 mt-4">
               <span className="text-lg font-medium">Рейтинг: {averageRating.toFixed(1)}</span>
               <div className="flex gap-1">

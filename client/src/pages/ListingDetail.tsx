@@ -177,13 +177,13 @@ export default function ListingDetail() {
                     <User className="h-5 w-5 text-[#004AAD]" />
                     <span>Име: {ownerDetails.fullName}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-5 w-5 text-[#004AAD]" />
-                    <span>Телефон: {ownerDetails.phone}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-5 w-5 text-[#004AAD]" />
-                    <span>Имейл: {ownerDetails.email}</span>
+                  <div className="flex justify-center mt-4">
+                    <Button 
+                      onClick={handleConnect}
+                      className="bg-[#01BFFF] hover:bg-[#004AAD] text-white"
+                    >
+                      Свържи се със стопанина
+                    </Button>
                   </div>
                 </div>
               </div>

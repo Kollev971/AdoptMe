@@ -36,9 +36,8 @@ export default function ChatComponent({ chatId }: ChatProps) {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [otherUser, setOtherUser] = useState<any>(null);
-  const [isTyping, setIsTyping] = useState(false);
-  const [otherUserTyping, setOtherUserTyping] = useState(false);
-  const [lastSeen, setLastSeen] = useState<Timestamp | null>(null);
+  const [notificationSound] = useState(new Audio("/notification.wav"));
+  const [unreadCount, setUnreadCount] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -142,6 +141,7 @@ export default function ChatComponent({ chatId }: ChatProps) {
         ...doc.data(),
       }));
       setMessages(newMessages);
+      setUnreadCount(newMessages.filter(msg => !msg.readBy?.[otherUser?.userId]).length);
 
       // Update read status
       if (newMessages.length > 0) {
@@ -152,7 +152,7 @@ export default function ChatComponent({ chatId }: ChatProps) {
     });
 
     return () => unsubscribe();
-  }, [chatId, user]);
+  }, [chatId, user, otherUser]);
 
   useEffect(() => {
     const fetchChatData = async () => {
@@ -246,6 +246,13 @@ export default function ChatComponent({ chatId }: ChatProps) {
     return `Last seen ${format(lastSeenDate, "HH:mm")}`;
   };
 
+  useEffect(() => {
+    if (unreadCount > 0 && notificationSound) {
+      notificationSound.play();
+    }
+  }, [unreadCount, notificationSound]);
+
+
   return (
     <Card className="border-none shadow-xl bg-white/50 backdrop-blur-lg dark:bg-zinc-900/50">
       <CardHeader className="border-b border-zinc-200 dark:border-zinc-800 bg-white/50 backdrop-blur-lg dark:bg-zinc-900/50">
@@ -264,6 +271,11 @@ export default function ChatComponent({ chatId }: ChatProps) {
                 </Link>
                 <span className="text-sm text-muted-foreground">
                   {otherUserTyping ? "Typing..." : getLastSeenText()}
+                  {unreadCount > 0 && (
+                    <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                      {unreadCount}
+                    </span>
+                  )}
                 </span>
               </div>
             </>

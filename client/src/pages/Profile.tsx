@@ -118,7 +118,14 @@ export default function Profile() {
                 </AvatarFallback>
               </Avatar>
             </div>
-            <CardTitle className="text-2xl">{userData.username}</CardTitle>
+            <CardTitle className="text-2xl flex items-center gap-2">
+            {userData.username}
+            {userData.isAdmin && (
+              <Badge variant="secondary" className="bg-primary text-primary-foreground">
+                Администратор
+              </Badge>
+            )}
+          </CardTitle>
             <div className="flex items-center justify-center gap-2 mt-4">
               <span className="text-primary">Рейтинг: {averageRating.toFixed(1)}</span>
               <div className="flex">
