@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
+import AdoptionCounter from "@/components/AdoptionCounter";
 
 export default function Home() {
   const { user } = useAuth();
