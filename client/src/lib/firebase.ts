@@ -1,7 +1,7 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { getStorage } from "firebase/storage";
-import { getDatabase, ref, push, set } from "firebase/database";
+import { getDatabase, ref, push, set, get } from "firebase/database";
 import { getFirestore, serverTimestamp } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 import type { FirebaseError } from "firebase/app";
@@ -124,6 +124,15 @@ export const registerUser = async (email: string, password: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     if (userCredential.user) {
       await sendEmailVerification(userCredential.user);
+
+      // Create user document in Firestore
+      const userDoc = doc(db, 'users', userCredential.user.uid);
+      await updateDoc(userDoc, {
+        email: userCredential.user.email,
+        createdAt: serverTimestamp(),
+        isAdmin: false,
+        role: 'user'
+      });
     }
     return userCredential.user;
   } catch (error: any) {
@@ -138,6 +147,13 @@ export const loginUser = async (email: string, password: string) => {
     }
 
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    // Update last seen
+    if (userCredential.user) {
+      const userDoc = doc(db, 'users', userCredential.user.uid);
+      await updateDoc(userDoc, {
+        lastSeen: serverTimestamp()
+      });
+    }
     return userCredential.user;
   } catch (error: any) {
     throw new Error(handleFirebaseError(error));
@@ -156,13 +172,22 @@ export const sendMessage = async (chatId: string, userId: string, message: strin
     const messagesRef = ref(database, `chats/${chatId}/messages`);
     const newMessageRef = push(messagesRef);
 
+    // First check if user is participant in chat
+    const chatRef = ref(database, `chats/${chatId}`);
+    const chatSnapshot = await get(chatRef);
+    const chatData = chatSnapshot.val();
+
+    if (!chatData || !chatData.participants || !chatData.participants.includes(userId)) {
+      throw new Error('You are not authorized to send messages in this chat');
+    }
+
     await set(newMessageRef, {
       userId,
       message: sanitizedMessage,
       timestamp: Date.now()
     });
 
-    const chatRef = ref(database, `chats/${chatId}`);
+    // Update last message
     await set(chatRef, {
       lastMessage: {
         text: sanitizedMessage,

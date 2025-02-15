@@ -1,25 +1,40 @@
-
 {
   "rules": {
     "chats": {
       "$chatId": {
-        ".read": "auth != null",
-        ".write": "auth != null",
+        ".read": "auth != null && (root.child('chats').child($chatId).child('participants').val().contains(auth.uid) || root.child('users').child(auth.uid).child('isAdmin').val() == true)",
+        ".write": "auth != null && (root.child('chats').child($chatId).child('participants').val().contains(auth.uid) || root.child('users').child(auth.uid).child('isAdmin').val() == true)",
         "messages": {
-          ".read": "auth != null",
-          ".write": "auth != null",
+          ".read": "auth != null && (root.child('chats').child($chatId).child('participants').val().contains(auth.uid) || root.child('users').child(auth.uid).child('isAdmin').val() == true)",
+          ".write": "auth != null && (root.child('chats').child($chatId).child('participants').val().contains(auth.uid) || root.child('users').child(auth.uid).child('isAdmin').val() == true)",
           "$messageId": {
             ".validate": "newData.hasChildren(['userId', 'message', 'timestamp'])"
           }
         },
         "participants": {
           ".read": "auth != null",
-          ".write": "auth != null"
+          ".write": "auth != null && (root.child('chats').child($chatId).child('participants').val().contains(auth.uid) || root.child('users').child(auth.uid).child('isAdmin').val() == true)"
         },
         "lastMessage": {
           ".read": "auth != null",
-          ".write": "auth != null"
+          ".write": "auth != null && (root.child('chats').child($chatId).child('participants').val().contains(auth.uid) || root.child('users').child(auth.uid).child('isAdmin').val() == true)"
         }
+      }
+    },
+    "users": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && ($uid === auth.uid || root.child('users').child(auth.uid).child('isAdmin').val() == true)",
+        "isAdmin": {
+          ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() == true"
+        }
+      }
+    },
+    "listings": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$listingId": {
+        ".validate": "newData.hasChildren(['title', 'description', 'userId', 'createdAt'])"
       }
     }
   }
