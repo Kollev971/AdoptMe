@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
+import { PawPrint } from "lucide-react";
 import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc } from "firebase/firestore";
 import { ListingCard } from "@/components/ListingCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
