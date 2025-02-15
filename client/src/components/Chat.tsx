@@ -10,7 +10,8 @@ import {
   serverTimestamp,
   doc,
   getDoc,
-  updateDoc
+  updateDoc,
+  setDoc
 } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,17 +22,29 @@ import { format } from "date-fns";
 import { Send } from "lucide-react";
 import { Link } from "wouter";
 
+interface Message {
+  id: string;
+  text: string;
+  senderId: string;
+  createdAt: any;
+  read?: boolean;
+}
+
 interface ChatProps {
   chatId: string;
 }
 
 export default function ChatComponent({ chatId }: ChatProps) {
   const { user } = useAuth();
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [otherUser, setOtherUser] = useState<any>(null);
+  const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const lastMessageRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -44,26 +57,39 @@ export default function ChatComponent({ chatId }: ChatProps) {
     const unsubscribe = onSnapshot(messagesQuery, async (snapshot) => {
       const newMessages = snapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data(),
-      }));
+        ...doc.data()
+      } as Message));
       setMessages(newMessages);
 
       if (
         newMessages.length > 0 &&
         newMessages[newMessages.length - 1].senderId !== user.uid
       ) {
-        audioRef.current?.play();
+        audioRef.current?.play().catch(() => {});
       }
 
-      setTimeout(() => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-      }, 100);
+      // Скролваме само ако последното съобщение е наше
+      const lastMessage = newMessages[newMessages.length - 1];
+      if (lastMessage && lastMessage.senderId === user.uid && lastMessageRef.current !== lastMessage.id) {
+        scrollToBottom();
+        lastMessageRef.current = lastMessage.id;
+      }
     });
 
-    return () => unsubscribe();
-  }, [chatId, user]);
+    // Следим за typing индикатора
+    const typingRef = doc(db, `chats/${chatId}/typing/${otherUser?.userId}`);
+    const typingUnsubscribe = onSnapshot(typingRef, (doc) => {
+      if (doc.exists()) {
+        setIsTyping(true);
+        setTimeout(() => setIsTyping(false), 3000);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      typingUnsubscribe();
+    };
+  }, [chatId, user, otherUser]);
 
   useEffect(() => {
     const fetchChatData = async () => {
@@ -84,10 +110,7 @@ export default function ChatComponent({ chatId }: ChatProps) {
               userId: otherUserId,
               username: userData.username,
               photoURL: userData.photoURL,
-              // Add other necessary fields from user profile
             });
-          } else {
-            console.error("User not found in users collection");
           }
         }
       }
@@ -96,17 +119,41 @@ export default function ChatComponent({ chatId }: ChatProps) {
     fetchChatData();
   }, [chatId, user]);
 
+  const scrollToBottom = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  };
+
+  const handleTyping = async () => {
+    if (!user || !otherUser) return;
+
+    const typingRef = doc(db, `chats/${chatId}/typing/${user.uid}`);
+    await setDoc(typingRef, { timestamp: serverTimestamp() });
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(async () => {
+      await setDoc(typingRef, { timestamp: null });
+    }, 3000);
+  };
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !newMessage.trim()) return;
 
     try {
       const messageRef = collection(db, "chats", chatId, "messages");
-      await addDoc(messageRef, {
+      const messageData = {
         text: newMessage,
         senderId: user.uid,
         createdAt: serverTimestamp(),
-      });
+        read: false
+      };
+
+      await addDoc(messageRef, messageData);
 
       await updateDoc(doc(db, "chats", chatId), {
         lastMessage: {
@@ -118,8 +165,19 @@ export default function ChatComponent({ chatId }: ChatProps) {
       });
 
       setNewMessage("");
+      // Запазваме фокуса на input полето
+      inputRef.current?.focus();
     } catch (error) {
       console.error("Error sending message:", error);
+    }
+  };
+
+  const markMessageAsRead = async (messageId: string) => {
+    try {
+      const messageRef = doc(db, "chats", chatId, "messages", messageId);
+      await updateDoc(messageRef, { read: true });
+    } catch (error) {
+      console.error("Error marking message as read:", error);
     }
   };
 
@@ -147,6 +205,12 @@ export default function ChatComponent({ chatId }: ChatProps) {
           <div className="space-y-4">
             {messages.map((message) => {
               const isSender = message.senderId === user?.uid;
+              const isUnread = !message.read && !isSender;
+
+              if (isUnread) {
+                markMessageAsRead(message.id);
+              }
+
               return (
                 <div
                   key={message.id}
@@ -154,7 +218,11 @@ export default function ChatComponent({ chatId }: ChatProps) {
                 >
                   <div
                     className={`max-w-[70%] break-words rounded-lg p-3 ${
-                      isSender ? "bg-primary text-primary-foreground" : "bg-muted"
+                      isSender 
+                        ? "bg-primary text-primary-foreground" 
+                        : isUnread
+                          ? "bg-blue-50 dark:bg-blue-900/20"
+                          : "bg-muted"
                     }`}
                   >
                     <p>{message.text}</p>
@@ -170,13 +238,24 @@ export default function ChatComponent({ chatId }: ChatProps) {
                 </div>
               );
             })}
+            {isTyping && (
+              <div className="flex justify-start">
+                <div className="bg-muted rounded-lg p-3">
+                  <p className="text-sm text-muted-foreground">Пише съобщение...</p>
+                </div>
+              </div>
+            )}
           </div>
         </ScrollArea>
         <form onSubmit={sendMessage} className="border-t p-4">
           <div className="flex gap-2">
             <Input
+              ref={inputRef}
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={(e) => {
+                setNewMessage(e.target.value);
+                handleTyping();
+              }}
               placeholder="Напишете съобщение..."
               className="flex-1"
             />
