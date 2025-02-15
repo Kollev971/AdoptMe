@@ -38,6 +38,8 @@ export default function ChatComponent({ chatId }: ChatProps) {
   const [otherUser, setOtherUser] = useState<any>(null);
   const [notificationSound] = useState(new Audio("/notification.wav"));
   const [unreadCount, setUnreadCount] = useState(0);
+  const [otherUserTyping, setOtherUserTyping] = useState(false);
+  const [lastSeen, setLastSeen] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
