@@ -249,8 +249,10 @@ export default function ChatComponent({ chatId }: ChatProps) {
   };
 
   useEffect(() => {
-    if (unreadCount > 0 && notificationSound) {
-      notificationSound.play();
+    if (unreadCount > 0 && notificationSound && document.hasFocus()) {
+      notificationSound.play().catch(err => {
+        console.warn('Could not play notification sound:', err);
+      });
     }
   }, [unreadCount, notificationSound]);
 

@@ -57,7 +57,7 @@ export function Navbar() {
       if (count > 0 && latestMessageTime > lastPlayedRef.current) {
         // Add a small delay to prevent rapid-fire notifications
         notificationTimeoutRef.current = setTimeout(() => {
-          if (audioRef.current) {
+          if (audioRef.current && document.hasFocus()) {
             audioRef.current.play().catch(err => {
               console.warn('Failed to play notification sound:', err);
             });
