@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -7,12 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { updateProfile } from "firebase/auth";
 import { doc, updateDoc, getDoc, collection, query, getDocs, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Loader2, Upload, Star } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FileUpload } from "@/components/FileUpload";
+import AdminPanel from "@/components/AdminPanel";
 
 export default function Profile() {
   const { user } = useAuth();
@@ -23,6 +24,7 @@ export default function Profile() {
   const [userData, setUserData] = useState<any>(null);
   const [profileImages, setProfileImages] = useState<string[]>([]);
   const [averageRating, setAverageRating] = useState<number>(0);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -35,7 +37,7 @@ export default function Profile() {
           where("targetUserId", "==", user.uid)
         );
         const ratingsSnap = await getDocs(ratingsQuery);
-        
+
         if (!ratingsSnap.empty) {
           let total = 0;
           ratingsSnap.forEach(doc => total += doc.data().rating);
@@ -51,6 +53,8 @@ export default function Profile() {
           if (data.photoURL) {
             setProfileImages([data.photoURL]);
           }
+          // Check if user is admin
+          setIsAdmin(data.email === 'delyank97@gmail.com' || data.isAdmin === true);
         }
       } catch (error: any) {
         console.error("Error fetching user profile:", error);
@@ -108,6 +112,8 @@ export default function Profile() {
   return (
     <div className="container mx-auto p-6">
       <div className="max-w-2xl mx-auto space-y-6">
+        {isAdmin && <AdminPanel />}
+
         <Card className="border-2 border-primary">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
@@ -118,14 +124,14 @@ export default function Profile() {
                 </AvatarFallback>
               </Avatar>
             </div>
-            <CardTitle className="text-2xl flex items-center gap-2">
-            {userData.username}
-            {userData.isAdmin && (
-              <Badge variant="secondary" className="bg-primary text-primary-foreground">
-                Администратор
-              </Badge>
-            )}
-          </CardTitle>
+            <CardTitle className="text-2xl flex items-center gap-2 justify-center">
+              {userData.username}
+              {isAdmin && (
+                <Badge variant="secondary" className="bg-primary text-primary-foreground">
+                  Администратор
+                </Badge>
+              )}
+            </CardTitle>
             <div className="flex items-center justify-center gap-2 mt-4">
               <span className="text-primary">Рейтинг: {averageRating.toFixed(1)}</span>
               <div className="flex">

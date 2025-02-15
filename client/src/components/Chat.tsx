@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase";
 import data from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
-import { Smile, MessageCircle, Share2 } from "lucide-react";
+import { Smile, Send, Check, CheckCheck } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import {
   collection,
@@ -24,7 +24,6 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
-import { Send, Check, CheckCheck } from "lucide-react";
 import { Link } from "wouter";
 
 interface ChatProps {
@@ -36,14 +35,13 @@ export default function ChatComponent({ chatId }: ChatProps) {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [otherUser, setOtherUser] = useState<any>(null);
-  const [notificationSound] = useState(new Audio("/notification.wav"));
-  const [unreadCount, setUnreadCount] = useState(0);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const [lastSeen, setLastSeen] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const notificationSound = new Audio("/notification.wav");
 
   // Function to update typing status
   const updateTypingStatus = async (typing: boolean) => {
@@ -60,7 +58,6 @@ export default function ChatComponent({ chatId }: ChatProps) {
   useEffect(() => {
     if (!user || !chatId) return;
 
-    // Listen for other user's typing status
     const otherUserTypingRef = query(
       collection(db, "chats", chatId, "typing")
     );
@@ -143,18 +140,23 @@ export default function ChatComponent({ chatId }: ChatProps) {
         ...doc.data(),
       }));
       setMessages(newMessages);
-      setUnreadCount(newMessages.filter(msg => !msg.readBy?.[otherUser?.userId]).length);
 
-      // Update read status
-      if (newMessages.length > 0) {
-        await updateDoc(doc(db, "chats", chatId), {
-          [`readBy.${user.uid}`]: serverTimestamp()
-        });
+      // Play notification sound for new messages
+      const lastMessage = newMessages[newMessages.length - 1];
+      if (lastMessage && 
+          lastMessage.senderId !== user.uid && 
+          lastMessage.createdAt?.toDate().getTime() > Date.now() - 1000) {
+        notificationSound.play().catch(console.error);
+      }
+
+      // Update read status if chat is focused
+      if (document.hasFocus()) {
+        await markMessagesAsRead();
       }
     });
 
     return () => unsubscribe();
-  }, [chatId, user, otherUser]);
+  }, [chatId, user]);
 
   useEffect(() => {
     const fetchChatData = async () => {
@@ -216,7 +218,7 @@ export default function ChatComponent({ chatId }: ChatProps) {
     try {
       const chatDoc = doc(db, "chats", chatId);
       const messageRef = collection(chatDoc, "messages");
-      
+
       const messageData = {
         text: newMessage,
         senderId: user.uid,
@@ -256,35 +258,6 @@ export default function ChatComponent({ chatId }: ChatProps) {
     return `Last seen ${format(lastSeenDate, "HH:mm")}`;
   };
 
-  useEffect(() => {
-    if (!user || !chatId) return;
-
-    const messagesQuery = query(
-      collection(db, "chats", chatId, "messages"),
-      orderBy("createdAt", "asc")
-    );
-
-    const unsubscribe = onSnapshot(messagesQuery, async (snapshot) => {
-      const newMessages = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setMessages(newMessages);
-
-      // Mark messages as read when in chat
-      if (document.hasFocus() && newMessages.length > 0) {
-        await updateDoc(doc(db, "chats", chatId), {
-          [`readBy.${user.uid}`]: serverTimestamp()
-        });
-      }
-    });
-
-    return () => unsubscribe();
-  }, [chatId, user]);
-
-  // Remove the unreadCount effect since we handle notifications in Navbar
-
-
   return (
     <Card className="border-none shadow-xl bg-white/50 backdrop-blur-lg dark:bg-zinc-900/50">
       <CardHeader className="border-b border-zinc-200 dark:border-zinc-800 bg-white/50 backdrop-blur-lg dark:bg-zinc-900/50">
@@ -303,11 +276,6 @@ export default function ChatComponent({ chatId }: ChatProps) {
                 </Link>
                 <span className="text-sm text-muted-foreground">
                   {otherUserTyping ? "Typing..." : getLastSeenText()}
-                  {unreadCount > 0 && (
-                    <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                      {unreadCount}
-                    </span>
-                  )}
                 </span>
               </div>
             </>
@@ -320,7 +288,7 @@ export default function ChatComponent({ chatId }: ChatProps) {
             {messages.map((message, index) => {
               const isSender = message.senderId === user?.uid;
               const isRead = message.readBy?.[otherUser?.userId];
-              const showRead = isSender && index === messages.length - 1;
+              const showStatus = isSender && index === messages.length - 1;
 
               return (
                 <div
@@ -329,13 +297,13 @@ export default function ChatComponent({ chatId }: ChatProps) {
                   ref={index === messages.length - 1 ? lastMessageRef : null}
                 >
                   <div className={`
-                      max-w-[70%] group relative
-                      rounded-2xl p-3 shadow-sm
-                      ${isSender 
-                        ? "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground" 
-                        : "bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700"
-                      }
-                    `}>
+                    max-w-[70%] group relative
+                    rounded-2xl p-3 shadow-sm
+                    ${isSender 
+                      ? "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground" 
+                      : "bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700"
+                    }
+                  `}>
                     <p className="break-words leading-relaxed">{message.text}</p>
                     <div className={`
                       flex items-center gap-1 text-xs mt-1.5
@@ -344,22 +312,18 @@ export default function ChatComponent({ chatId }: ChatProps) {
                         : "text-muted-foreground"
                       }
                     `}>
-                      <div className="flex items-center gap-1">
-                        {message.createdAt && (
-                          <span>
-                            {format(message.createdAt.toDate(), "HH:mm")}
-                          </span>
-                        )}
-                        {showRead && (
-                          <span className="ml-1 tooltip-wrapper" title={isRead ? "Read" : "Sent"}>
-                            {isRead && message.readBy?.[otherUser?.userId] ? (
-                              <CheckCheck className="w-4 h-4 text-blue-400" />
-                            ) : (
-                              <Check className="w-4 h-4" />
-                            )}
-                          </span>
-                        )}
-                      </div>
+                      <span>
+                        {message.createdAt && format(message.createdAt.toDate(), "HH:mm")}
+                      </span>
+                      {showStatus && (
+                        <span className="ml-1" title={isRead ? "Read" : "Sent"}>
+                          {isRead ? (
+                            <CheckCheck className="h-4 w-4 text-blue-400" />
+                          ) : (
+                            <Check className="h-4 w-4" />
+                          )}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
