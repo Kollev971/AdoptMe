@@ -12,7 +12,8 @@ import {
   getDoc,
   updateDoc,
   setDoc,
-  Timestamp
+  Timestamp,
+  limit
 } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,7 @@ export default function ChatComponent({ chatId }: ChatProps) {
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
   const inputRef = useRef<HTMLInputElement>(null);
   const lastPlayedRef = useRef<number>(0);
+  const initialLoadRef = useRef(true);
 
   // Fetch messages and handle real-time updates
   useEffect(() => {
@@ -52,31 +54,42 @@ export default function ChatComponent({ chatId }: ChatProps) {
 
     const messagesQuery = query(
       collection(db, "chats", chatId, "messages"),
-      orderBy("createdAt", "asc")
+      orderBy("createdAt", "asc"),
+      limit(100)
     );
 
     const unsubscribe = onSnapshot(messagesQuery, async (snapshot) => {
-      const newMessages = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data()
-      } as Message));
-      setMessages(newMessages);
+      try {
+        const newMessages = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data()
+        } as Message));
+        setMessages(newMessages);
 
-      // Play sound only for new messages from other user
-      const lastMessage = newMessages[newMessages.length - 1];
-      if (lastMessage && 
-          lastMessage.senderId !== user.uid && 
-          lastMessage.createdAt?.toMillis() > lastPlayedRef.current) {
-        audioRef.current?.play().catch(() => {});
-        lastPlayedRef.current = lastMessage.createdAt?.toMillis() || Date.now();
+        // Play sound only for new messages from other user and not on initial load
+        const lastMessage = newMessages[newMessages.length - 1];
+        if (lastMessage && 
+            !initialLoadRef.current &&
+            lastMessage.senderId !== user.uid && 
+            lastMessage.createdAt?.toMillis() > lastPlayedRef.current) {
+          audioRef.current?.play().catch(() => {});
+          lastPlayedRef.current = lastMessage.createdAt?.toMillis() || Date.now();
+        }
 
-        // Mark message as read in chat document
-        await updateDoc(doc(db, "chats", chatId), {
-          [`readBy.${user.uid}`]: serverTimestamp()
-        });
+        // Mark chat as read
+        if (lastMessage && lastMessage.senderId !== user.uid) {
+          await updateDoc(doc(db, "chats", chatId), {
+            [`readBy.${user.uid}`]: serverTimestamp()
+          });
+        }
+
+        scrollToBottom();
+        initialLoadRef.current = false;
+      } catch (error) {
+        console.error("Error in messages snapshot:", error);
       }
-
-      scrollToBottom();
+    }, (error) => {
+      console.error("Snapshot listener error:", error);
     });
 
     return () => unsubscribe();
@@ -87,24 +100,28 @@ export default function ChatComponent({ chatId }: ChatProps) {
     const fetchChatData = async () => {
       if (!user) return;
 
-      const chatDoc = await getDoc(doc(db, "chats", chatId));
-      if (chatDoc.exists()) {
-        const chatData = chatDoc.data();
-        const otherUserId = chatData.participants.find(
-          (id: string) => id !== user.uid
-        );
+      try {
+        const chatDoc = await getDoc(doc(db, "chats", chatId));
+        if (chatDoc.exists()) {
+          const chatData = chatDoc.data();
+          const otherUserId = chatData.participants.find(
+            (id: string) => id !== user.uid
+          );
 
-        if (otherUserId) {
-          const userDoc = await getDoc(doc(db, "users", otherUserId));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            setOtherUser({
-              userId: otherUserId,
-              username: userData.username,
-              photoURL: userData.photoURL,
-            });
+          if (otherUserId) {
+            const userDoc = await getDoc(doc(db, "users", otherUserId));
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              setOtherUser({
+                userId: otherUserId,
+                username: userData.username,
+                photoURL: userData.photoURL,
+              });
+            }
           }
         }
+      } catch (error) {
+        console.error("Error fetching chat data:", error);
       }
     };
 
