@@ -13,7 +13,7 @@ import {
   updateDoc,
   setDoc,
   Timestamp,
-  limit
+  limit,
 } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -41,12 +41,23 @@ export default function ChatComponent({ chatId }: ChatProps) {
   const [newMessage, setNewMessage] = useState("");
   const [otherUser, setOtherUser] = useState<any>(null);
   const [isTyping, setIsTyping] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
   const inputRef = useRef<HTMLInputElement>(null);
   const lastPlayedRef = useRef<number>(0);
   const initialLoadRef = useRef(true);
+
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  // Effect for scrolling to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   // Fetch messages and handle real-time updates
   useEffect(() => {
@@ -58,41 +69,51 @@ export default function ChatComponent({ chatId }: ChatProps) {
       limit(100)
     );
 
-    const unsubscribe = onSnapshot(messagesQuery, async (snapshot) => {
-      try {
-        const newMessages = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data()
-        } as Message));
-        setMessages(newMessages);
+    const unsubscribe = onSnapshot(
+      messagesQuery,
+      (snapshot) => {
+        try {
+          const newMessages = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }) as Message);
+          setMessages(newMessages);
 
-        // Play sound only for new messages from other user and not on initial load
-        const lastMessage = newMessages[newMessages.length - 1];
-        if (lastMessage && 
+          // Play sound only for new messages from other user and not on initial load
+          const lastMessage = newMessages[newMessages.length - 1];
+          if (
+            lastMessage &&
             !initialLoadRef.current &&
-            lastMessage.senderId !== user.uid && 
-            lastMessage.createdAt?.toMillis() > lastPlayedRef.current) {
-          audioRef.current?.play().catch(() => {});
-          lastPlayedRef.current = lastMessage.createdAt?.toMillis() || Date.now();
-        }
+            lastMessage.senderId !== user.uid &&
+            lastMessage.createdAt?.toMillis() > lastPlayedRef.current
+          ) {
+            audioRef.current?.play().catch(() => {});
+            lastPlayedRef.current = lastMessage.createdAt?.toMillis() || Date.now();
+          }
 
-        // Mark chat as read
-        if (lastMessage && lastMessage.senderId !== user.uid) {
-          await updateDoc(doc(db, "chats", chatId), {
-            [`readBy.${user.uid}`]: serverTimestamp()
-          });
-        }
+          // Mark chat as read
+          if (lastMessage && lastMessage.senderId !== user.uid) {
+            updateDoc(doc(db, "chats", chatId), {
+              [`readBy.${user.uid}`]: serverTimestamp(),
+            }).catch((error) => {
+              console.error("Error updating readBy:", error);
+            });
+          }
 
-        scrollToBottom();
-        initialLoadRef.current = false;
-      } catch (error) {
-        console.error("Error in messages snapshot:", error);
+          initialLoadRef.current = false;
+        } catch (error) {
+          console.error("Error processing messages:", error);
+        }
+      },
+      (error) => {
+        console.error("Messages listener error:", error);
       }
-    }, (error) => {
-      console.error("Snapshot listener error:", error);
-    });
+    );
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      initialLoadRef.current = true;
+    };
   }, [chatId, user]);
 
   // Fetch chat details and other user info
@@ -145,12 +166,6 @@ export default function ChatComponent({ chatId }: ChatProps) {
     return () => unsubscribe();
   }, [chatId, user, otherUser]);
 
-  const scrollToBottom = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  };
-
   const handleTyping = async () => {
     if (!user || !otherUser) return;
 
@@ -171,24 +186,20 @@ export default function ChatComponent({ chatId }: ChatProps) {
     if (!user || !newMessage.trim()) return;
 
     try {
-      const messageRef = collection(db, "chats", chatId, "messages");
       const messageData = {
-        text: newMessage,
+        text: newMessage.trim(),
         senderId: user.uid,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
       };
 
-      await addDoc(messageRef, messageData);
+      // Add message to messages collection
+      await addDoc(collection(db, "chats", chatId, "messages"), messageData);
 
       // Update last message in chat document
       await updateDoc(doc(db, "chats", chatId), {
-        lastMessage: {
-          text: newMessage,
-          senderId: user.uid,
-          createdAt: serverTimestamp(),
-        },
+        lastMessage: messageData,
         updatedAt: serverTimestamp(),
-        [`readBy.${user.uid}`]: serverTimestamp()
+        [`readBy.${user.uid}`]: serverTimestamp(),
       });
 
       setNewMessage("");
@@ -199,7 +210,7 @@ export default function ChatComponent({ chatId }: ChatProps) {
   };
 
   return (
-    <Card className="border-none shadow-lg bg-white dark:bg-zinc-950">
+    <Card className="overflow-hidden border-none shadow-lg bg-white dark:bg-zinc-950">
       <CardHeader className="border-b bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20">
         <CardTitle className="flex items-center gap-3">
           {otherUser && (
@@ -210,15 +221,20 @@ export default function ChatComponent({ chatId }: ChatProps) {
                   {otherUser.username?.[0]?.toUpperCase() || "?"}
                 </AvatarFallback>
               </Avatar>
-              <Link href={`/user/${otherUser.userId}`} className="hover:text-primary transition-colors">
-                <span className="font-medium">{otherUser.username || "User Not Found"}</span>
+              <Link
+                href={`/user/${otherUser.userId}`}
+                className="hover:text-primary transition-colors"
+              >
+                <span className="font-medium">
+                  {otherUser.username || "User Not Found"}
+                </span>
               </Link>
             </>
           )}
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <ScrollArea ref={scrollRef} className="h-[600px] px-4 py-6">
+        <ScrollArea className="h-[600px] px-4 py-6">
           <div className="space-y-4">
             {messages.map((message) => {
               const isSender = message.senderId === user?.uid;
@@ -230,16 +246,20 @@ export default function ChatComponent({ chatId }: ChatProps) {
                   <div
                     className={`
                       max-w-[70%] break-words rounded-2xl px-4 py-2
-                      ${isSender 
-                        ? "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-md" 
-                        : "bg-zinc-100 dark:bg-zinc-900 shadow-sm"}
+                      ${
+                        isSender
+                          ? "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-md"
+                          : "bg-zinc-100 dark:bg-zinc-900 shadow-sm"
+                      }
                       transition-all duration-200
                     `}
                   >
                     <p className="leading-relaxed">{message.text}</p>
                     <p
                       className={`text-xs mt-1 ${
-                        isSender ? "text-primary-foreground/80" : "text-muted-foreground"
+                        isSender
+                          ? "text-primary-foreground/80"
+                          : "text-muted-foreground"
                       }`}
                     >
                       {message.createdAt &&
@@ -253,13 +273,23 @@ export default function ChatComponent({ chatId }: ChatProps) {
               <div className="flex justify-start">
                 <div className="bg-zinc-100 dark:bg-zinc-900 rounded-full px-4 py-2 animate-pulse">
                   <div className="flex items-center space-x-1">
-                    <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                    <div
+                      className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce"
+                      style={{ animationDelay: "0ms" }}
+                    />
+                    <div
+                      className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce"
+                      style={{ animationDelay: "150ms" }}
+                    />
+                    <div
+                      className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce"
+                      style={{ animationDelay: "300ms" }}
+                    />
                   </div>
                 </div>
               </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
         </ScrollArea>
         <form onSubmit={sendMessage} className="border-t p-4 bg-background/50">
@@ -274,9 +304,9 @@ export default function ChatComponent({ chatId }: ChatProps) {
               placeholder="Напишете съобщение..."
               className="flex-1 rounded-full bg-zinc-100 dark:bg-zinc-900 border-none focus-visible:ring-primary/20 px-4"
             />
-            <Button 
-              type="submit" 
-              size="icon" 
+            <Button
+              type="submit"
+              size="icon"
               disabled={!newMessage.trim()}
               className="rounded-full hover:shadow-md transition-all"
             >
