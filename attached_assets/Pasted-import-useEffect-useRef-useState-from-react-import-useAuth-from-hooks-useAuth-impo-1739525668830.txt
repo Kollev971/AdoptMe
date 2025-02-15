@@ -19,7 +19,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { Send } from "lucide-react";
-import { Link } from "wouter";
 
 interface ChatProps {
   chatId: string;
@@ -48,6 +47,7 @@ export default function ChatComponent({ chatId }: ChatProps) {
       }));
       setMessages(newMessages);
 
+      // Play sound for new messages
       if (
         newMessages.length > 0 &&
         newMessages[newMessages.length - 1].senderId !== user.uid
@@ -55,6 +55,7 @@ export default function ChatComponent({ chatId }: ChatProps) {
         audioRef.current?.play();
       }
 
+      // Auto scroll
       setTimeout(() => {
         if (scrollRef.current) {
           scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -79,15 +80,7 @@ export default function ChatComponent({ chatId }: ChatProps) {
         if (otherUserId) {
           const userDoc = await getDoc(doc(db, "users", otherUserId));
           if (userDoc.exists()) {
-            const userData = userDoc.data();
-            setOtherUser({
-              userId: otherUserId,
-              username: userData.username,
-              photoURL: userData.photoURL,
-              // Add other necessary fields from user profile
-            });
-          } else {
-            console.error("User not found in users collection");
+            setOtherUser(userDoc.data());
           }
         }
       }
@@ -136,7 +129,7 @@ export default function ChatComponent({ chatId }: ChatProps) {
                 </AvatarFallback>
               </Avatar>
               <Link href={`/user/${otherUser.userId}`} className="hover:text-primary">
-                <span>{otherUser.username || "User Not Found"}</span>
+                <span>{otherUser.username}</span>
               </Link>
             </>
           )}
@@ -154,7 +147,9 @@ export default function ChatComponent({ chatId }: ChatProps) {
                 >
                   <div
                     className={`max-w-[70%] break-words rounded-lg p-3 ${
-                      isSender ? "bg-primary text-primary-foreground" : "bg-muted"
+                      isSender
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted"
                     }`}
                   >
                     <p>{message.text}</p>
