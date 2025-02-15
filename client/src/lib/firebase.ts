@@ -147,7 +147,7 @@ export const sendMessage = async (chatId: string, userId: string, message: strin
 };
 
 // Function to play notification sound
-const notificationSound = new Audio('/notification.mp3');
+const notificationSound = new Audio('/notification.wav');
 
 export const playMessageNotification = () => {
   notificationSound.play().catch(error => {
