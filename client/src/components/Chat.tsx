@@ -2,6 +2,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase";
+import data from "@emoji-mart/data";
+import Picker from "@emoji-mart/react";
+import { Smile } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import {
   collection,
   query,
@@ -185,20 +189,22 @@ export default function ChatComponent({ chatId }: ChatProps) {
                         : "text-muted-foreground"
                       }
                     `}>
-                      {message.createdAt && (
-                        <span>
-                          {format(message.createdAt.toDate(), "HH:mm")}
-                        </span>
-                      )}
-                      {showRead && (
-                        <span className="ml-1">
-                          {isRead ? (
-                            <CheckCheck className="w-4 h-4" />
-                          ) : (
-                            <Check className="w-4 h-4" />
-                          )}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {message.createdAt && (
+                          <span>
+                            {format(message.createdAt.toDate(), "HH:mm")}
+                          </span>
+                        )}
+                        {showRead && (
+                          <span className="ml-1 tooltip-wrapper" title={isRead ? "Read" : "Sent"}>
+                            {isRead ? (
+                              <CheckCheck className="w-4 h-4 text-blue-400" />
+                            ) : (
+                              <Check className="w-4 h-4" />
+                            )}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -207,7 +213,21 @@ export default function ChatComponent({ chatId }: ChatProps) {
           </div>
         </ScrollArea>
         <form onSubmit={sendMessage} className="border-t border-zinc-200 dark:border-zinc-800 p-4 bg-white/50 backdrop-blur-lg dark:bg-zinc-900/50">
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Smile className="h-5 w-5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0" align="start">
+                <Picker 
+                  data={data} 
+                  onEmojiSelect={(emoji: any) => setNewMessage(prev => prev + emoji.native)}
+                  theme="light"
+                />
+              </PopoverContent>
+            </Popover>
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
