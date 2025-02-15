@@ -2,79 +2,95 @@ import { initializeApp, getApps } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 import { getDatabase, ref, push, set } from "firebase/database";
-import { getFirestore, collection, query, getDocs, doc, getDoc, onSnapshot, orderBy } from "firebase/firestore";
+import { getFirestore } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
+import type { FirebaseError } from "firebase/app";
+
+// Validate required environment variables
+const requiredEnvVars = [
+  'VITE_FIREBASE_API_KEY',
+  'VITE_FIREBASE_AUTH_DOMAIN',
+  'VITE_FIREBASE_DATABASE_URL',
+  'VITE_FIREBASE_PROJECT_ID',
+  'VITE_FIREBASE_STORAGE_BUCKET',
+  'VITE_FIREBASE_MESSAGING_SENDER_ID',
+  'VITE_FIREBASE_APP_ID'
+] as const;
+
+for (const envVar of requiredEnvVars) {
+  if (!import.meta.env[envVar]) {
+    throw new Error(`Missing required environment variable: ${envVar}`);
+  }
+}
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBi0vY3afPi46kgqgBJvW6JHxLUwqQsSYI",
-  authDomain: "doggycat-5b20c.firebaseapp.com",
-  databaseURL: "https://doggycat-5b20c-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "doggycat-5b20c",
-  storageBucket: "doggycat-5b20c.firebasestorage.app",
-  messagingSenderId: "147390397323",
-  appId: "1:147390397323:web:581d860b5a6a683acb8d8e",
-  measurementId: "G-PS3DS1YQQY"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+let app;
+try {
+  app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+} catch (error) {
+  console.error("Error initializing Firebase:", error);
+  throw new Error("Failed to initialize Firebase. Please check your configuration.");
+}
 
 export const auth = getAuth(app);
 export const storage = getStorage(app);
-export const database = getDatabase(app); // Realtime Database - само за чат
-export const db = getFirestore(app); // Firestore - за всичко останало
+export const database = getDatabase(app);
+export const db = getFirestore(app);
 export const analytics = getAnalytics(app);
-export { getFirestore, collection, query, getDocs, doc, getDoc, onSnapshot, orderBy };
 
-export const registerUser = async (email: string, password: string) => {
-  try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    if (userCredential.user) {
-      await sendEmailVerification(userCredential.user);
+// Rate limiting configuration
+const rateLimits = {
+  messageLimit: 50, // messages per minute
+  requestLimit: 100, // requests per minute
+  lastMessageTimestamp: 0,
+  messageCount: 0,
+  requestCount: 0,
+  lastRequestTimestamp: 0
+};
+
+// Rate limiting function
+const checkRateLimit = (type: 'message' | 'request'): boolean => {
+  const now = Date.now();
+  const oneMinute = 60 * 1000;
+
+  if (type === 'message') {
+    if (now - rateLimits.lastMessageTimestamp > oneMinute) {
+      rateLimits.messageCount = 0;
+      rateLimits.lastMessageTimestamp = now;
     }
-    return userCredential.user;
-  } catch (error: any) {
-    throw new Error(getFirebaseErrorMessage(error.code));
-  }
-};
-
-export const loginUser = async (email: string, password: string) => {
-  try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    return userCredential.user;
-  } catch (error: any) {
-    throw new Error(getFirebaseErrorMessage(error.code));
-  }
-};
-
-export const sendMessage = async (chatId: string, userId: string, message: string) => {
-  try {
-    const messagesRef = ref(database, `chats/${chatId}/messages`);
-    const newMessageRef = push(messagesRef);
-
-    await set(newMessageRef, {
-      userId,
-      message,
-      timestamp: Date.now()
-    });
-
-    const chatRef = ref(database, `chats/${chatId}`);
-    await set(chatRef, {
-      lastMessage: {
-        text: message,
-        senderId: userId,
-        timestamp: Date.now()
-      }
-    }, { merge: true });
-
+    if (rateLimits.messageCount >= rateLimits.messageLimit) {
+      return false;
+    }
+    rateLimits.messageCount++;
     return true;
-  } catch (error) {
-    console.error("Error sending message:", error);
-    throw error;
+  } else {
+    if (now - rateLimits.lastRequestTimestamp > oneMinute) {
+      rateLimits.requestCount = 0;
+      rateLimits.lastRequestTimestamp = now;
+    }
+    if (rateLimits.requestCount >= rateLimits.requestLimit) {
+      return false;
+    }
+    rateLimits.requestCount++;
+    return true;
   }
 };
 
-const getFirebaseErrorMessage = (errorCode: string): string => {
-  switch (errorCode) {
+// Enhanced error handling
+const handleFirebaseError = (error: FirebaseError): string => {
+  console.error("Firebase operation failed:", error);
+
+  switch (error.code) {
     case 'auth/email-already-in-use':
       return 'Този имейл вече е регистриран';
     case 'auth/invalid-email':
@@ -89,7 +105,88 @@ const getFirebaseErrorMessage = (errorCode: string): string => {
       return 'Няма намерен потребител с този имейл';
     case 'auth/wrong-password':
       return 'Грешна парола';
+    case 'auth/too-many-requests':
+      return 'Твърде много опити. Моля, опитайте по-късно';
+    case 'permission-denied':
+      return 'Нямате права за тази операция';
     default:
       return 'Възникна грешка. Моля, опитайте отново';
   }
 };
+
+export const registerUser = async (email: string, password: string) => {
+  try {
+    if (!checkRateLimit('request')) {
+      throw new Error('Too many registration attempts. Please try again later.');
+    }
+
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    if (userCredential.user) {
+      await sendEmailVerification(userCredential.user);
+    }
+    return userCredential.user;
+  } catch (error: any) {
+    throw new Error(handleFirebaseError(error));
+  }
+};
+
+export const loginUser = async (email: string, password: string) => {
+  try {
+    if (!checkRateLimit('request')) {
+      throw new Error('Too many login attempts. Please try again later.');
+    }
+
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    return userCredential.user;
+  } catch (error: any) {
+    throw new Error(handleFirebaseError(error));
+  }
+};
+
+export const sendMessage = async (chatId: string, userId: string, message: string) => {
+  try {
+    if (!checkRateLimit('message')) {
+      throw new Error('Message rate limit exceeded. Please wait before sending more messages.');
+    }
+
+    // Sanitize message input
+    const sanitizedMessage = message.trim().slice(0, 1000); // Limit message length
+
+    const messagesRef = ref(database, `chats/${chatId}/messages`);
+    const newMessageRef = push(messagesRef);
+
+    await set(newMessageRef, {
+      userId,
+      message: sanitizedMessage,
+      timestamp: Date.now()
+    });
+
+    const chatRef = ref(database, `chats/${chatId}`);
+    await set(chatRef, {
+      lastMessage: {
+        text: sanitizedMessage,
+        senderId: userId,
+        timestamp: Date.now()
+      }
+    }, { merge: true });
+
+    return true;
+  } catch (error) {
+    console.error("Error sending message:", error);
+    throw error;
+  }
+};
+
+// Utility function to verify admin status
+export const isUserAdmin = async (uid: string): Promise<boolean> => {
+  try {
+    const userDoc = await getDoc(doc(db, "users", uid));
+    return userDoc.exists() && userDoc.data()?.isAdmin === true;
+  } catch (error) {
+    console.error("Error checking admin status:", error);
+    return false;
+  }
+};
+
+// Re-export Firestore functions
+export { getFirestore, collection, query, getDocs, doc, getDoc, onSnapshot, orderBy } from 'firebase/firestore';

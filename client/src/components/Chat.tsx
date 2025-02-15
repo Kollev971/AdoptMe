@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase";
 import data from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
-import { Smile } from "lucide-react";
+import { Smile, MessageCircle, Share2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import {
   collection,
@@ -15,7 +15,8 @@ import {
   doc,
   getDoc,
   updateDoc,
-  Timestamp
+  Timestamp,
+  setDoc
 } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,9 +36,76 @@ export default function ChatComponent({ chatId }: ChatProps) {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [otherUser, setOtherUser] = useState<any>(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const [otherUserTyping, setOtherUserTyping] = useState(false);
+  const [lastSeen, setLastSeen] = useState<Timestamp | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout>();
+
+  // Function to update typing status
+  const updateTypingStatus = async (typing: boolean) => {
+    if (!user) return;
+
+    const typingRef = doc(db, "chats", chatId, "typing", user.uid);
+    await setDoc(typingRef, {
+      isTyping: typing,
+      timestamp: serverTimestamp()
+    });
+  };
+
+  // Handle typing indicator
+  useEffect(() => {
+    if (!user || !chatId) return;
+
+    // Listen for other user's typing status
+    const otherUserTypingRef = query(
+      collection(db, "chats", chatId, "typing")
+    );
+
+    const unsubscribe = onSnapshot(otherUserTypingRef, (snapshot) => {
+      snapshot.docs.forEach((doc) => {
+        if (doc.id !== user.uid) {
+          const data = doc.data();
+          setOtherUserTyping(data.isTyping);
+        }
+      });
+    });
+
+    return () => unsubscribe();
+  }, [chatId, user]);
+
+  // Update last seen status
+  useEffect(() => {
+    if (!user || !chatId) return;
+
+    const updateLastSeen = async () => {
+      const userRef = doc(db, "users", user.uid);
+      await updateDoc(userRef, {
+        lastSeen: serverTimestamp()
+      });
+    };
+
+    updateLastSeen();
+    const interval = setInterval(updateLastSeen, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, [user, chatId]);
+
+  // Listen for last seen status of other user
+  useEffect(() => {
+    if (!otherUser) return;
+
+    const userRef = doc(db, "users", otherUser.userId);
+    const unsubscribe = onSnapshot(userRef, (doc) => {
+      if (doc.exists()) {
+        setLastSeen(doc.data().lastSeen);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [otherUser]);
 
   const markMessagesAsRead = async () => {
     if (!user) return;
@@ -122,6 +190,23 @@ export default function ChatComponent({ chatId }: ChatProps) {
     fetchChatData();
   }, [chatId, user]);
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Set typing status to true
+    updateTypingStatus(true);
+
+    // Set new timeout to mark as not typing after 1.5 seconds
+    typingTimeoutRef.current = setTimeout(() => {
+      updateTypingStatus(false);
+    }, 1500);
+  };
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !newMessage.trim()) return;
@@ -144,9 +229,21 @@ export default function ChatComponent({ chatId }: ChatProps) {
       });
 
       setNewMessage("");
+      updateTypingStatus(false);
     } catch (error) {
       console.error("Error sending message:", error);
     }
+  };
+
+  const getLastSeenText = () => {
+    if (!lastSeen) return "Offline";
+    const lastSeenDate = lastSeen.toDate();
+    const now = new Date();
+    const diffInMinutes = Math.floor((now.getTime() - lastSeenDate.getTime()) / 60000);
+
+    if (diffInMinutes < 1) return "Online";
+    if (diffInMinutes < 60) return `Last seen ${diffInMinutes} minutes ago`;
+    return `Last seen ${format(lastSeenDate, "HH:mm")}`;
   };
 
   return (
@@ -161,9 +258,14 @@ export default function ChatComponent({ chatId }: ChatProps) {
                   {otherUser.username?.[0]?.toUpperCase() || "?"}
                 </AvatarFallback>
               </Avatar>
-              <Link href={`/user/${otherUser.userId}`} className="hover:text-primary transition-colors">
-                <span className="font-semibold">{otherUser.username || "Unknown User"}</span>
-              </Link>
+              <div className="flex flex-col">
+                <Link href={`/user/${otherUser.userId}`} className="hover:text-primary transition-colors">
+                  <span className="font-semibold">{otherUser.username || "Unknown User"}</span>
+                </Link>
+                <span className="text-sm text-muted-foreground">
+                  {otherUserTyping ? "Typing..." : getLastSeenText()}
+                </span>
+              </div>
             </>
           )}
         </CardTitle>
@@ -219,6 +321,17 @@ export default function ChatComponent({ chatId }: ChatProps) {
                 </div>
               );
             })}
+            {otherUserTyping && (
+              <div className="flex justify-start">
+                <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-3 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="animate-bounce">•</div>
+                    <div className="animate-bounce delay-100">•</div>
+                    <div className="animate-bounce delay-200">•</div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </ScrollArea>
         <form onSubmit={sendMessage} className="border-t border-zinc-200 dark:border-zinc-800 p-4 bg-white/50 backdrop-blur-lg dark:bg-zinc-900/50">
@@ -240,7 +353,7 @@ export default function ChatComponent({ chatId }: ChatProps) {
             <Input
               ref={inputRef}
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={handleInputChange}
               onFocus={markMessagesAsRead}
               placeholder="Type a message..."
               className="flex-1"
