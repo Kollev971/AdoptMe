@@ -1,0 +1,26 @@
+otherUserTyping is not defined
+at ChatComponent (https://5c9aa107-2140-444b-8d7e-5599f2098857-00-rcsulny0uo3z.riker.replit.dev/src/components/Chat.tsx:343:9)
+at renderWithHooks (https://5c9aa107-2140-444b-8d7e-5599f2098857-00-rcsulny0uo3z.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=dba95cb5:11548:26)
+at mountIndeterminateComponent (https://5c9aa107-2140-444b-8d7e-5599f2098857-00-rcsulny0uo3z.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=dba95cb5:14926:21)
+at beginWork (https://5c9aa107-2140-444b-8d7e-5599f2098857-00-rcsulny0uo3z.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=dba95cb5:15914:22)
+at HTMLUnknownElement.callCallback2 (https://5c9aa107-2140-444b-8d7e-5599f2098857-00-rcsulny0uo3z.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=dba95cb5:3674:22)
+at Object.invokeGuardedCallbackDev (https://5c9aa107-2140-444b-8d7e-5599f2098857-00-rcsulny0uo3z.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=dba95cb5:3699:24)
+at invokeGuardedCallback (https://5c9aa107-2140-444b-8d7e-5599f2098857-00-rcsulny0uo3z.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=dba95cb5:3733:39)
+at beginWork$1 (https://5c9aa107-2140-444b-8d7e-5599f2098857-00-rcsulny0uo3z.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=dba95cb5:19765:15)
+at performUnitOfWork (https://5c9aa107-2140-444b-8d7e-5599f2098857-00-rcsulny0uo3z.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=dba95cb5:19198:20)
+at workLoopSync (https://5c9aa107-2140-444b-8d7e-5599f2098857-00-rcsulny0uo3z.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=dba95cb5:19137:13)
+The above error occurred in the <ChatComponent> component:
+
+    at ChatComponent (https://5c9aa107-2140-444b-8d7e-5599f2098857-00-rcsulny0uo3z.riker.replit.dev/src/components/Chat.tsx:45:41)
+    at div
+    at ChatPage (https://5c9aa107-2140-444b-8d7e-5599f2098857-00-rcsulny0uo3z.riker.replit.dev/src/pages/Chat.tsx:27:22)
+    at Route (https://5c9aa107-2140-444b-8d7e-5599f2098857-00-rcsulny0uo3z.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=dba95cb5:323:16)
+    at Switch (https://5c9aa107-2140-444b-8d7e-5599f2098857-00-rcsulny0uo3z.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=dba95cb5:379:17)
+    at main
+    at div
+    at QueryClientProvider (https://5c9aa107-2140-444b-8d7e-5599f2098857-00-rcsulny0uo3z.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=dba95cb5:2835:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+otherUserTyping is not defined
