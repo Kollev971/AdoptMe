@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase";
@@ -82,13 +81,13 @@ export default function ChatComponent({ chatId }: ChatProps) {
       try {
         const chatRef = doc(db, "chats", chatId);
         const chatDoc = await getDoc(chatRef);
-        
+
         if (chatDoc.exists()) {
           const chatData = chatDoc.data();
           const participants = Array.isArray(chatData.participants) 
             ? chatData.participants 
             : Object.keys(chatData.participants);
-            
+
           const otherUserId = participants.find(
             (id: string) => id !== user.uid
           );
@@ -171,21 +170,19 @@ export default function ChatComponent({ chatId }: ChatProps) {
                   className={`flex ${isSender ? "justify-end" : "justify-start"}`}
                   ref={index === messages.length - 1 ? lastMessageRef : null}
                 >
-                  <div
-                    className={`
+                  <div className={`
                       max-w-[70%] group relative
-                      rounded-2xl p-3
+                      rounded-2xl p-3 shadow-sm
                       ${isSender 
-                        ? "bg-primary text-primary-foreground" 
-                        : "bg-zinc-100 dark:bg-zinc-800"
+                        ? "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground" 
+                        : "bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700"
                       }
-                    `}
-                  >
-                    <p className="break-words">{message.text}</p>
+                    `}>
+                    <p className="break-words leading-relaxed">{message.text}</p>
                     <div className={`
-                      flex items-center gap-1 text-xs mt-1
+                      flex items-center gap-1 text-xs mt-1.5
                       ${isSender 
-                        ? "text-primary-foreground/80" 
+                        ? "text-primary-foreground/90" 
                         : "text-muted-foreground"
                       }
                     `}>
@@ -197,7 +194,7 @@ export default function ChatComponent({ chatId }: ChatProps) {
                         )}
                         {showRead && (
                           <span className="ml-1 tooltip-wrapper" title={isRead ? "Read" : "Sent"}>
-                            {isRead ? (
+                            {isRead && message.readBy?.[otherUser?.userId] ? (
                               <CheckCheck className="w-4 h-4 text-blue-400" />
                             ) : (
                               <Check className="w-4 h-4" />
