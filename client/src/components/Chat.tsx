@@ -11,7 +11,8 @@ import {
   doc,
   getDoc,
   updateDoc,
-  setDoc
+  setDoc,
+  Timestamp
 } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,8 +27,7 @@ interface Message {
   id: string;
   text: string;
   senderId: string;
-  createdAt: any;
-  read?: boolean;
+  createdAt: Timestamp;
 }
 
 interface ChatProps {
@@ -46,6 +46,7 @@ export default function ChatComponent({ chatId }: ChatProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const lastPlayedRef = useRef<number>(0);
 
+  // Fetch messages and handle real-time updates
   useEffect(() => {
     if (!user) return;
 
@@ -61,12 +62,18 @@ export default function ChatComponent({ chatId }: ChatProps) {
       } as Message));
       setMessages(newMessages);
 
+      // Play sound only for new messages from other user
       const lastMessage = newMessages[newMessages.length - 1];
       if (lastMessage && 
           lastMessage.senderId !== user.uid && 
           lastMessage.createdAt?.toMillis() > lastPlayedRef.current) {
         audioRef.current?.play().catch(() => {});
         lastPlayedRef.current = lastMessage.createdAt?.toMillis() || Date.now();
+
+        // Mark message as read in chat document
+        await updateDoc(doc(db, "chats", chatId), {
+          [`readBy.${user.uid}`]: serverTimestamp()
+        });
       }
 
       scrollToBottom();
@@ -75,6 +82,7 @@ export default function ChatComponent({ chatId }: ChatProps) {
     return () => unsubscribe();
   }, [chatId, user]);
 
+  // Fetch chat details and other user info
   useEffect(() => {
     const fetchChatData = async () => {
       if (!user) return;
@@ -103,6 +111,7 @@ export default function ChatComponent({ chatId }: ChatProps) {
     fetchChatData();
   }, [chatId, user]);
 
+  // Handle typing indicator
   useEffect(() => {
     if (!user || !otherUser) return;
 
@@ -149,12 +158,12 @@ export default function ChatComponent({ chatId }: ChatProps) {
       const messageData = {
         text: newMessage,
         senderId: user.uid,
-        createdAt: serverTimestamp(),
-        read: false
+        createdAt: serverTimestamp()
       };
 
       await addDoc(messageRef, messageData);
 
+      // Update last message in chat document
       await updateDoc(doc(db, "chats", chatId), {
         lastMessage: {
           text: newMessage,
@@ -162,6 +171,7 @@ export default function ChatComponent({ chatId }: ChatProps) {
           createdAt: serverTimestamp(),
         },
         updatedAt: serverTimestamp(),
+        [`readBy.${user.uid}`]: serverTimestamp()
       });
 
       setNewMessage("");
@@ -258,7 +268,9 @@ export default function ChatComponent({ chatId }: ChatProps) {
           </div>
         </form>
       </CardContent>
-      <audio ref={audioRef} src="/notification.wav" />
+      <audio ref={audioRef} preload="auto">
+        <source src="/notification.wav" type="audio/wav" />
+      </audio>
     </Card>
   );
 }

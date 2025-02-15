@@ -20,7 +20,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
-import { Loader2, MessageCircle } from "lucide-react";
+import { Loader2, MessageCircle, MessageSquareMore } from "lucide-react";
 
 interface ChatPreview {
   id: string;
@@ -101,11 +101,13 @@ export default function Messages() {
 
   return (
     <div className="container mx-auto p-4 max-w-4xl">
-      <Card className="border-2 border-primary/20">
-        <CardHeader className="border-b bg-primary/5">
+      <Card className="overflow-hidden border-none shadow-lg bg-white dark:bg-zinc-950">
+        <CardHeader className="border-b bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 dark:from-primary/10 dark:via-primary/20 dark:to-primary/10">
           <CardTitle className="flex items-center gap-2">
-            <MessageCircle className="w-5 h-5" />
-            Съобщения
+            <MessageSquareMore className="w-5 h-5 text-primary" />
+            <span className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+              Съобщения
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -116,13 +118,13 @@ export default function Messages() {
               </div>
             ) : chats.length === 0 ? (
               <div className="flex flex-col items-center justify-center p-8 text-center">
-                <MessageCircle className="w-12 h-12 text-muted-foreground mb-4" />
+                <MessageCircle className="w-12 h-12 text-muted-foreground/50 mb-4" />
                 <p className="text-muted-foreground">
                   Все още нямате съобщения
                 </p>
               </div>
             ) : (
-              <div className="divide-y">
+              <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
                 {chats.map((chat) => {
                   const isOwner = user.uid === chat.ownerId;
                   const otherUser = isOwner
@@ -139,15 +141,19 @@ export default function Messages() {
                   return (
                     <Link key={chat.id} href={`/chat/${chat.id}`}>
                       <div
-                        className={`hover:bg-accent/50 transition-colors relative p-4 ${
-                          isUnread ? "bg-primary/5" : ""
-                        }`}
+                        className={`
+                          group relative p-4 
+                          hover:bg-gradient-to-r hover:from-primary/5 hover:to-transparent
+                          dark:hover:from-primary/10 dark:hover:to-transparent
+                          transition-all duration-300
+                          ${isUnread ? "bg-primary/5 dark:bg-primary/10" : ""}
+                        `}
                       >
                         {isUnread && (
-                          <span className="absolute right-4 top-4 h-2 w-2 rounded-full bg-primary" />
+                          <span className="absolute right-4 top-4 h-2 w-2 rounded-full bg-primary animate-pulse" />
                         )}
                         <div className="flex items-center gap-4">
-                          <Avatar className="h-12 w-12 border-2 border-primary/20">
+                          <Avatar className="h-12 w-12 ring-2 ring-primary/20 ring-offset-2 ring-offset-background transition-all duration-300 group-hover:ring-primary/40">
                             {otherUser?.photoURL ? (
                               <AvatarImage
                                 src={otherUser.photoURL}
@@ -168,7 +174,7 @@ export default function Messages() {
                           <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start">
                               <p
-                                className={`font-medium truncate ${
+                                className={`font-medium truncate transition-colors ${
                                   isUnread ? "text-primary" : ""
                                 }`}
                               >
@@ -189,15 +195,15 @@ export default function Messages() {
                             </div>
                             {chat.lastMessage && (
                               <p
-                                className={`text-sm truncate ${
+                                className={`text-sm truncate transition-colors ${
                                   isUnread
                                     ? "text-foreground font-medium"
                                     : "text-muted-foreground"
                                 }`}
                               >
-                                {chat.lastMessage.senderId === user.uid
-                                  ? "Вие: "
-                                  : ""}
+                                {chat.lastMessage.senderId === user.uid && (
+                                  <span className="text-primary/80">Вие: </span>
+                                )}
                                 {chat.lastMessage.text}
                               </p>
                             )}
