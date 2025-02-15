@@ -1,0 +1,11 @@
+iframe.js:308  Info: The current domain is not authorized for OAuth operations. This will prevent signInWithPopup, signInWithRedirect, linkWithPopup and linkWithRedirect from working. Add your domain (79037106-6844-4233-bfa0-ed61355683ff-00-1r9irt342do8p.spock.replit.dev) to the OAuth redirect domains list in the Firebase console -> Authentication -> Settings -> Authorized domains tab.
+ll @ iframe.js:308
+region1.google-analytics.com/g/collect?v=2&tid=G-PS3DS1YQQY&gtm=45je52d0v9205917653za200&_p=1739641193247&gcd=13l3l3l2l1l1&npa=1&dma_cps=syphamo&dma=1&tag_exp=101732279~101732281~102067808~102482432~102539968~102558064~102587591~102605417~102640600&_fid=cuhSFtJ20NrTG2YiO63_aa&cid=12718858.1739636772&ul=en-us&sr=1536x864&uaa=x86&uab=64&uafvl=Microsoft%2520Edge%3B131.0.2903.146%7CChromium%3B131.0.6778.265%7CNot_A%2520Brand%3B24.0.0.0&uamb=0&uam=&uap=Windows&uapv=10.0.0&uaw=0&are=1&frm=0&pscdl=noapi&_s=1&sid=1739636772&sct=1&seg=1&dl=https%3A%2F%2F79037106-6844-4233-bfa0-ed61355683ff-00-1r9irt342do8p.spock.replit.dev%2Fauth&dt=AdoptMe%20-%20Pet%20Adoption%20Platform&en=page_view&_ee=1&ep.origin=firebase&tfd=7627:1 
+        
+        
+        Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+auth:1  Tracking Prevention blocked an XHR request to https://region1.google-analytics.com/g/collect?v=2&tid=G-PS3DS1YQQY&gtm=45je52d0v9205917653za200&_p=1739641193247&gcd=13l3l3l2l1l1&npa=1&dma_cps=syphamo&dma=1&tag_exp=101732279~101732281~102067808~102482432~102539968~102558064~102587591~102605417~102640600&_fid=cuhSFtJ20NrTG2YiO63_aa&cid=12718858.1739636772&ul=en-us&sr=1536x864&uaa=x86&uab=64&uafvl=Microsoft%2520Edge%3B131.0.2903.146%7CChromium%3B131.0.6778.265%7CNot_A%2520Brand%3B24.0.0.0&uamb=0&uam=&uap=Windows&uapv=10.0.0&uaw=0&are=1&frm=0&pscdl=noapi&_s=1&sid=1739636772&sct=1&seg=1&dl=https%3A%2F%2F79037106-6844-4233-bfa0-ed61355683ff-00-1r9irt342do8p.spock.replit.dev%2Fauth&dt=AdoptMe%20-%20Pet%20Adoption%20Platform&en=page_view&_ee=1&ep.origin=firebase&tfd=7627.
+firebase.ts:124  Firebase operation failed: FirebaseError: Firebase: Error (auth/unauthorized-domain).
+    at createErrorInternal (assert.ts:146:55)
+    at _fail (assert.ts:65:9)
+    at _validateOrigin (validate_origin.ts:46:3)
