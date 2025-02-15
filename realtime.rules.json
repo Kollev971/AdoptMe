@@ -2,22 +2,22 @@
   "rules": {
     "chats": {
       "$chatId": {
-        ".read": "auth != null && (root.child('chats').child($chatId).child('participants').val().contains(auth.uid) || root.child('users').child(auth.uid).child('isAdmin').val() == true)",
-        ".write": "auth != null && (root.child('chats').child($chatId).child('participants').val().contains(auth.uid) || root.child('users').child(auth.uid).child('isAdmin').val() == true)",
+        ".read": "auth != null && (data.child('participants').val().indexOf(auth.uid) > -1 || root.child('users').child(auth.uid).child('isAdmin').val() == true)",
+        ".write": "auth != null && (data.child('participants').val().indexOf(auth.uid) > -1 || root.child('users').child(auth.uid).child('isAdmin').val() == true)",
         "messages": {
-          ".read": "auth != null && (root.child('chats').child($chatId).child('participants').val().contains(auth.uid) || root.child('users').child(auth.uid).child('isAdmin').val() == true)",
-          ".write": "auth != null && (root.child('chats').child($chatId).child('participants').val().contains(auth.uid) || root.child('users').child(auth.uid).child('isAdmin').val() == true)",
+          ".read": "auth != null && (root.child('chats').child($chatId).child('participants').val().indexOf(auth.uid) > -1 || root.child('users').child(auth.uid).child('isAdmin').val() == true)",
+          ".write": "auth != null && (root.child('chats').child($chatId).child('participants').val().indexOf(auth.uid) > -1 || root.child('users').child(auth.uid).child('isAdmin').val() == true)",
           "$messageId": {
             ".validate": "newData.hasChildren(['userId', 'message', 'timestamp'])"
           }
         },
         "participants": {
           ".read": "auth != null",
-          ".write": "auth != null && (root.child('chats').child($chatId).child('participants').val().contains(auth.uid) || root.child('users').child(auth.uid).child('isAdmin').val() == true)"
+          ".write": "auth != null && (data.parent().child('participants').val().indexOf(auth.uid) > -1 || root.child('users').child(auth.uid).child('isAdmin').val() == true)"
         },
         "lastMessage": {
           ".read": "auth != null",
-          ".write": "auth != null && (root.child('chats').child($chatId).child('participants').val().contains(auth.uid) || root.child('users').child(auth.uid).child('isAdmin').val() == true)"
+          ".write": "auth != null && (data.parent().child('participants').val().indexOf(auth.uid) > -1 || root.child('users').child(auth.uid).child('isAdmin').val() == true)"
         }
       }
     },

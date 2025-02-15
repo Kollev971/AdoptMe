@@ -123,22 +123,33 @@ export const sendMessage = async (chatId: string, userId: string, message: strin
 
     // Sanitize message input
     const sanitizedMessage = message.trim().slice(0, 1000); // Limit message length
+    const timestamp = Date.now();
 
-    // Store message in both Realtime Database and Firestore
-    // Realtime Database for instant updates
+    // First, update Realtime Database for instant updates
     const messagesRef = ref(database, `chats/${chatId}/messages`);
     const newMessageRef = push(messagesRef);
-    const timestamp = Date.now();
 
     await set(newMessageRef, {
       userId,
       message: sanitizedMessage,
-      timestamp
+      timestamp,
+      createdAt: timestamp // Add this for consistency with Firestore
     });
 
-    // Firestore for persistence and querying
-    const chatRef = doc(db, 'chats', chatId);
-    await updateDoc(chatRef, {
+    // Update chat metadata in Realtime Database
+    const chatRef = ref(database, `chats/${chatId}`);
+    await set(chatRef, {
+      lastMessage: {
+        text: sanitizedMessage,
+        senderId: userId,
+        timestamp
+      },
+      updatedAt: timestamp
+    }, { merge: true }); // Use merge to preserve other data
+
+    // Then, update Firestore for persistence
+    const firestoreChatRef = doc(db, 'chats', chatId);
+    await updateDoc(firestoreChatRef, {
       lastMessage: {
         text: sanitizedMessage,
         senderId: userId,
@@ -147,7 +158,7 @@ export const sendMessage = async (chatId: string, userId: string, message: strin
       updatedAt: serverTimestamp()
     });
 
-    // Store the chat message in Firestore subcollection
+    // Store message in Firestore subcollection
     const messageCollection = collection(db, 'chats', chatId, 'messages');
     await addDoc(messageCollection, {
       text: sanitizedMessage,
@@ -185,7 +196,7 @@ export const markMessagesAsRead = async (chatId: string, userId: string) => {
   }
 };
 
-// Function to get unread messages count
+// Update the getUnreadMessagesCount function to check both databases
 export const getUnreadMessagesCount = async (userId: string) => {
   try {
     const chatsRef = collection(db, 'chats');
@@ -200,7 +211,7 @@ export const getUnreadMessagesCount = async (userId: string) => {
         data.lastMessage.senderId !== userId &&
         (!data.readBy?.[userId] ||
           (data.readBy[userId] &&
-            data.lastMessage.createdAt > data.readBy[userId]))
+            data.lastMessage.createdAt?.toDate() > data.readBy[userId]?.toDate()))
       ) {
         unreadCount++;
       }
