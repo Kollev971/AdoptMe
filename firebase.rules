@@ -12,8 +12,9 @@ service cloud.firestore {
     function isUserInChat(chatId) {
       let chat = get(/databases/$(database)/documents/chats/$(chatId));
       return chat != null && 
-        (chat.data.participants[request.auth.uid] != null || 
-         chat.data.participants.hasAny([request.auth.uid]));
+        (chat.data.participants is map ? 
+          chat.data.participants[request.auth.uid] != null : 
+          chat.data.participants.hasAny([request.auth.uid]));
     }
 
     match /listings/{listingId} {
@@ -25,24 +26,40 @@ service cloud.firestore {
     }
 
     match /chats/{chatId} {
+      allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow read, write: if isSignedIn() && (
-        isUserInChat(chatId) || isAdmin()
-      );
+      allow update, delete: if isSignedIn() && isUserInChat(chatId);
 
       match /messages/{messageId} {
-        allow read, write: if isSignedIn() && (
-          isUserInChat(chatId) || isAdmin()
+        allow read: if isSignedIn() && isUserInChat(chatId);
+        allow create: if isSignedIn() && isUserInChat(chatId);
+        allow update, delete: if isSignedIn() && (
+          resource.data.senderId == request.auth.uid || isAdmin()
         );
       }
 
       match /typing/{userId} {
-        allow read, write: if isSignedIn() && (
-          isUserInChat(chatId) || isAdmin()
-        );
+        allow read, write: if isSignedIn() && isUserInChat(chatId);
       }
     }
 
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+
+      match /private/{document=**} {
+        allow read, write: if request.auth.uid == userId || isAdmin();
+      }
+    }
+
+    match /ratings/{ratingId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && (
+        resource.data.ratingUserId == request.auth.uid || isAdmin()
+      );
+    }
     match /adoptionRequests/{requestId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
@@ -60,27 +77,6 @@ service cloud.firestore {
         resource.data.ownerId == request.auth.uid || 
         resource.data.userId == request.auth.uid ||
         isAdmin()
-      );
-    }
-
-    match /users/{userId} {
-      allow read: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-
-      match /private/{document=**} {
-        allow read, write: if request.auth.uid == userId || isAdmin();
-      }
-    }
-
-    match /ratings/{ratingId} {
-      allow read: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && (
-        resource.data.ratingUserId == request.auth.uid || isAdmin()
-      );
-      allow delete: if isSignedIn() && (
-        resource.data.ratingUserId == request.auth.uid || isAdmin()
       );
     }
   }
