@@ -1,0 +1,348 @@
+X-Frame-Options may only be set via an HTTP header sent along with a document. It may not be set inside <meta>.
+react-dom.development.js:29895 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+79037106-6844-4233-bfa0-ed61355683ff-00-1r9irt342do8p.spock.replit.dev/:1  Tracking Prevention blocked access to storage for https://fonts.gstatic.com/s/inter/v18/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2.
+79037106-6844-4233-bfa0-ed61355683ff-00-1r9irt342do8p.spock.replit.dev/:1  Tracking Prevention blocked access to storage for https://fonts.gstatic.com/s/inter/v18/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2.
+79037106-6844-4233-bfa0-ed61355683ff-00-1r9irt342do8p.spock.replit.dev/:1  Tracking Prevention blocked access to storage for https://fonts.gstatic.com/s/inter/v18/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa0ZL7SUc.woff2.
+79037106-6844-4233-bfa0-ed61355683ff-00-1r9irt342do8p.spock.replit.dev/:1  Tracking Prevention blocked access to storage for https://fonts.gstatic.com/s/inter/v18/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa0ZL7SUc.woff2.
+useAuth.ts:25  [2025-02-15T16:45:31.316Z]  @firebase/firestore: Firestore (11.3.0): Uncaught Error in snapshot listener: FirebaseError: [code=permission-denied]: Missing or insufficient permissions.
+defaultLogHandler @ logger.ts:115
+error @ logger.ts:210
+__PRIVATE_logError @ log.ts:59
+error @ async_observer.ts:54
+onError @ event_manager.ts:470
+__PRIVATE_eventManagerOnWatchError @ event_manager.ts:299
+__PRIVATE_removeAndCleanupTarget @ sync_engine_impl.ts:933
+(anonymous) @ sync_engine_impl.ts:731
+Promise.then
+__PRIVATE_syncEngineRejectListen @ sync_engine_impl.ts:731
+__PRIVATE_handleTargetError @ remote_store.ts:653
+__PRIVATE_onWatchStreamChange @ remote_store.ts:658
+onNext @ persistent_stream.ts:673
+(anonymous) @ persistent_stream.ts:541
+(anonymous) @ persistent_stream.ts:595
+(anonymous) @ async_queue_impl.ts:136
+(anonymous) @ async_queue_impl.ts:187
+Promise.then
+vu @ async_queue_impl.ts:185
+enqueue @ async_queue_impl.ts:130
+enqueueAndForget @ async_queue_impl.ts:94
+(anonymous) @ persistent_stream.ts:593
+(anonymous) @ persistent_stream.ts:537
+Ko @ stream_bridge.ts:102
+(anonymous) @ webchannel_connection.ts:392
+(anonymous) @ webchannel_connection.ts:294
+ab @ webchannel_blob_es2018.js:25
+F2 @ webchannel_blob_es2018.js:23
+Z2.ta @ webchannel_blob_es2018.js:84
+Rb @ webchannel_blob_es2018.js:39
+M2.Y @ webchannel_blob_es2018.js:33
+M2.ca @ webchannel_blob_es2018.js:30
+ab @ webchannel_blob_es2018.js:25
+F2 @ webchannel_blob_es2018.js:23
+Wc @ webchannel_blob_es2018.js:62
+h.bb @ webchannel_blob_es2018.js:61
+h.Ea @ webchannel_blob_es2018.js:61
+Lc @ webchannel_blob_es2018.js:57
+h.Pa @ webchannel_blob_es2018.js:55
+Promise.then
+Nc @ webchannel_blob_es2018.js:55
+h.Pa @ webchannel_blob_es2018.js:55
+Promise.then
+Nc @ webchannel_blob_es2018.js:55
+h.Pa @ webchannel_blob_es2018.js:55
+Promise.then
+Nc @ webchannel_blob_es2018.js:55
+h.Sa @ webchannel_blob_es2018.js:55
+Promise.then
+h.send @ webchannel_blob_es2018.js:52
+h.ea @ webchannel_blob_es2018.js:60
+Jb @ webchannel_blob_es2018.js:30
+fd @ webchannel_blob_es2018.js:76
+h.Fa @ webchannel_blob_es2018.js:75
+Da @ webchannel_blob_es2018.js:14
+Promise.then
+x2 @ webchannel_blob_es2018.js:14
+ec @ webchannel_blob_es2018.js:74
+Rb @ webchannel_blob_es2018.js:39
+M2.Y @ webchannel_blob_es2018.js:33
+M2.ca @ webchannel_blob_es2018.js:30
+ab @ webchannel_blob_es2018.js:25
+F2 @ webchannel_blob_es2018.js:23
+Wc @ webchannel_blob_es2018.js:62
+h.bb @ webchannel_blob_es2018.js:61
+h.Ea @ webchannel_blob_es2018.js:61
+Lc @ webchannel_blob_es2018.js:57
+h.Pa @ webchannel_blob_es2018.js:55
+Promise.then
+Nc @ webchannel_blob_es2018.js:55
+h.Sa @ webchannel_blob_es2018.js:55
+Promise.then
+h.send @ webchannel_blob_es2018.js:52
+h.ea @ webchannel_blob_es2018.js:60
+Jb @ webchannel_blob_es2018.js:29
+Hb @ webchannel_blob_es2018.js:28
+h.Ga @ webchannel_blob_es2018.js:72
+Da @ webchannel_blob_es2018.js:14
+Promise.then
+x2 @ webchannel_blob_es2018.js:14
+fc @ webchannel_blob_es2018.js:70
+h.connect @ webchannel_blob_es2018.js:68
+Y2.m @ webchannel_blob_es2018.js:82
+Fo @ webchannel_connection.ts:260
+send @ stream_bridge.ts:70
+I_ @ persistent_stream.ts:322
+y_ @ persistent_stream.ts:692
+__PRIVATE_sendWatchRequest @ remote_store.ts:348
+(anonymous) @ remote_store.ts:417
+__PRIVATE_onWatchStreamOpen @ remote_store.ts:416
+(anonymous) @ persistent_stream.ts:528
+(anonymous) @ persistent_stream.ts:595
+(anonymous) @ async_queue_impl.ts:136
+(anonymous) @ async_queue_impl.ts:187
+Promise.then
+vu @ async_queue_impl.ts:185
+enqueue @ async_queue_impl.ts:130
+enqueueAndForget @ async_queue_impl.ts:94
+(anonymous) @ persistent_stream.ts:593
+(anonymous) @ persistent_stream.ts:508
+$o @ stream_bridge.ts:86
+(anonymous) @ webchannel_connection.ts:417
+setTimeout
+Wo @ webchannel_connection.ts:412
+f_ @ persistent_stream.ts:656
+V_ @ persistent_stream.ts:503
+(anonymous) @ persistent_stream.ts:477
+Promise.then
+auth @ persistent_stream.ts:467
+start @ persistent_stream.ts:264
+__PRIVATE_startWatchStream @ remote_store.ts:381
+__PRIVATE_remoteStoreListen @ remote_store.ts:287
+__PRIVATE_allocateTargetAndMaybeListen @ sync_engine_impl.ts:374
+await in __PRIVATE_allocateTargetAndMaybeListen
+__PRIVATE_syncEngineListen @ sync_engine_impl.ts:313
+__PRIVATE_eventManagerListen @ event_manager.ts:170
+(anonymous) @ firestore_client.ts:455
+await in (anonymous)
+(anonymous) @ async_queue_impl.ts:136
+(anonymous) @ async_queue_impl.ts:187
+Promise.then
+vu @ async_queue_impl.ts:185
+enqueue @ async_queue_impl.ts:130
+enqueueAndForget @ async_queue_impl.ts:94
+__PRIVATE_firestoreClientListen @ firestore_client.ts:453
+onSnapshot @ firestore_client.ts:464
+(anonymous) @ useAuth.ts:25
+(anonymous) @ auth_impl.ts:741
+Promise.then
+registerStateListener @ auth_impl.ts:737
+onAuthStateChanged @ auth_impl.ts:544
+(anonymous) @ useAuth.ts:15
+commitHookEffectListMount @ react-dom.development.js:23189
+commitPassiveMountOnFiber @ react-dom.development.js:24965
+commitPassiveMountEffects_complete @ react-dom.development.js:24930
+commitPassiveMountEffects_begin @ react-dom.development.js:24917
+commitPassiveMountEffects @ react-dom.development.js:24905
+flushPassiveEffectsImpl @ react-dom.development.js:27078
+flushPassiveEffects @ react-dom.development.js:27023
+performSyncWorkOnRoot @ react-dom.development.js:26115
+flushSyncCallbacks @ react-dom.development.js:12042
+commitRootImpl @ react-dom.development.js:26998
+commitRoot @ react-dom.development.js:26721
+finishConcurrentRender @ react-dom.development.js:26020
+performConcurrentWorkOnRoot @ react-dom.development.js:25848
+workLoop @ scheduler.development.js:266
+flushWork @ scheduler.development.js:239
+performWorkUntilDeadline @ scheduler.development.js:533
+useAuth.ts:25  [2025-02-15T16:45:34.387Z]  @firebase/firestore: Firestore (11.3.0): Uncaught Error in snapshot listener: FirebaseError: [code=permission-denied]: Missing or insufficient permissions.
+defaultLogHandler @ logger.ts:115
+error @ logger.ts:210
+__PRIVATE_logError @ log.ts:59
+error @ async_observer.ts:54
+onError @ event_manager.ts:470
+__PRIVATE_eventManagerOnWatchError @ event_manager.ts:299
+__PRIVATE_removeAndCleanupTarget @ sync_engine_impl.ts:933
+(anonymous) @ sync_engine_impl.ts:731
+Promise.then
+__PRIVATE_syncEngineRejectListen @ sync_engine_impl.ts:731
+__PRIVATE_handleTargetError @ remote_store.ts:653
+__PRIVATE_onWatchStreamChange @ remote_store.ts:658
+onNext @ persistent_stream.ts:673
+(anonymous) @ persistent_stream.ts:541
+(anonymous) @ persistent_stream.ts:595
+(anonymous) @ async_queue_impl.ts:136
+(anonymous) @ async_queue_impl.ts:187
+Promise.then
+vu @ async_queue_impl.ts:185
+enqueue @ async_queue_impl.ts:130
+enqueueAndForget @ async_queue_impl.ts:94
+(anonymous) @ persistent_stream.ts:593
+(anonymous) @ persistent_stream.ts:537
+Ko @ stream_bridge.ts:102
+(anonymous) @ webchannel_connection.ts:392
+(anonymous) @ webchannel_connection.ts:294
+ab @ webchannel_blob_es2018.js:25
+F2 @ webchannel_blob_es2018.js:23
+Z2.ta @ webchannel_blob_es2018.js:84
+Rb @ webchannel_blob_es2018.js:39
+M2.Y @ webchannel_blob_es2018.js:33
+M2.ca @ webchannel_blob_es2018.js:30
+ab @ webchannel_blob_es2018.js:25
+F2 @ webchannel_blob_es2018.js:23
+Wc @ webchannel_blob_es2018.js:62
+h.bb @ webchannel_blob_es2018.js:61
+h.Ea @ webchannel_blob_es2018.js:61
+Lc @ webchannel_blob_es2018.js:57
+h.Pa @ webchannel_blob_es2018.js:55
+Promise.then
+Nc @ webchannel_blob_es2018.js:55
+h.Pa @ webchannel_blob_es2018.js:55
+Promise.then
+Nc @ webchannel_blob_es2018.js:55
+h.Pa @ webchannel_blob_es2018.js:55
+Promise.then
+Nc @ webchannel_blob_es2018.js:55
+h.Pa @ webchannel_blob_es2018.js:55
+Promise.then
+Nc @ webchannel_blob_es2018.js:55
+h.Pa @ webchannel_blob_es2018.js:55
+Promise.then
+Nc @ webchannel_blob_es2018.js:55
+h.Sa @ webchannel_blob_es2018.js:55
+Promise.then
+h.send @ webchannel_blob_es2018.js:52
+h.ea @ webchannel_blob_es2018.js:60
+Jb @ webchannel_blob_es2018.js:30
+fd @ webchannel_blob_es2018.js:76
+h.Fa @ webchannel_blob_es2018.js:75
+Da @ webchannel_blob_es2018.js:14
+Promise.then
+x2 @ webchannel_blob_es2018.js:14
+ec @ webchannel_blob_es2018.js:74
+Rb @ webchannel_blob_es2018.js:39
+M2.Y @ webchannel_blob_es2018.js:33
+M2.ca @ webchannel_blob_es2018.js:30
+ab @ webchannel_blob_es2018.js:25
+F2 @ webchannel_blob_es2018.js:23
+Wc @ webchannel_blob_es2018.js:62
+h.bb @ webchannel_blob_es2018.js:61
+h.Ea @ webchannel_blob_es2018.js:61
+Lc @ webchannel_blob_es2018.js:57
+h.Pa @ webchannel_blob_es2018.js:55
+Promise.then
+Nc @ webchannel_blob_es2018.js:55
+h.Sa @ webchannel_blob_es2018.js:55
+Promise.then
+h.send @ webchannel_blob_es2018.js:52
+h.ea @ webchannel_blob_es2018.js:60
+Jb @ webchannel_blob_es2018.js:29
+Hb @ webchannel_blob_es2018.js:28
+h.Ga @ webchannel_blob_es2018.js:72
+Da @ webchannel_blob_es2018.js:14
+Promise.then
+x2 @ webchannel_blob_es2018.js:14
+fc @ webchannel_blob_es2018.js:70
+h.connect @ webchannel_blob_es2018.js:68
+Y2.m @ webchannel_blob_es2018.js:82
+Fo @ webchannel_connection.ts:260
+send @ stream_bridge.ts:70
+I_ @ persistent_stream.ts:322
+y_ @ persistent_stream.ts:692
+__PRIVATE_sendWatchRequest @ remote_store.ts:348
+(anonymous) @ remote_store.ts:417
+__PRIVATE_onWatchStreamOpen @ remote_store.ts:416
+(anonymous) @ persistent_stream.ts:528
+(anonymous) @ persistent_stream.ts:595
+(anonymous) @ async_queue_impl.ts:136
+(anonymous) @ async_queue_impl.ts:187
+Promise.then
+vu @ async_queue_impl.ts:185
+enqueue @ async_queue_impl.ts:130
+enqueueAndForget @ async_queue_impl.ts:94
+(anonymous) @ persistent_stream.ts:593
+(anonymous) @ persistent_stream.ts:508
+$o @ stream_bridge.ts:86
+(anonymous) @ webchannel_connection.ts:417
+setTimeout
+Wo @ webchannel_connection.ts:412
+f_ @ persistent_stream.ts:656
+V_ @ persistent_stream.ts:503
+(anonymous) @ persistent_stream.ts:477
+Promise.then
+auth @ persistent_stream.ts:467
+start @ persistent_stream.ts:264
+__PRIVATE_startWatchStream @ remote_store.ts:381
+__PRIVATE_remoteStoreListen @ remote_store.ts:287
+__PRIVATE_allocateTargetAndMaybeListen @ sync_engine_impl.ts:374
+await in __PRIVATE_allocateTargetAndMaybeListen
+__PRIVATE_syncEngineListen @ sync_engine_impl.ts:313
+__PRIVATE_eventManagerListen @ event_manager.ts:170
+(anonymous) @ firestore_client.ts:455
+await in (anonymous)
+(anonymous) @ async_queue_impl.ts:136
+(anonymous) @ async_queue_impl.ts:187
+Promise.then
+vu @ async_queue_impl.ts:185
+enqueue @ async_queue_impl.ts:130
+enqueueAndForget @ async_queue_impl.ts:94
+__PRIVATE_firestoreClientListen @ firestore_client.ts:453
+onSnapshot @ firestore_client.ts:464
+(anonymous) @ useAuth.ts:25
+(anonymous) @ auth_impl.ts:741
+Promise.then
+registerStateListener @ auth_impl.ts:737
+onAuthStateChanged @ auth_impl.ts:544
+(anonymous) @ useAuth.ts:15
+commitHookEffectListMount @ react-dom.development.js:23189
+commitPassiveMountOnFiber @ react-dom.development.js:24965
+commitPassiveMountEffects_complete @ react-dom.development.js:24930
+commitPassiveMountEffects_begin @ react-dom.development.js:24917
+commitPassiveMountEffects @ react-dom.development.js:24905
+flushPassiveEffectsImpl @ react-dom.development.js:27078
+flushPassiveEffects @ react-dom.development.js:27023
+performSyncWorkOnRoot @ react-dom.development.js:26115
+flushSyncCallbacks @ react-dom.development.js:12042
+commitRootImpl @ react-dom.development.js:26998
+commitRoot @ react-dom.development.js:26721
+finishConcurrentRender @ react-dom.development.js:26020
+performConcurrentWorkOnRoot @ react-dom.development.js:25848
+workLoop @ scheduler.development.js:266
+flushWork @ scheduler.development.js:239
+performWorkUntilDeadline @ scheduler.development.js:533
+js?l=dataLayer&id=G-PS3DS1YQQY:141 
+        
+        
+        POST https://region1.google-analytics.com/g/collect?v=2&tid=G-PS3DS1YQQY&gtm=45je52d0v9205917653za200&_p=1739637930817&gcd=13l3l3l2l1l1&npa=1&dma_cps=syphamo&dma=1&tag_exp=102067808~102482433~102539968~102556565~102558064~102587591~102605417~102640600~102658453&_fid=cuhSFtJ20NrTG2YiO63_aa&cid=12718858.1739636772&ul=en-us&sr=1536x864&uaa=x86&uab=64&uafvl=Microsoft%2520Edge%3B131.0.2903.146%7CChromium%3B131.0.6778.265%7CNot_A%2520Brand%3B24.0.0.0&uamb=0&uam=&uap=Windows&uapv=10.0.0&uaw=0&are=1&frm=0&pscdl=noapi&_s=1&sid=1739636772&sct=1&seg=1&dl=https%3A%2F%2F79037106-6844-4233-bfa0-ed61355683ff-00-1r9irt342do8p.spock.replit.dev%2F&dt=AdoptMe%20-%20Pet%20Adoption%20Platform&en=page_view&_ee=1&ep.origin=firebase&tfd=11312 net::ERR_BLOCKED_BY_CLIENT
+Cc @ js?l=dataLayer&id=G-PS3DS1YQQY:141
+Kx @ js?l=dataLayer&id=G-PS3DS1YQQY:483
+BJ @ js?l=dataLayer&id=G-PS3DS1YQQY:613
+DJ.flush @ js?l=dataLayer&id=G-PS3DS1YQQY:619
+(anonymous) @ js?l=dataLayer&id=G-PS3DS1YQQY:617
+setTimeout
+DJ.C @ js?l=dataLayer&id=G-PS3DS1YQQY:617
+DJ.add @ js?l=dataLayer&id=G-PS3DS1YQQY:619
+h.jk @ js?l=dataLayer&id=G-PS3DS1YQQY:637
+h.pn @ js?l=dataLayer&id=G-PS3DS1YQQY:637
+(anonymous) @ js?l=dataLayer&id=G-PS3DS1YQQY:633
+Gl @ js?l=dataLayer&id=G-PS3DS1YQQY:330
+Hm @ js?l=dataLayer&id=G-PS3DS1YQQY:338
+(anonymous) @ js?l=dataLayer&id=G-PS3DS1YQQY:633
+c @ js?l=dataLayer&id=G-PS3DS1YQQY:480
+Bw @ js?l=dataLayer&id=G-PS3DS1YQQY:480
+h.on @ js?l=dataLayer&id=G-PS3DS1YQQY:633
+c @ js?l=dataLayer&id=G-PS3DS1YQQY:649
+w @ js?l=dataLayer&id=G-PS3DS1YQQY:354
+Co @ js?l=dataLayer&id=G-PS3DS1YQQY:354
+Bo.flush @ js?l=dataLayer&id=G-PS3DS1YQQY:357
+Bo.push @ js?l=dataLayer&id=G-PS3DS1YQQY:355
+config @ js?l=dataLayer&id=G-PS3DS1YQQY:528
+GB @ js?l=dataLayer&id=G-PS3DS1YQQY:537
+IB @ js?l=dataLayer&id=G-PS3DS1YQQY:539
+setTimeout
+G @ js?l=dataLayer&id=G-PS3DS1YQQY:138
+JB @ js?l=dataLayer&id=G-PS3DS1YQQY:542
+(anonymous) @ js?l=dataLayer&id=G-PS3DS1YQQY:710
+c @ js?l=dataLayer&id=G-PS3DS1YQQY:706
+(anonymous) @ js?l=dataLayer&id=G-PS3DS1YQQY:708
+(anonymous) @ js?l=dataLayer&id=G-PS3DS1YQQY:708
+(anonymous) @ js?l=dataLayer&id=G-PS3DS1YQQY:714
+/messages:1  Tracking Prevention blocked an XHR request to https://region1.google-analytics.com/g/collect?v=2&tid=G-PS3DS1YQQY&gtm=45je52d0v9205917653za200&_p=1739637930817&gcd=13l3l3l2l1l1&npa=1&dma_cps=syphamo&dma=1&tag_exp=102067808~102482433~102539968~102556565~102558064~102587591~102605417~102640600~102658453&_fid=cuhSFtJ20NrTG2YiO63_aa&cid=12718858.1739636772&ul=en-us&sr=1536x864&uaa=x86&uab=64&uafvl=Microsoft%2520Edge%3B131.0.2903.146%7CChromium%3B131.0.6778.265%7CNot_A%2520Brand%3B24.0.0.0&uamb=0&uam=&uap=Windows&uapv=10.0.0&uaw=0&are=1&frm=0&pscdl=noapi&_s=1&sid=1739636772&sct=1&seg=1&dl=https%3A%2F%2F79037106-6844-4233-bfa0-ed61355683ff-00-1r9irt342do8p.spock.replit.dev%2F&dt=AdoptMe%20-%20Pet%20Adoption%20Platform&en=page_view&_ee=1&ep.origin=firebase&tfd=11312.
