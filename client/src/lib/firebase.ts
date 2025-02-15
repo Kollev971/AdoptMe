@@ -2,9 +2,10 @@ import { initializeApp, getApps } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 import { getDatabase, ref, push, set } from "firebase/database";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, serverTimestamp } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 import type { FirebaseError } from "firebase/app";
+import { getDoc, doc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 // Validate required environment variables
 const requiredEnvVars = [
@@ -188,5 +189,69 @@ export const isUserAdmin = async (uid: string): Promise<boolean> => {
   }
 };
 
-// Re-export Firestore functions
-export { getFirestore, collection, query, getDocs, doc, getDoc, onSnapshot, orderBy } from 'firebase/firestore';
+
+// Function to play notification sound
+const notificationSound = new Audio('/notification.mp3');
+
+export const playMessageNotification = () => {
+  notificationSound.play().catch(error => {
+    console.error('Error playing notification sound:', error);
+  });
+};
+
+// Function to mark messages as read
+export const markMessagesAsRead = async (chatId: string, userId: string) => {
+  try {
+    const chatRef = doc(db, 'chats', chatId);
+    await updateDoc(chatRef, {
+      [`readBy.${userId}`]: serverTimestamp()
+    });
+    return true;
+  } catch (error) {
+    console.error('Error marking messages as read:', error);
+    throw error;
+  }
+};
+
+// Function to get unread messages count
+export const getUnreadMessagesCount = async (userId: string) => {
+  try {
+    const chatsRef = collection(db, 'chats');
+    const q = query(chatsRef, where('participants', 'array-contains', userId));
+    const querySnapshot = await getDocs(q);
+
+    let unreadCount = 0;
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (
+        data.lastMessage &&
+        data.lastMessage.senderId !== userId &&
+        (!data.readBy?.[userId] ||
+          (data.readBy[userId] && 
+           data.lastMessage.timestamp > data.readBy[userId]))
+      ) {
+        unreadCount++;
+      }
+    });
+
+    return unreadCount;
+  } catch (error) {
+    console.error('Error getting unread messages count:', error);
+    return 0;
+  }
+};
+
+// Re-export all necessary Firestore functions
+export { 
+  getFirestore, 
+  collection, 
+  query, 
+  getDocs, 
+  doc, 
+  getDoc, 
+  onSnapshot, 
+  orderBy,
+  serverTimestamp,
+  updateDoc,
+  where 
+} from 'firebase/firestore';

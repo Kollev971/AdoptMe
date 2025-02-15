@@ -18,6 +18,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { MessageCircle, MessageSquareMore, Loader2 } from "lucide-react";
+import { playMessageNotification, markMessagesAsRead } from "@/lib/firebase";
 
 interface ChatPreview {
   id: string;
@@ -76,14 +77,29 @@ export default function Messages() {
       try {
         const chatDocs = snapshot.docs;
         const userIds = new Set<string>();
+        let newMessageReceived = false;
 
         chatDocs.forEach(doc => {
           const data = doc.data();
           if (data.ownerId) userIds.add(data.ownerId);
           if (data.requesterId) userIds.add(data.requesterId);
+
+          // Check if there's a new unread message
+          if (data.lastMessage && 
+              data.lastMessage.senderId !== user.uid && 
+              (!data.readBy?.[user.uid] || 
+               (data.readBy[user.uid] && 
+                data.lastMessage.createdAt > data.readBy[user.uid]))) {
+            newMessageReceived = true;
+          }
         });
 
-        const userDetails = await fetchUserDetails([...userIds]);
+        // Play notification sound if new message is received
+        if (newMessageReceived) {
+          playMessageNotification();
+        }
+
+        const userDetails = await fetchUserDetails(Array.from(userIds));
 
         const processedChats = chatDocs.map(doc => {
           const chatData = doc.data() as ChatPreview;
@@ -144,7 +160,11 @@ export default function Messages() {
                      chat.readBy[user.uid].toDate() < chat.lastMessage.createdAt.toDate()));
 
                   return (
-                    <Link key={chat.id} href={`/chat/${chat.id}`}>
+                    <Link key={chat.id} href={`/chat/${chat.id}`} onClick={() => {
+                      if (user) {
+                        markMessagesAsRead(chat.id, user.uid).catch(console.error);
+                      }
+                    }}>
                       <div className={`
                         relative p-4 transition-all duration-200
                         hover:bg-zinc-50 dark:hover:bg-zinc-800/50
