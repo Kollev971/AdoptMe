@@ -128,22 +128,24 @@ export default function Messages() {
                   const otherUser = isOwner
                     ? chat.requesterDetails
                     : chat.ownerDetails;
-                  // const isUnread =
-                  //   chat.lastMessage?.senderId !== user.uid &&
-                  //   (!chat.readBy?.[user.uid] ||
-                  //     (chat.readBy[user.uid] &&
-                  //       chat.lastMessage?.createdAt &&
-                  //       new Date(chat.readBy[user.uid].seconds * 1000) <
-                  //         new Date(chat.lastMessage.createdAt.seconds * 1000)));
+                  const isUnread =
+                    chat.lastMessage?.senderId !== user.uid &&
+                    (!chat.readBy?.[user.uid] ||
+                      (chat.readBy[user.uid] &&
+                        chat.lastMessage?.createdAt &&
+                        new Date(chat.readBy[user.uid].seconds * 1000) <
+                          new Date(chat.lastMessage.createdAt.seconds * 1000)));
 
                   return (
                     <Link key={chat.id} href={`/chat/${chat.id}`}>
                       <div
-                        className={`hover:bg-accent/50 transition-colors relative p-4 `}
+                        className={`hover:bg-accent/50 transition-colors relative p-4 ${
+                          isUnread ? "bg-primary/5" : ""
+                        }`}
                       >
-                        {/* {isUnread && (
+                        {isUnread && (
                           <span className="absolute right-4 top-4 h-2 w-2 rounded-full bg-primary" />
-                        )} */}
+                        )}
                         <div className="flex items-center gap-4">
                           <Avatar className="h-12 w-12 border-2 border-primary/20">
                             {otherUser?.photoURL ? (
@@ -166,7 +168,9 @@ export default function Messages() {
                           <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start">
                               <p
-                                className={`font-medium truncate`}
+                                className={`font-medium truncate ${
+                                  isUnread ? "text-primary" : ""
+                                }`}
                               >
                                 {otherUser?.username ||
                                   otherUser?.fullName ||
@@ -185,7 +189,11 @@ export default function Messages() {
                             </div>
                             {chat.lastMessage && (
                               <p
-                                className={`text-sm truncate text-muted-foreground`}
+                                className={`text-sm truncate ${
+                                  isUnread
+                                    ? "text-foreground font-medium"
+                                    : "text-muted-foreground"
+                                }`}
                               >
                                 {chat.lastMessage.senderId === user.uid
                                   ? "Вие: "

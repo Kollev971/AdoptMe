@@ -41,10 +41,10 @@ export default function ChatComponent({ chatId }: ChatProps) {
   const [otherUser, setOtherUser] = useState<any>(null);
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
   const inputRef = useRef<HTMLInputElement>(null);
-  const lastMessageRef = useRef<string | null>(null);
+  const lastPlayedRef = useRef<number>(0);
 
   useEffect(() => {
     if (!user) return;
@@ -61,35 +61,19 @@ export default function ChatComponent({ chatId }: ChatProps) {
       } as Message));
       setMessages(newMessages);
 
-      if (
-        newMessages.length > 0 &&
-        newMessages[newMessages.length - 1].senderId !== user.uid
-      ) {
-        audioRef.current?.play().catch(() => {});
-      }
-
-      // Скролваме само ако последното съобщение е наше
       const lastMessage = newMessages[newMessages.length - 1];
-      if (lastMessage && lastMessage.senderId === user.uid && lastMessageRef.current !== lastMessage.id) {
-        scrollToBottom();
-        lastMessageRef.current = lastMessage.id;
+      if (lastMessage && 
+          lastMessage.senderId !== user.uid && 
+          lastMessage.createdAt?.toMillis() > lastPlayedRef.current) {
+        audioRef.current?.play().catch(() => {});
+        lastPlayedRef.current = lastMessage.createdAt?.toMillis() || Date.now();
       }
+
+      scrollToBottom();
     });
 
-    // Следим за typing индикатора
-    const typingRef = doc(db, `chats/${chatId}/typing/${otherUser?.userId}`);
-    const typingUnsubscribe = onSnapshot(typingRef, (doc) => {
-      if (doc.exists()) {
-        setIsTyping(true);
-        setTimeout(() => setIsTyping(false), 3000);
-      }
-    });
-
-    return () => {
-      unsubscribe();
-      typingUnsubscribe();
-    };
-  }, [chatId, user, otherUser]);
+    return () => unsubscribe();
+  }, [chatId, user]);
 
   useEffect(() => {
     const fetchChatData = async () => {
@@ -118,6 +102,22 @@ export default function ChatComponent({ chatId }: ChatProps) {
 
     fetchChatData();
   }, [chatId, user]);
+
+  useEffect(() => {
+    if (!user || !otherUser) return;
+
+    const typingRef = doc(db, `chats/${chatId}/typing/${otherUser.userId}`);
+    const unsubscribe = onSnapshot(typingRef, (doc) => {
+      if (doc.exists() && doc.data()?.timestamp) {
+        setIsTyping(true);
+        setTimeout(() => setIsTyping(false), 3000);
+      } else {
+        setIsTyping(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [chatId, user, otherUser]);
 
   const scrollToBottom = () => {
     if (scrollRef.current) {
@@ -165,19 +165,9 @@ export default function ChatComponent({ chatId }: ChatProps) {
       });
 
       setNewMessage("");
-      // Запазваме фокуса на input полето
       inputRef.current?.focus();
     } catch (error) {
       console.error("Error sending message:", error);
-    }
-  };
-
-  const markMessageAsRead = async (messageId: string) => {
-    try {
-      const messageRef = doc(db, "chats", chatId, "messages", messageId);
-      await updateDoc(messageRef, { read: true });
-    } catch (error) {
-      console.error("Error marking message as read:", error);
     }
   };
 
@@ -205,12 +195,6 @@ export default function ChatComponent({ chatId }: ChatProps) {
           <div className="space-y-4">
             {messages.map((message) => {
               const isSender = message.senderId === user?.uid;
-              const isUnread = !message.read && !isSender;
-
-              if (isUnread) {
-                markMessageAsRead(message.id);
-              }
-
               return (
                 <div
                   key={message.id}
@@ -221,10 +205,7 @@ export default function ChatComponent({ chatId }: ChatProps) {
                       max-w-[70%] break-words rounded-2xl px-4 py-2
                       ${isSender 
                         ? "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-md" 
-                        : isUnread
-                          ? "bg-blue-50 dark:bg-blue-900/20 shadow-sm"
-                          : "bg-zinc-100 dark:bg-zinc-900 shadow-sm"
-                      }
+                        : "bg-zinc-100 dark:bg-zinc-900 shadow-sm"}
                       transition-all duration-200
                     `}
                   >
