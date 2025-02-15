@@ -37,6 +37,18 @@ export default function ChatComponent({ chatId }: ChatProps) {
   const [otherUser, setOtherUser] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const markMessagesAsRead = async () => {
+    if (!user) return;
+    try {
+      await updateDoc(doc(db, "chats", chatId), {
+        [`readBy.${user.uid}`]: serverTimestamp()
+      });
+    } catch (error) {
+      console.error("Error marking messages as read:", error);
+    }
+  };
 
   useEffect(() => {
     const scrollToBottom = () => {
@@ -226,8 +238,10 @@ export default function ChatComponent({ chatId }: ChatProps) {
               </PopoverContent>
             </Popover>
             <Input
+              ref={inputRef}
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
+              onFocus={markMessagesAsRead}
               placeholder="Type a message..."
               className="flex-1"
             />
