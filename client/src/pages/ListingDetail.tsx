@@ -172,11 +172,25 @@ export default function ListingDetail() {
             {ownerDetails && (
               <div className="space-y-4">
                 <h2 className="text-2xl font-semibold text-[#004AAD]">Информация за стопанина</h2>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <User className="h-5 w-5 text-[#004AAD]" />
-                    <span>Име: {ownerDetails.fullName}</span>
-                  </div>
+                <Link href={`/user/${listing.userId}`}>
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 rounded-full bg-[#004AAD] text-white flex items-center justify-center text-2xl font-bold">
+                          {ownerDetails.username?.[0]?.toUpperCase() || 'A'}
+                        </div>
+                        <div className="space-y-1">
+                          <h3 className="text-lg font-semibold">{ownerDetails.fullName}</h3>
+                          <p className="text-gray-600">@{ownerDetails.username}</p>
+                          <div className="flex items-center gap-2 text-sm text-gray-500">
+                            <User className="h-4 w-4" />
+                            <span>Вижте профила</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
                   {user && user.uid !== listing.userId && (
                     <div className="flex justify-center mt-4">
                       <Button 

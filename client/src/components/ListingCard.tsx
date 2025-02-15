@@ -120,6 +120,22 @@ export function ListingCard({ listing, showActions, onDelete }: ListingCardProps
                 </Button>
               </Link>
               <Button
+                variant="secondary"
+                size="icon"
+                onClick={() => {
+                  const newStatus = listing.status === 'adopted' ? 'available' : 'adopted';
+                  const listingRef = doc(db, "listings", listing.id);
+                  updateDoc(listingRef, { status: newStatus });
+                }}
+                className={`${
+                  listing.status === 'adopted' 
+                    ? 'bg-green-500 hover:bg-green-600' 
+                    : 'bg-white/90 hover:bg-green-500'
+                } text-white`}
+              >
+                <PawPrint className="h-4 w-4" />
+              </Button>
+              <Button
                 variant="destructive"
                 size="icon"
                 onClick={onDelete}

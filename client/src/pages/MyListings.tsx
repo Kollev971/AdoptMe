@@ -95,12 +95,15 @@ export default function MyListings() {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Моите обяви</CardTitle>
+    <div className="container mx-auto p-6 bg-[#F0F7FF] min-h-screen">
+      <Card className="border border-[#004AAD] shadow-xl">
+        <CardHeader className="bg-[#004AAD] text-white">
+          <CardTitle className="text-2xl font-bold flex items-center gap-2">
+            <PawPrint className="h-6 w-6" />
+            Моите обяви
+          </CardTitle>
         </CardHeader>
-        <ScrollArea className="h-[70vh] px-6">
+        <ScrollArea className="h-[calc(100vh-200px)] px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-6">
             {listings.length > 0 ? (
               listings.map(listing => (
