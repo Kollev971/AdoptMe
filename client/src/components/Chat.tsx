@@ -182,26 +182,26 @@ export default function ChatComponent({ chatId }: ChatProps) {
   };
 
   return (
-    <Card className="border-2 border-primary/20">
-      <CardHeader className="border-b bg-primary/5">
+    <Card className="border-none shadow-lg bg-white dark:bg-zinc-950">
+      <CardHeader className="border-b bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20">
         <CardTitle className="flex items-center gap-3">
           {otherUser && (
             <>
-              <Avatar className="h-8 w-8 border border-primary/20">
+              <Avatar className="h-10 w-10 ring-2 ring-primary/20 ring-offset-2 ring-offset-background transition-all">
                 <AvatarImage src={otherUser.photoURL} />
                 <AvatarFallback className="bg-primary/10 text-primary">
                   {otherUser.username?.[0]?.toUpperCase() || "?"}
                 </AvatarFallback>
               </Avatar>
-              <Link href={`/user/${otherUser.userId}`} className="hover:text-primary">
-                <span>{otherUser.username || "User Not Found"}</span>
+              <Link href={`/user/${otherUser.userId}`} className="hover:text-primary transition-colors">
+                <span className="font-medium">{otherUser.username || "User Not Found"}</span>
               </Link>
             </>
           )}
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <ScrollArea ref={scrollRef} className="h-[600px] p-4">
+        <ScrollArea ref={scrollRef} className="h-[600px] px-4 py-6">
           <div className="space-y-4">
             {messages.map((message) => {
               const isSender = message.senderId === user?.uid;
@@ -217,15 +217,18 @@ export default function ChatComponent({ chatId }: ChatProps) {
                   className={`flex ${isSender ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[70%] break-words rounded-lg p-3 ${
-                      isSender 
-                        ? "bg-primary text-primary-foreground" 
+                    className={`
+                      max-w-[70%] break-words rounded-2xl px-4 py-2
+                      ${isSender 
+                        ? "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-md" 
                         : isUnread
-                          ? "bg-blue-50 dark:bg-blue-900/20"
-                          : "bg-muted"
-                    }`}
+                          ? "bg-blue-50 dark:bg-blue-900/20 shadow-sm"
+                          : "bg-zinc-100 dark:bg-zinc-900 shadow-sm"
+                      }
+                      transition-all duration-200
+                    `}
                   >
-                    <p>{message.text}</p>
+                    <p className="leading-relaxed">{message.text}</p>
                     <p
                       className={`text-xs mt-1 ${
                         isSender ? "text-primary-foreground/80" : "text-muted-foreground"
@@ -240,14 +243,18 @@ export default function ChatComponent({ chatId }: ChatProps) {
             })}
             {isTyping && (
               <div className="flex justify-start">
-                <div className="bg-muted rounded-lg p-3">
-                  <p className="text-sm text-muted-foreground">Пише съобщение...</p>
+                <div className="bg-zinc-100 dark:bg-zinc-900 rounded-full px-4 py-2 animate-pulse">
+                  <div className="flex items-center space-x-1">
+                    <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </div>
                 </div>
               </div>
             )}
           </div>
         </ScrollArea>
-        <form onSubmit={sendMessage} className="border-t p-4">
+        <form onSubmit={sendMessage} className="border-t p-4 bg-background/50">
           <div className="flex gap-2">
             <Input
               ref={inputRef}
@@ -257,9 +264,14 @@ export default function ChatComponent({ chatId }: ChatProps) {
                 handleTyping();
               }}
               placeholder="Напишете съобщение..."
-              className="flex-1"
+              className="flex-1 rounded-full bg-zinc-100 dark:bg-zinc-900 border-none focus-visible:ring-primary/20 px-4"
             />
-            <Button type="submit" size="icon" disabled={!newMessage.trim()}>
+            <Button 
+              type="submit" 
+              size="icon" 
+              disabled={!newMessage.trim()}
+              className="rounded-full hover:shadow-md transition-all"
+            >
               <Send className="h-4 w-4" />
             </Button>
           </div>

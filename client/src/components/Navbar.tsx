@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
-import { MessageSquare, PawPrint } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "./ui/button";
 import { UserMenu } from "./UserMenu";
@@ -93,7 +93,6 @@ export function Navbar() {
         <div className="container flex h-14 items-center">
           <Link href="/">
             <div className="mr-6 flex items-center space-x-2">
-              <PawPrint className="h-6 w-6 text-primary" />
               <span className="font-bold">AdoptMe</span>
             </div>
           </Link>
@@ -109,14 +108,14 @@ export function Navbar() {
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center justify-between">
         <Link href="/">
-          <div className="flex items-center hover:opacity-90 transition-opacity">
+          <div className="flex items-center space-x-0 hover:opacity-90 transition-opacity">
             <img 
               src="/paw-house-logo.png" 
               alt="AdoptMe" 
-              className="h-10 w-10" 
+              className="h-9 w-9" 
             />
-            <div className="flex items-center ml-1">
-              <span className="font-bold">
+            <div className="flex items-center">
+              <span className="font-bold text-lg">
                 <span style={{ color: '#004AAD' }}>Adopt</span>
                 <span style={{ color: '#01BFFF' }}>Me</span>
               </span>
