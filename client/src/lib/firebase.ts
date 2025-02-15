@@ -2,7 +2,7 @@ import { initializeApp, getApps } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 import { getDatabase, ref, push, set, get } from "firebase/database";
-import { getFirestore, serverTimestamp } from "firebase/firestore";
+import { getFirestore, serverTimestamp, setDoc } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 import type { FirebaseError } from "firebase/app";
 import { getDoc, doc, updateDoc, collection, query, where, getDocs, addDoc } from 'firebase/firestore';
@@ -199,8 +199,8 @@ export const getUnreadMessagesCount = async (userId: string) => {
         data.lastMessage &&
         data.lastMessage.senderId !== userId &&
         (!data.readBy?.[userId] ||
-          (data.readBy[userId] && 
-           data.lastMessage.createdAt > data.readBy[userId]))
+          (data.readBy[userId] &&
+            data.lastMessage.createdAt > data.readBy[userId]))
       ) {
         unreadCount++;
       }
@@ -214,19 +214,19 @@ export const getUnreadMessagesCount = async (userId: string) => {
 };
 
 // Re-export all necessary Firestore functions
-export { 
-  getFirestore, 
-  collection, 
-  query, 
-  getDocs, 
-  doc, 
-  getDoc, 
-  onSnapshot, 
+export {
+  getFirestore,
+  collection,
+  query,
+  getDocs,
+  doc,
+  getDoc,
+  onSnapshot,
   orderBy,
   serverTimestamp,
   updateDoc,
   where,
-  addDoc 
+  addDoc
 } from 'firebase/firestore';
 
 export const registerUser = async (email: string, password: string) => {
@@ -239,13 +239,14 @@ export const registerUser = async (email: string, password: string) => {
     if (userCredential.user) {
       await sendEmailVerification(userCredential.user);
 
-      // Create user document in Firestore
+      // Create user document in Firestore using setDoc instead of updateDoc
       const userDoc = doc(db, 'users', userCredential.user.uid);
-      await updateDoc(userDoc, {
+      await setDoc(userDoc, {
         email: userCredential.user.email,
         createdAt: serverTimestamp(),
         isAdmin: false,
-        role: 'user'
+        role: 'user',
+        lastSeen: serverTimestamp()
       });
     }
     return userCredential.user;
@@ -257,12 +258,12 @@ export const registerUser = async (email: string, password: string) => {
 export const loginUser = async (email: string, password: string) => {
   try {
     if (!checkRateLimit('request')) {
-      throw new Error('Too many login attempts. Please try again later.');
+      throw new Error('Твърде много опити за влизане. Моля, опитайте по-късно.');
     }
 
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    // Update last seen
     if (userCredential.user) {
+      // Update last seen
       const userDoc = doc(db, 'users', userCredential.user.uid);
       await updateDoc(userDoc, {
         lastSeen: serverTimestamp()
