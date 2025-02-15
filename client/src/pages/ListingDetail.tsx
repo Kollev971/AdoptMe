@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { MapPin, Calendar, User, Phone, Mail } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import Link from 'next/link'; // Added import for Link component
+import { Link } from 'wouter';
 
 const tagLabels: Record<string, string> = {
   vaccinated: 'Ваксиниран',
