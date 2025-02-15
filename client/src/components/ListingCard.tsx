@@ -128,13 +128,23 @@ export function ListingCard({ listing, showActions, onDelete }: ListingCardProps
                     const listingRef = doc(db, "listings", listing.id);
                     await updateDoc(listingRef, { status: newStatus });
 
+                    const adoptionRef = collection(db, "adoptionRequests");
                     if (newStatus === 'adopted') {
-                      const adoptionRef = collection(db, "adoptionRequests");
                       await addDoc(adoptionRef, {
                         listingId: listing.id,
                         userId: user.uid,
                         status: 'completed',
                         createdAt: new Date().toISOString()
+                      });
+                    } else {
+                      const adoptionsQuery = query(
+                        adoptionRef,
+                        where("listingId", "==", listing.id),
+                        where("status", "==", "completed")
+                      );
+                      const adoptionsSnap = await getDocs(adoptionsQuery);
+                      adoptionsSnap.forEach(async (doc) => {
+                        await deleteDoc(doc.ref);
                       });
                     }
                   } catch (error) {

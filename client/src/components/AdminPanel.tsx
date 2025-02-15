@@ -5,7 +5,7 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Shield, Users, MessageSquare, PawPrint, ChevronDown, ChevronUp, Activity, Calendar } from "lucide-react";
+import { Shield, Users, MessageSquare, PawPrint, ChevronDown, ChevronUp, Activity, Calendar, Clock } from "lucide-react";
 
 export default function AdminPanel() {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,7 +15,13 @@ export default function AdminPanel() {
     totalChats: 0,
     totalAdoptions: 0,
     activeListings: 0,
-    recentActivity: 0
+    recentActivity: 0,
+    totalVisitors: 0,
+    successRate: 0,
+    averageResponseTime: 0,
+    mostActiveUsers: [],
+    popularPetTypes: {},
+    weeklyStats: []
   });
   const [adoptions, setAdoptions] = useState([]);
 
@@ -136,6 +142,27 @@ export default function AdminPanel() {
                 <div>
                   <p className="text-sm text-muted-foreground">Общо обяви</p>
                   <p className="text-2xl font-semibold">{stats.totalListings}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/5 dark:bg-primary/10">
+                <Users className="w-8 h-8 text-primary" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Общо посетители</p>
+                  <p className="text-2xl font-semibold">{stats.totalVisitors}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/5 dark:bg-primary/10">
+                <Activity className="w-8 h-8 text-primary" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Успеваемост на осиновяванията</p>
+                  <p className="text-2xl font-semibold">{stats.successRate}%</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/5 dark:bg-primary/10">
+                <Clock className="w-8 h-8 text-primary" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Средно време за отговор</p>
+                  <p className="text-2xl font-semibold">{stats.averageResponseTime} мин.</p>
                 </div>
               </div>
             </div>

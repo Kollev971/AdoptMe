@@ -132,6 +132,12 @@ export default function Profile() {
                 </Badge>
               )}
             </CardTitle>
+            <div className="mt-4 space-y-2 text-center">
+              <p><span className="font-semibold">Име:</span> {userData.fullName}</p>
+              <p><span className="font-semibold">Имейл:</span> {userData.email}</p>
+              <p><span className="font-semibold">Телефон:</span> {userData.phone}</p>
+              <p><span className="font-semibold">Регистриран на:</span> {new Date(userData.createdAt).toLocaleDateString()}</p>
+            </div>
             <div className="flex items-center justify-center gap-2 mt-4">
               <span className="text-primary">Рейтинг: {averageRating.toFixed(1)}</span>
               <div className="flex">
