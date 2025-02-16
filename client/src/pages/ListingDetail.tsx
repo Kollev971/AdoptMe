@@ -197,7 +197,7 @@ export default function ListingDetail() {
                     <div className="flex justify-center mt-4">
                       <Button
                         onClick={handleConnect}
-                        className="bg-[#01BFFF] hover:bg-[#004AAD] text-white"
+                        className="bg-[#DBC63F] hover:bg-[#D89EAA] text-white"
                       >
                         Свържи се със стопанина
                       </Button>
@@ -217,7 +217,7 @@ export default function ListingDetail() {
             <div className="flex justify-center pt-6">
               <Button
                 onClick={handleConnect}
-                className="bg-[#01BFFF] hover:bg-[#004AAD] text-white px-8 py-6 text-lg rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-105"
+                className="bg-[#DBC63F] hover:bg-[#D89EAA] text-white px-8 py-6 text-lg rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-105"
               >
                 Свържи се със стопанина
               </Button>

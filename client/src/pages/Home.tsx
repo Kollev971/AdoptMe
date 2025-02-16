@@ -18,7 +18,7 @@ export default function Home() {
               transition={{ duration: 0.8 }}
               className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900"
             >
-              Добре дошли в <span style={{ color: "#004AAD" }}>Adopt</span><span style={{ color: "#01BFFF" }}>Me</span>
+              Добре дошли в <span style={{ color: "#DBC63F" }}>Adopt</span><span style={{ color: "#D89EAA" }}>Me</span>
             </motion.h1>
             <p className="mt-3 max-w-md mx-auto text-sm sm:text-base md:text-lg text-gray-500 md:mt-5 md:max-w-3xl">
               Намерете своя перфектен домашен любимец или помогнете на животно в нужда да намери своя дом.
@@ -71,8 +71,8 @@ export default function Home() {
           className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-gray-900"
         >
           Намери своя перфектен
-          <span className="block mt-2" style={{ color: "#004AAD" }}> домашен</span>
-          <span className="block mt-2" style={{ color: "#01BFFF" }}>любимец</span>
+          <span className="block mt-2" style={{ color: "#DBC63F" }}> домашен</span>
+          <span className="block mt-2" style={{ color: "#D89EAA" }}>любимец</span>
         </motion.h1>
         <p className="mt-4 sm:mt-6 max-w-lg mx-auto text-base sm:text-lg text-gray-500 sm:max-w-3xl">
           Дай дом на животни в нужда. Разгледай наличните любимци или публикувай обява за осиновяване.
