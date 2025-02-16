@@ -116,7 +116,7 @@ export function Navbar() {
         <Link href="/">
           <div className="flex items-center space-x-0 hover:opacity-90 transition-opacity">
             <img 
-              src="/paw-house-logo.png" 
+              src="/paw-house-logo.png.png" 
               alt="AdoptMe" 
               className="h-9 w-9" 
             />
