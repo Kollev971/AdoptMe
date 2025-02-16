@@ -14,6 +14,7 @@ import { db } from "@/lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { userSchema } from "@shared/schema";
 import { Check, X } from "lucide-react";
+import { sendPasswordResetEmail } from "firebase/auth";
 
 // First omit the auto-generated fields, then extend with password fields, then add refinement
 const registerFormSchema = userSchema
@@ -172,6 +173,25 @@ export default function Auth() {
     }
   };
 
+  const onPasswordReset = async (email: string) => {
+    try {
+      setLoading(true);
+      await sendPasswordResetEmail(auth, email);
+      toast({
+        title: "Имейл за възстановяване на паролата е изпратен",
+        description: "Моля, проверете пощата си.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Грешка при изпращане на имейл",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex justify-center items-center min-h-[calc(100vh-3.5rem)]">
       <Card className="w-full max-w-md">
@@ -219,6 +239,9 @@ export default function Auth() {
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? "Влизане..." : "Влез"}
                   </Button>
+                  <div className="mt-2 text-right">
+                    <a onClick={() => onPasswordReset(loginForm.getValues("email"))} href="#">Забравена парола?</a>
+                  </div>
                 </form>
               </Form>
               <div className="mt-4 relative">
