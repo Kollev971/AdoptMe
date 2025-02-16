@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -130,8 +131,8 @@ export default function MyListings() {
           </TabsList>
 
           <TabsContent value="active">
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <ScrollArea className="h-[calc(100vh-400px)]">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
                 {activeListings.length > 0 ? (
                   activeListings.map(listing => (
                     <ListingCard 
@@ -148,12 +149,12 @@ export default function MyListings() {
                   </div>
                 )}
               </div>
-            </div>
+            </ScrollArea>
           </TabsContent>
 
           <TabsContent value="archived">
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <ScrollArea className="h-[calc(100vh-400px)]">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
                 {archivedListings.length > 0 ? (
                   archivedListings.map(listing => (
                     <ListingCard 
@@ -170,7 +171,7 @@ export default function MyListings() {
                   </div>
                 )}
               </div>
-            </div>
+            </ScrollArea>
           </TabsContent>
         </Tabs>
       </Card>
