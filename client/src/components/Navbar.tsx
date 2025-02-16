@@ -87,7 +87,7 @@ export function Navbar() {
             <img 
               src="/paw-house-logo.png.png" 
               alt="AdoptMe" 
-              className="h-9 w-9" 
+              className="h-12 w-12" 
               style={{ transform: 'translateY(-1px)' }}
             />
             <span className="text-lg font-bold" style={{ lineHeight: '1', transform: 'translateY(1px)' }}>

@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
 import { PawPrint, Archive } from "lucide-react";
-import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc } from "firebase/firestore";
 import { ListingCard } from "@/components/ListingCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -38,7 +39,6 @@ export default function MyListings() {
       collection(db, "listings"),
       where("userId", "==", user.uid),
       where("status", "==", "available"),
-      where("archived", "==", false),
       orderBy("createdAt", "desc")
     );
 
@@ -115,7 +115,7 @@ export default function MyListings() {
   }
 
   return (
-    <div className="container mx-auto p-6 bg-[#F0F7FF] min-h-screen">
+    <div className="container mx-auto p-6">
       <Card className="border border-[#004AAD] shadow-xl">
         <CardHeader className="bg-[#004AAD] text-white">
           <CardTitle className="text-2xl font-bold flex items-center gap-2">
@@ -123,14 +123,6 @@ export default function MyListings() {
             Моите обяви
           </CardTitle>
         </CardHeader>
-
-        <Alert className="m-6">
-          <Archive className="h-4 w-4" />
-          <AlertDescription>
-            Обявите автоматично се архивират след 30 дни от публикуването им. 
-            Архивираните обяви не са видими за други потребители, но вие можете да ги преглеждате тук.
-          </AlertDescription>
-        </Alert>
 
         <Tabs defaultValue="active" className="p-6">
           <TabsList className="grid w-full grid-cols-2">
