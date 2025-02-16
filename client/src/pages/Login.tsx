@@ -42,15 +42,21 @@ export default function Login() {
     },
   });
 
+  const [resetSuccess, setResetSuccess] = useState(false);
+
   const handlePasswordReset = async (data: z.infer<typeof resetSchema>) => {
     try {
       setLoading(true);
       await sendPasswordResetEmail(auth, data.email);
+      setResetSuccess(true);
       toast({
         title: "Успешно изпратен имейл",
         description: "Проверете пощата си за инструкции за възстановяване на паролата",
       });
-      setIsResetMode(false);
+      setTimeout(() => {
+        setIsResetMode(false);
+        setResetSuccess(false);
+      }, 3000);
       resetForm.reset();
     } catch (error: any) {
       toast({
