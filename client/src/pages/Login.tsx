@@ -167,14 +167,6 @@ export default function Login() {
               >
                 Забравена парола?
               </Button>
-              <Button
-                type="button"
-                variant="link"
-                className="w-full mt-2"
-                onClick={() => setIsResetMode(true)}
-              >
-                Забравена парола?
-              </Button>
               <div className="mt-4 relative">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t" />
