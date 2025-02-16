@@ -41,7 +41,7 @@ export function UserMenu() {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         {userData.fullName && (
           <>
-            <DropdownMenuItem className="font-medium text-[#01BFFF]">
+            <DropdownMenuItem className="font-medium text-[#DBC63F]">
               {userData.fullName}
             </DropdownMenuItem>
             <DropdownMenuSeparator />

@@ -137,7 +137,7 @@ export function ListingCard({ listing, showActions, onDelete }: ListingCardProps
   };
 
   return (
-    <Card className="overflow-hidden border border-[#004AAD] hover:shadow-lg transition-shadow rounded-xl">
+    <Card className="overflow-hidden border border-[#DBC63F] hover:shadow-lg transition-shadow rounded-xl">
       <CardContent className="p-0">
         <div className="relative">
           <Link href={`/listings/${listing.id}`}>
@@ -149,7 +149,7 @@ export function ListingCard({ listing, showActions, onDelete }: ListingCardProps
                 loading="lazy"
               />
               <div className="absolute top-3 left-3 flex gap-2 z-10">
-                <Badge className="bg-[#01BFFF] text-white py-1 px-3 rounded-full shadow-md">
+                <Badge className="bg-[#DBC63F] text-white py-1 px-3 rounded-full shadow-md">
                   {getTypeEmoji(listing.type)} {listing.type === 'dog' ? 'Куче' : listing.type === 'cat' ? 'Котка' : 'Друго'}
                 </Badge>
                 {listing.status === 'adopted' && (
@@ -197,7 +197,7 @@ export function ListingCard({ listing, showActions, onDelete }: ListingCardProps
 
         <div className="p-4">
           <Link href={`/listings/${listing.id}`} className="no-underline">
-            <h3 className="font-semibold text-lg text-[#004AAD] hover:text-[#01BFFF] transition-colors line-clamp-1">
+            <h3 className="font-semibold text-lg text-[#DBC63F] hover:text-[#D89EAA] transition-colors line-clamp-1">
               {listing.title}
             </h3>
           </Link>
@@ -228,7 +228,7 @@ export function ListingCard({ listing, showActions, onDelete }: ListingCardProps
       <CardFooter className="p-4 bg-[#F0F7FF] flex flex-col gap-2 rounded-b-xl">
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-[#004AAD] text-white flex items-center justify-center font-bold">
+            <div className="w-8 h-8 rounded-full bg-[#DBC63F] text-white flex items-center justify-center font-bold">
               {listingUser?.username?.[0]?.toUpperCase() || 'A'}
             </div>
             <Link href={`/user/${listing.userId}`} className="text-sm text-gray-700 hover:text-[#01BFFF] transition-colors">
@@ -245,7 +245,7 @@ export function ListingCard({ listing, showActions, onDelete }: ListingCardProps
               <Share2 className="h-4 w-4 text-[#004AAD]" />
             </Button>
             <Link href={`/listings/${listing.id}`}>
-              <Button variant="default" size="sm" className="rounded-full bg-[#01BFFF] hover:bg-[#004AAD] text-white px-4">
+              <Button variant="default" size="sm" className="rounded-full bg-[#DBC63F] hover:bg-[#D89EAA] text-white px-4">
                 Разгледай →
               </Button>
             </Link>
