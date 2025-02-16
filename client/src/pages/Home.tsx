@@ -9,7 +9,10 @@ export default function Home() {
 
   if (user) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      <div 
+        className="min-h-screen bg-cover bg-center bg-no-repeat" 
+        style={{ backgroundImage: 'url("/main-web-photo.png")' }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           <div className="text-center">
             <motion.h1 
@@ -18,13 +21,12 @@ export default function Home() {
               transition={{ duration: 0.8 }}
               className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900"
             >
-              Добре дошли в <span style={{ color: "#DBC63F" }}>Adopt</span><span style={{ color: "#D89EAA" }}>Me</span>
+              Осинови любов
             </motion.h1>
             <p className="mt-3 max-w-md mx-auto text-sm sm:text-base md:text-lg text-gray-500 md:mt-5 md:max-w-3xl">
               Намерете своя перфектен домашен любимец или помогнете на животно в нужда да намери своя дом.
             </p>
             <AdoptionCounter />
-            <p className="text-primary font-semibold mt-2 text-sm sm:text-base">"Всяко животно заслужава любов и грижа!"</p>
             <div className="mt-6 sm:mt-10 flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center">
               <Link href="/listings">
                 <Button size="lg" className="w-full sm:w-auto button-gradient text-white px-6 sm:px-8 py-2 sm:py-3 rounded-full shadow-lg hover:scale-105 transition">
