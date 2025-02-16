@@ -123,7 +123,7 @@ export default function CreateListing() {
         images,
         tags: selectedTags,
         userId: user.uid,
-        createdAt: isEditing ? undefined : new Date().toISOString(),
+        ...(isEditing ? {} : { createdAt: new Date().toISOString() }),
       };
 
       if (isEditing && params?.id) {
