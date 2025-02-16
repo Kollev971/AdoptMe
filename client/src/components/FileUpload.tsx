@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import imageCompression from "browser-image-compression";
 
 interface FileUploadProps {
   setImages: (images: string[]) => void;
@@ -14,8 +15,25 @@ export function FileUpload({ setImages, images, className }: FileUploadProps) {
   const [progress, setProgress] = useState(0);
   const { toast } = useToast();
 
+  // Конфигурация за компресия на изображения
+  const compressionOptions = {
+    maxSizeMB: 1,
+    maxWidthOrHeight: 1920,
+    useWebWorker: true,
+    initialQuality: 0.8,
+  };
+
   // Hardcoded API key for ImgBB
   const apiKey = 'a662e0016a5d8465729dc716459966fa';
+
+  const compressImage = async (file: File): Promise<File> => {
+    try {
+      return await imageCompression(file, compressionOptions);
+    } catch (error) {
+      console.error('Error compressing image:', error);
+      throw new Error('Failed to compress image');
+    }
+  };
 
   const uploadImage = async (file: File): Promise<string> => {
     const formData = new FormData();
@@ -52,7 +70,7 @@ export function FileUpload({ setImages, images, className }: FileUploadProps) {
 
     const validFiles = Array.from(files).filter(file => {
       const isValidType = file.type.startsWith('image/');
-      const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB max
+      const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB max before compression
 
       if (!isValidType) {
         toast({
@@ -66,7 +84,7 @@ export function FileUpload({ setImages, images, className }: FileUploadProps) {
       if (!isValidSize) {
         toast({
           title: "Файлът е твърде голям",
-          description: "Максималният размер на файла е 5MB.",
+          description: "Максималният размер на файла е 10MB.",
           variant: "destructive",
         });
         return false;
@@ -84,7 +102,11 @@ export function FileUpload({ setImages, images, className }: FileUploadProps) {
     try {
       for (let i = 0; i < validFiles.length; i++) {
         try {
-          const url = await uploadImage(validFiles[i]);
+          // Компресиране на изображението
+          const compressedFile = await compressImage(validFiles[i]);
+
+          // Качване на компресираното изображение
+          const url = await uploadImage(compressedFile);
           uploadedUrls.push(url);
           setProgress(((i + 1) / totalFiles) * 100);
         } catch (error: any) {
@@ -149,6 +171,7 @@ export function FileUpload({ setImages, images, className }: FileUploadProps) {
                 src={img} 
                 alt={`Upload ${index + 1}`} 
                 className="w-full h-full object-cover"
+                loading="lazy"
               />
               <button
                 onClick={() => setImages(images.filter((_, i) => i !== index))}
