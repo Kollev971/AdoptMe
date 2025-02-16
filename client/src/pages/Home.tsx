@@ -17,7 +17,8 @@ export default function Home() {
         backgroundPosition: 'center',
         minHeight: '100vh',
         width: '100%',
-        height: '100%'
+        height: '100%',
+        padding: '0 1rem'
       }}
     >
       <link rel="preload" as="image" href="/main-web-photo.png" />

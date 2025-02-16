@@ -50,6 +50,22 @@ export default function MyListings() {
     );
 
     const unsubscribeActive = onSnapshot(activeQuery, (snapshot) => {
+      const listings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setActiveListings(listings);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching active listings:", error);
+      setLoading(false);
+    });
+
+    const unsubscribeArchived = onSnapshot(archivedQuery, (snapshot) => {
+      const listings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setArchivedListings(listings);
+    }, (error) => {
+      console.error("Error fetching archived listings:", error);
+    });
+
+    const unsubscribeActive = onSnapshot(activeQuery, (snapshot) => {
       setActiveListings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       setLoading(false);
     });
