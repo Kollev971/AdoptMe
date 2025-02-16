@@ -27,7 +27,8 @@ const createListingSchema = z.object({
     .max(300, "Описанието трябва да е максимум 300 символа"),
   images: z.array(z.string()).min(1, "Необходима е поне една снимка"),
   location: z.string().min(3, "Моля, въведете локация"),
-  status: z.enum(["available", "adopted"]).default("available"),
+  gender: z.enum(["male", "female"]).optional(),
+  size: z.enum(["small", "medium", "large"]).optional(),
   tags: z.array(z.string()).default([])
 });
 
@@ -284,19 +285,42 @@ export default function CreateListing() {
 
               <FormField
                 control={form.control}
-                name="status"
+                name="gender"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Статус</FormLabel>
+                    <FormLabel>Пол</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Изберете статус" />
+                          <SelectValue placeholder="Изберете пол" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="available">За осиновяване</SelectItem>
-                        <SelectItem value="adopted">Осиновен</SelectItem>
+                        <SelectItem value="male">Мъжки</SelectItem>
+                        <SelectItem value="female">Женски</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="size"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Размер</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Изберете размер" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="small">Малък</SelectItem>
+                        <SelectItem value="medium">Среден</SelectItem>
+                        <SelectItem value="large">Голям</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

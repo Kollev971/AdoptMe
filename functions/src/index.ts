@@ -1,10 +1,28 @@
-import * as functions from 'firebase-functions';
-import * as admin from 'firebase-admin';
-import { getFirestore } from 'firebase-admin/firestore';
+import * as functions from "firebase-functions";
+import * as admin from "firebase-admin";
 
-// Initialize Firebase Admin
 admin.initializeApp();
-const db = getFirestore();
+
+export const archiveOldListings = functions.pubsub
+  .schedule("every 24 hours")
+  .onRun(async () => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const snapshot = await admin
+      .firestore()
+      .collection("listings")
+      .where("createdAt", "<=", thirtyDaysAgo.toISOString())
+      .where("status", "==", "available")
+      .get();
+
+    const batch = admin.firestore().batch();
+    snapshot.docs.forEach((doc) => {
+      batch.update(doc.ref, { status: "archived" });
+    });
+
+    await batch.commit();
+  });
 
 // Make specific user an admin
 export const setAdminRole = functions.https.onRequest(async (req, res) => {

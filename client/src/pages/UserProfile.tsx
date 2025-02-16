@@ -162,11 +162,16 @@ export default function UserProfile() {
           </div>
           <div className="space-y-4">
             <CardTitle className="text-3xl font-bold">{userProfile.username}</CardTitle>
-            {userProfile.isAdmin && (
-              <Badge variant="secondary" className="bg-primary text-primary-foreground">
-                Администратор
+            <div className="flex gap-2 justify-center">
+              <Badge variant="outline">
+                {userProfile.isAdmin ? 'Администратор' : 'Потребител'}
               </Badge>
-            )}
+              {userProfile.emailVerified && (
+                <Badge variant="outline" className="bg-green-50">
+                  Потвърден профил
+                </Badge>
+              )}
+            </div>
             <div className="flex flex-col items-center gap-2">
               <p className="text-muted-foreground">
                 Регистриран от {new Date(userProfile.createdAt instanceof Date ? userProfile.createdAt : new Date(userProfile.createdAt)).toLocaleDateString('bg-BG')}

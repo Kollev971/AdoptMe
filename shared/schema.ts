@@ -24,6 +24,8 @@ export const listingSchema = z.object({
   id: z.string(),
   title: z.string().min(5).max(50),
   type: z.enum(['dog', 'cat', 'other']),
+  gender: z.enum(['male', 'female']).optional(),
+  size: z.enum(['small', 'medium', 'large']).optional(),
   ageYears: z.number().min(0).max(30),
   ageMonths: z.number().min(0).max(11),
   description: z.string().min(20).max(300),
