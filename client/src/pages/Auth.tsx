@@ -16,6 +16,8 @@ import { userSchema } from "@shared/schema";
 import { Check, X } from "lucide-react";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 // First omit the auto-generated fields, then extend with password fields, then add refinement
 const registerFormSchema = userSchema
@@ -174,6 +176,9 @@ export default function Auth() {
     }
   };
 
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+
   const onPasswordReset = async (email: string) => {
     if (!email) {
       toast({
@@ -191,7 +196,7 @@ export default function Auth() {
         title: "Имейл за възстановяване на паролата е изпратен",
         description: "Проверете пощата си за инструкции за възстановяване на паролата",
       });
-      
+      setShowResetDialog(false);
     } catch (error: any) {
       toast({
         title: "Грешка при изпращане на имейл",
@@ -251,8 +256,41 @@ export default function Auth() {
                     {loading ? "Влизане..." : "Влез"}
                   </Button>
                   <div className="mt-2 text-right">
-                    <a onClick={() => onPasswordReset(loginForm.getValues("email"))} href="#">Забравена парола?</a>
+                    <Button variant="link" className="p-0" onClick={() => setShowResetDialog(true)}>
+                      Забравена парола?
+                    </Button>
                   </div>
+
+                  <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+                    <DialogContent className="sm:max-w-[425px]">
+                      <DialogHeader>
+                        <DialogTitle>Възстановяване на парола</DialogTitle>
+                        <DialogDescription>
+                          Въведете вашия имейл адрес, за да получите линк за възстановяване на паролата.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="reset-email">Имейл</Label>
+                          <Input
+                            id="reset-email"
+                            type="email"
+                            value={resetEmail}
+                            onChange={(e) => setResetEmail(e.target.value)}
+                            placeholder="your@email.com"
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button onClick={() => setShowResetDialog(false)} variant="outline">
+                          Отказ
+                        </Button>
+                        <Button onClick={() => onPasswordReset(resetEmail)} disabled={loading}>
+                          {loading ? "Изпращане..." : "Изпрати"}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </form>
               </Form>
               <div className="mt-4 relative">
