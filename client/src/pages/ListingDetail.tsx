@@ -195,7 +195,7 @@ export default function ListingDetail() {
                   </Link>
                   {user && user.uid !== listing.userId && (
                     <div className="flex justify-center mt-4">
-                      <Button 
+                      <Button
                         onClick={handleConnect}
                         className="bg-[#01BFFF] hover:bg-[#004AAD] text-white"
                       >
