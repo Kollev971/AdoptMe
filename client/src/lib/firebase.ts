@@ -88,13 +88,35 @@ const rateLimits = {
   lastMessageTimestamp: 0,
   messageCount: 0,
   requestCount: 0,
-  lastRequestTimestamp: 0
+  lastRequestTimestamp: 0,
+  loginAttempts: new Map<string, { count: number, timestamp: number }>()
 };
 
 // Rate limiting function
-const checkRateLimit = (type: 'message' | 'request'): boolean => {
+const checkRateLimit = (type: 'message' | 'request' | 'login', identifier?: string): boolean => {
   const now = Date.now();
   const oneMinute = 60 * 1000;
+
+  if (type === 'login' && identifier) {
+    const attempts = rateLimits.loginAttempts.get(identifier) || { count: 0, timestamp: now };
+
+    // Reset attempts after 15 minutes
+    if (now - attempts.timestamp > 15 * oneMinute) {
+      attempts.count = 0;
+      attempts.timestamp = now;
+    }
+
+    // Block after 5 failed attempts
+    if (attempts.count >= 5) {
+      const remainingTime = Math.ceil((attempts.timestamp + 15 * oneMinute - now) / 60000);
+      throw new Error(`Твърде много неуспешни опити. Моля, опитайте отново след ${remainingTime} минути.`);
+    }
+
+    attempts.count++;
+    attempts.timestamp = now;
+    rateLimits.loginAttempts.set(identifier, attempts);
+    return true;
+  }
 
   if (type === 'message') {
     if (now - rateLimits.lastMessageTimestamp > oneMinute) {
@@ -106,17 +128,17 @@ const checkRateLimit = (type: 'message' | 'request'): boolean => {
     }
     rateLimits.messageCount++;
     return true;
-  } else {
-    if (now - rateLimits.lastRequestTimestamp > oneMinute) {
-      rateLimits.requestCount = 0;
-      rateLimits.lastRequestTimestamp = now;
-    }
-    if (rateLimits.requestCount >= rateLimits.requestLimit) {
-      return false;
-    }
-    rateLimits.requestCount++;
-    return true;
   }
+
+  if (now - rateLimits.lastRequestTimestamp > oneMinute) {
+    rateLimits.requestCount = 0;
+    rateLimits.lastRequestTimestamp = now;
+  }
+  if (rateLimits.requestCount >= rateLimits.requestLimit) {
+    return false;
+  }
+  rateLimits.requestCount++;
+  return true;
 };
 
 // Enhanced error handling
@@ -292,12 +314,15 @@ export const registerUser = async (email: string, password: string) => {
 
 export const loginUser = async (email: string, password: string) => {
   try {
-    if (!checkRateLimit('request')) {
+    if (!checkRateLimit('login', email)) {
       throw new Error('Твърде много опити за влизане. Моля, опитайте по-късно.');
     }
 
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     if (userCredential.user) {
+      // Reset login attempts on successful login
+      rateLimits.loginAttempts.delete(email);
+
       // Update last seen
       const userDoc = doc(db, 'users', userCredential.user.uid);
       await updateDoc(userDoc, {
@@ -306,6 +331,13 @@ export const loginUser = async (email: string, password: string) => {
     }
     return userCredential.user;
   } catch (error: any) {
+    // Increment failed attempts
+    const attempts = rateLimits.loginAttempts.get(email) || { count: 0, timestamp: Date.now() };
+    rateLimits.loginAttempts.set(email, {
+      count: attempts.count + 1,
+      timestamp: Date.now()
+    });
+
     throw new Error(handleFirebaseError(error));
   }
 };
