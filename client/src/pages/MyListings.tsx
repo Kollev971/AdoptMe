@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
 import { PawPrint, Archive } from "lucide-react";
-import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc } from "firebase/firestore";
+import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { ListingCard } from "@/components/ListingCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -38,7 +38,7 @@ export default function MyListings() {
       collection(db, "listings"),
       where("userId", "==", user.uid),
       where("status", "==", "available"),
-      orderBy("createdAt", "desc")
+      where("archived", "==", false)
     );
 
     const archivedQuery = query(
