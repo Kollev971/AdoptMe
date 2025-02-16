@@ -11,8 +11,8 @@ export default function AdoptionCounter() {
     const fetchAdoptions = async () => {
       try {
         const adoptionsQuery = query(
-          collection(db, "adoptionRequests"),
-          where("status", "==", "completed")
+          collection(db, "listings"),
+          where("status", "==", "available")
         );
         const adoptionsSnap = await getDocs(adoptionsQuery);
         setAdoptions(adoptionsSnap.size);
@@ -40,7 +40,7 @@ export default function AdoptionCounter() {
             {adoptions}
           </span>
           <span className="block text-xl text-white/90">
-            Успешни осиновявания
+            Активни обяви
           </span>
         </div>
       </div>

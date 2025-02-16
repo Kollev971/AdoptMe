@@ -68,7 +68,11 @@ export default function ListingDetail() {
 
   const handleConnect = async () => {
     if (!user) {
-      toast({ description: "Трябва да влезете в профила си", variant: "destructive" });
+      toast({ 
+        title: "Необходима е регистрация",
+        description: "Трябва да влезете в профила си, за да се свържете със стопанина",
+        variant: "destructive"
+      });
       setLocation("/auth");
       return;
     }
@@ -214,6 +218,16 @@ export default function ListingDetail() {
           </div>
 
           {user && user.uid !== listing.userId && listing.status !== 'adopted' && (
+            <div className="flex justify-center pt-6">
+              <Button
+                onClick={handleConnect}
+                className="bg-[#DBC63F] hover:bg-[#D89EAA] text-white px-8 py-6 text-lg rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-105"
+              >
+                Свържи се със стопанина
+              </Button>
+            </div>
+          )}
+          {!user && listing.status !== 'adopted' && (
             <div className="flex justify-center pt-6">
               <Button
                 onClick={handleConnect}

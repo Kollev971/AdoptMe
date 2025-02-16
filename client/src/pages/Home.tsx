@@ -9,14 +9,14 @@ export default function Home() {
 
   const MainContent = () => (
     <div 
-      className="bg-cover bg-center bg-fixed w-full min-h-screen relative"
+      className="bg-cover bg-center w-full min-h-screen relative"
       style={{ 
         backgroundImage: 'url("/main-web-photo.png")',
-        backgroundPosition: 'center center',
+        backgroundPosition: '50% 35%', // Adjust the vertical position
       }}
     >
-      <div className="absolute inset-0 bg-black/20" /> {/* Overlay for better text readability */}
-      <div className="relative z-10 w-full h-full flex flex-col justify-between px-6 lg:px-12 py-20">
+      <div className="absolute inset-0 bg-black/30" /> {/* Darker overlay for better contrast */}
+      <div className="relative z-10 w-full h-full flex flex-col justify-between px-6 lg:px-12 pt-12 pb-20">
         <div className="flex flex-col md:flex-row justify-between items-start max-w-7xl mx-auto w-full">
           {/* Left side with text */}
           <div className="md:w-1/2 text-left">
@@ -34,11 +34,11 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Right side with counter */}
-          <div className="md:w-1/3 mt-8 md:mt-0 bg-white/90 p-6 rounded-lg shadow-lg">
+          {/* Simplified counter */}
+          <div className="md:w-1/3 mt-8 md:mt-0">
             <div className="flex flex-col items-center justify-center">
-              <span className="text-xl font-semibold mb-4 text-gray-800">Обяви за осиновяване</span>
-              <div className="text-4xl font-bold text-[#FF7A00]">
+              <span className="text-xl font-medium text-white mb-2">Активни обяви</span>
+              <div className="text-5xl font-bold text-white">
                 <AdoptionCounter />
               </div>
             </div>
@@ -55,7 +55,7 @@ export default function Home() {
               Разгледай обявите
             </Button>
           </Link>
-          <Link href="/create-listing">
+          <Link href={user ? "/create-listing" : "/auth"}>
             <Button 
               size="lg" 
               className="w-full sm:w-auto px-8 py-3 text-lg rounded-full shadow-lg hover:scale-105 transition bg-white text-black font-semibold"
