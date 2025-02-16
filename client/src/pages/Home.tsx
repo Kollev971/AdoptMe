@@ -18,18 +18,13 @@ export default function Home() {
         minHeight: '100vh',
         width: '100%',
         height: '100%',
-        padding: '0 1rem',
-        '@media (max-width: 768px)': {
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }
+        padding: '0 1rem'
       }}
     >
       <link rel="preload" as="image" href="/main-web-photo.png" />
-      <div className="absolute inset-0 bg-black/30" /> {/* Darker overlay for better contrast */}
+      <div className="absolute inset-0 bg-black/30" />
       <div className="relative z-10 w-full h-full flex flex-col justify-between px-6 lg:px-12 pt-32 pb-20">
         <div className="flex flex-col md:flex-row justify-between items-start max-w-7xl mx-auto w-full">
-          {/* Left side with text */}
           <div className="md:w-1/2 text-left w-full md:mt-0 mt-[45vh]">
             <motion.h1 
               initial={{ opacity: 0, y: -20 }} 
@@ -44,7 +39,6 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Simplified counter */}
           <div className="md:w-1/3 mt-8 md:mt-0">
             <div className="flex flex-col items-center justify-center">
               <AdoptionCounter />
@@ -52,7 +46,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Centered buttons at the bottom */}
         <div className="flex flex-col sm:flex-row justify-center gap-6 mt-auto w-full">
           <Link href="/listings">
             <Button 

@@ -6,16 +6,16 @@ import type { Listing } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
-import { 
-  doc, 
-  getDoc, 
-  updateDoc, 
-  collection, 
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  collection,
   addDoc,
   query,
   where,
   getDocs,
-  deleteDoc 
+  deleteDoc
 } from "firebase/firestore";
 import { Edit, MapPin, Share2, Trash2, PawPrint } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -99,13 +99,23 @@ export function ListingCard({ listing, showActions, onDelete, hideConnect }: Lis
   const [isChangingStatus, setIsChangingStatus] = useState(false);
 
   const handleStatusChange = async () => {
+    if (!user?.uid) {
+      toast({
+        title: "Необходима е регистрация",
+        description: "Трябва да влезете в профила си",
+        variant: "destructive"
+      });
+      setLocation("/auth");
+      return;
+    }
+
     if (isChangingStatus) return;
-    
+
     try {
       setIsChangingStatus(true);
       const newStatus = listing.status === 'adopted' ? 'available' : 'adopted';
       const listingRef = doc(db, "listings", listing.id);
-      await updateDoc(listingRef, { 
+      await updateDoc(listingRef, {
         status: newStatus,
         adoptedAt: newStatus === 'adopted' ? new Date().toISOString() : null,
         archived: newStatus === 'adopted' ? true : false,
@@ -133,8 +143,8 @@ export function ListingCard({ listing, showActions, onDelete, hideConnect }: Lis
         await Promise.all(deletePromises);
       }
       toast({
-        description: newStatus === 'adopted' 
-          ? "Обявата е маркирана като осиновена" 
+        description: newStatus === 'adopted'
+          ? "Обявата е маркирана като осиновена"
           : "Обявата е маркирана като налична"
       });
     } catch (error) {
@@ -143,12 +153,14 @@ export function ListingCard({ listing, showActions, onDelete, hideConnect }: Lis
         variant: "destructive",
         description: "Възникна грешка при промяна на статуса"
       });
+    } finally {
+      setIsChangingStatus(false);
     }
   };
 
   const handleConnect = () => {
     if (!user) {
-      toast({ 
+      toast({
         title: "Необходима е регистрация",
         description: "Трябва да влезете в профила си, за да се свържете със стопанина",
         variant: "destructive"
@@ -268,9 +280,9 @@ export function ListingCard({ listing, showActions, onDelete, hideConnect }: Lis
               <Share2 className="h-4 w-4 text-[#004AAD]" />
             </Button>
             {!hideConnect && listing.status !== 'adopted' && (
-              <Button 
-                variant="default" 
-                size="sm" 
+              <Button
+                variant="default"
+                size="sm"
                 onClick={handleConnect}
                 className="rounded-full bg-[#DBC63F] hover:bg-[#D89EAA] text-white px-4"
               >
