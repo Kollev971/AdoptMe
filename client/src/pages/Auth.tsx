@@ -186,13 +186,6 @@ export default function Auth() {
 
     try {
       setLoading(true);
-      
-      // Check if user exists and is verified
-      const users = await auth.fetchSignInMethodsForEmail(email);
-      if (users.length === 0) {
-        throw new Error("Не съществува потребител с този имейл адрес");
-      }
-
       await sendPasswordResetEmail(auth, email);
       toast({
         title: "Имейл за възстановяване на паролата е изпратен",
