@@ -12,7 +12,7 @@ export default function AdoptionCounter() {
       try {
         const adoptionsQuery = query(
           collection(db, "listings"),
-          where("status", "==", "adopted")
+          where("status", "==", "available")
         );
         const adoptionsSnap = await getDocs(adoptionsQuery);
         setAdoptions(adoptionsSnap.size);
