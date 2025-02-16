@@ -6,8 +6,7 @@ import { db } from "@/lib/firebase";
 import { PawPrint, Archive } from "lucide-react";
 import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc } from "firebase/firestore";
 import { ListingCard } from "@/components/ListingCard";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
@@ -149,7 +148,7 @@ export default function MyListings() {
                   </div>
                 )}
               </div>
-            </ScrollArea>
+            </div>
           </TabsContent>
 
           <TabsContent value="archived">
@@ -171,7 +170,7 @@ export default function MyListings() {
                   </div>
                 )}
               </div>
-            </ScrollArea>
+            </div>
           </TabsContent>
         </Tabs>
       </Card>
