@@ -37,7 +37,7 @@ interface ListingCardProps {
   hideConnect?: boolean;
 }
 
-export function ListingCard({ listing, showActions, onDelete }: ListingCardProps) {
+export function ListingCard({ listing, showActions, onDelete, hideConnect }: ListingCardProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [listingUser, setListingUser] = useState<any>(null);
