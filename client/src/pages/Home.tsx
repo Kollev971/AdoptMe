@@ -18,7 +18,10 @@ export default function Home() {
         minHeight: '100vh',
         width: '100%',
         height: '100%',
-        padding: '0 1rem'
+        padding: '0 1rem',
+        '@media (max-width: 768px)': {
+          backgroundSize: '70%'
+        }
       }}
     >
       <link rel="preload" as="image" href="/main-web-photo.png" />
