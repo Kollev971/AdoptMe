@@ -38,7 +38,7 @@ export default function MyListings() {
     const activeQuery = query(
       collection(db, "listings"),
       where("userId", "==", user.uid),
-      where("status", "==", "available"),
+      where("status", "in", ["available", undefined]),
       orderBy("createdAt", "desc")
     );
 
@@ -116,23 +116,23 @@ export default function MyListings() {
 
   return (
     <div className="container mx-auto p-6">
-      <Card className="border border-[#004AAD] shadow-xl">
-        <CardHeader className="bg-[#004AAD] text-white">
-          <CardTitle className="text-2xl font-bold flex items-center gap-2">
-            <PawPrint className="h-6 w-6" />
+      <Card className="border-2 border-[#DBC63F] shadow-2xl">
+        <CardHeader className="bg-gradient-to-r from-[#DBC63F] to-[#D89EAA] text-white">
+          <CardTitle className="text-3xl font-bold flex items-center gap-3">
+            <PawPrint className="h-8 w-8" />
             Моите обяви
           </CardTitle>
         </CardHeader>
 
-        <Tabs defaultValue="active" className="p-6">
+        <Tabs defaultValue="active" className="p-8">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="active">Активни обяви</TabsTrigger>
             <TabsTrigger value="archived">Архивирани обяви</TabsTrigger>
           </TabsList>
 
           <TabsContent value="active">
-            <ScrollArea className="h-[calc(100vh-400px)]">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
+            <div className="mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {activeListings.length > 0 ? (
                   activeListings.map(listing => (
                     <ListingCard 
@@ -153,8 +153,8 @@ export default function MyListings() {
           </TabsContent>
 
           <TabsContent value="archived">
-            <ScrollArea className="h-[calc(100vh-400px)]">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
+            <div className="mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {archivedListings.length > 0 ? (
                   archivedListings.map(listing => (
                     <ListingCard 
