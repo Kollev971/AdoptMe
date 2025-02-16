@@ -7,7 +7,17 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, collection, addDoc } from "firebase/firestore";
+import { 
+  doc, 
+  getDoc, 
+  updateDoc, 
+  collection, 
+  addDoc,
+  query,
+  where,
+  getDocs,
+  deleteDoc 
+} from "firebase/firestore";
 import { Edit, MapPin, Share2, Trash2, PawPrint } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -84,6 +94,48 @@ export function ListingCard({ listing, showActions, onDelete }: ListingCardProps
     }
   };
 
+  const handleStatusChange = async () => {
+    try {
+      const newStatus = listing.status === 'adopted' ? 'available' : 'adopted';
+      const listingRef = doc(db, "listings", listing.id);
+      await updateDoc(listingRef, { status: newStatus });
+
+      const adoptionRef = collection(db, "adoptionRequests");
+      if (newStatus === 'adopted') {
+        await addDoc(adoptionRef, {
+          listingId: listing.id,
+          userId: user.uid,
+          ownerId: listing.userId,
+          status: "completed",
+          message: "Автоматично осиновяване от собственика",
+          createdAt: new Date().toISOString()
+        });
+      } else {
+        // Find and delete completed adoption requests for this listing
+        const adoptionsQuery = query(
+          adoptionRef,
+          where("listingId", "==", listing.id),
+          where("status", "==", "completed")
+        );
+        const adoptionsSnap = await getDocs(adoptionsQuery);
+        // Delete all completed adoption requests for this listing
+        const deletePromises = adoptionsSnap.docs.map(doc => deleteDoc(doc.ref));
+        await Promise.all(deletePromises);
+      }
+      toast({
+        description: newStatus === 'adopted' 
+          ? "Обявата е маркирана като осиновена" 
+          : "Обявата е маркирана като налична"
+      });
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast({
+        variant: "destructive",
+        description: "Възникна грешка при промяна на статуса"
+      });
+    }
+  };
+
   return (
     <Card className="overflow-hidden border border-[#004AAD] hover:shadow-lg transition-shadow rounded-xl">
       <CardContent className="p-0">
@@ -114,7 +166,7 @@ export function ListingCard({ listing, showActions, onDelete }: ListingCardProps
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="bg-white/90 hover:bg-white"
+                  className="bg-white/90 hover:bg-white text-[#004AAD]"
                 >
                   <Edit className="h-4 w-4" />
                 </Button>
@@ -122,40 +174,12 @@ export function ListingCard({ listing, showActions, onDelete }: ListingCardProps
               <Button
                 variant="secondary"
                 size="icon"
-                onClick={async () => {
-                  try {
-                    const newStatus = listing.status === 'adopted' ? 'available' : 'adopted';
-                    const listingRef = doc(db, "listings", listing.id);
-                    await updateDoc(listingRef, { status: newStatus });
-
-                    const adoptionRef = collection(db, "adoptionRequests");
-                    if (newStatus === 'adopted') {
-                      await addDoc(adoptionRef, {
-                        listingId: listing.id,
-                        userId: user.uid,
-                        status: 'completed',
-                        createdAt: new Date().toISOString()
-                      });
-                    } else {
-                      const adoptionsQuery = query(
-                        adoptionRef,
-                        where("listingId", "==", listing.id),
-                        where("status", "==", "completed")
-                      );
-                      const adoptionsSnap = await getDocs(adoptionsQuery);
-                      adoptionsSnap.forEach(async (doc) => {
-                        await deleteDoc(doc.ref);
-                      });
-                    }
-                  } catch (error) {
-                    console.error("Error updating status:", error);
-                  }
-                }}
+                onClick={handleStatusChange}
                 className={`${
                   listing.status === 'adopted'
-                    ? 'bg-green-500 hover:bg-green-600'
-                    : 'bg-white/90 hover:bg-green-500'
-                } text-white`}
+                    ? 'bg-green-500 hover:bg-green-600 text-white'
+                    : 'bg-white/90 hover:bg-green-500 hover:text-white text-[#004AAD]'
+                }`}
               >
                 <PawPrint className="h-4 w-4" />
               </Button>
@@ -163,7 +187,7 @@ export function ListingCard({ listing, showActions, onDelete }: ListingCardProps
                 variant="destructive"
                 size="icon"
                 onClick={onDelete}
-                className="bg-white/90 hover:bg-red-500 hover:text-white"
+                className="bg-white/90 hover:bg-red-500 hover:text-white text-red-500"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
