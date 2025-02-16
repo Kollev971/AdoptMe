@@ -29,17 +29,17 @@ export default function AdoptionCounter() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.2 }}
-      className="bg-[#DBC63F]/20 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20"
+      className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 shadow-xl border border-white/20"
     >
-      <div className="flex flex-col items-center gap-3">
-        <div className="bg-[#DBC63F] rounded-full p-3">
-          <PawPrint className="w-8 h-8 text-black" />
+      <div className="flex flex-col items-center gap-4">
+        <div className="bg-[#FFD43B] rounded-full p-4">
+          <PawPrint className="w-10 h-10 text-black" />
         </div>
         <div className="text-center">
-          <span className="block text-4xl font-bold text-white mb-2">
+          <span className="block text-5xl font-bold text-white mb-3">
             {adoptions}
           </span>
-          <span className="block text-lg text-white/90">
+          <span className="block text-xl text-white/90">
             Успешни осиновявания
           </span>
         </div>

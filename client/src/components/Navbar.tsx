@@ -13,7 +13,6 @@ export function Navbar() {
   const [unreadCount, setUnreadCount] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastPlayedRef = useRef(0);
-  const notificationTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     if (!user) return;
@@ -63,37 +62,9 @@ export function Navbar() {
     return () => unsubscribe();
   }, [user]);
 
-  const markMessagesAsRead = async () => {
-    if (!user || unreadCount === 0) return;
-
-    const chatsQuery = query(
-      collection(db, "chats"),
-      where("participants", "array-contains", user.uid)
-    );
-
-    const snapshot = await getDocs(chatsQuery);
-    snapshot.docs.forEach(async (docSnap) => {
-      const data = docSnap.data();
-      const lastMessage = data.lastMessage;
-      const readBy = data.readBy || {};
-
-      if (
-        lastMessage &&
-        lastMessage.senderId !== user.uid &&
-        (!readBy[user.uid] || new Date(readBy[user.uid]) < new Date(lastMessage.createdAt.toDate()))
-      ) {
-        const chatRef = doc(db, "chats", docSnap.id);
-        await updateDoc(chatRef, {
-          [`readBy.${user.uid}`]: new Date()
-        });
-      }
-    });
-    setUnreadCount(0);
-  };
-
   if (loading) {
     return (
-      <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <nav className="fixed top-0 left-0 right-0 h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
         <div className="container flex h-16 items-center">
           <Link href="/">
             <div className="flex items-center space-x-2">
@@ -109,21 +80,19 @@ export function Navbar() {
   }
 
   return (
-    <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <nav className="fixed top-0 left-0 right-0 h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
       <div className="container flex h-16 items-center justify-between">
         <Link href="/">
-          <div className="flex items-center gap-2 hover:opacity-90 transition-opacity">
+          <div className="flex items-center gap-1 hover:opacity-90 transition-opacity">
             <img 
               src="/paw-house-logo.png.png" 
               alt="AdoptMe" 
-              className="h-8 w-8" 
+              className="h-7 w-7" 
             />
-            <div className="flex items-center">
-              <span className="text-lg font-bold" style={{ lineHeight: '1' }}>
-                <span style={{ color: '#DBC63F' }}>Adopt</span>
-                <span style={{ color: '#D89EAA' }}>Me</span>
-              </span>
-            </div>
+            <span className="text-lg font-bold" style={{ lineHeight: '1', transform: 'translateY(1px)' }}>
+              <span style={{ color: '#DBC63F' }}>Adopt</span>
+              <span style={{ color: '#D89EAA' }}>Me</span>
+            </span>
           </div>
         </Link>
 
@@ -132,8 +101,7 @@ export function Navbar() {
             <>
               <Link 
                 href="/messages" 
-                className="relative" 
-                onClick={markMessagesAsRead}
+                className="relative"
               >
                 <div className="relative">
                   <Button 
