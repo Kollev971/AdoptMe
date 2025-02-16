@@ -122,8 +122,8 @@ export function Navbar() {
             />
             <div className="flex items-center">
               <span className="font-bold text-lg">
-                <span style={{ color: '#004AAD' }}>Adopt</span>
-                <span style={{ color: '#01BFFF' }}>Me</span>
+                <span style={{ color: '#DBC63F' }}>Adopt</span>
+                <span style={{ color: '#D89EAA' }}>Me</span>
               </span>
             </div>
           </div>
