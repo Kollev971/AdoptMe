@@ -11,7 +11,7 @@ export default function Home() {
     <div 
       className="bg-cover bg-center w-full min-h-screen relative"
       style={{ 
-        backgroundImage: `url("/main-web-photo.png?t=${Date.now()}")`,
+        backgroundImage: `url("/main-web-photo.png")`,
         backgroundSize: 'cover',
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'center',
@@ -20,6 +20,7 @@ export default function Home() {
         height: '100%'
       }}
     >
+      <link rel="preload" as="image" href="/main-web-photo.png" />
       <div className="absolute inset-0 bg-black/30" /> {/* Darker overlay for better contrast */}
       <div className="relative z-10 w-full h-full flex flex-col justify-between px-6 lg:px-12 pt-32 pb-20">
         <div className="flex flex-col md:flex-row justify-between items-start max-w-7xl mx-auto w-full">
