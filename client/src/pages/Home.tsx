@@ -12,7 +12,7 @@ export default function Home() {
       className="bg-cover bg-center w-full min-h-screen relative"
       style={{ 
         backgroundImage: `url("/main-web-photo.png?t=${Date.now()}")`,
-        backgroundSize: '50%',
+        backgroundSize: 'cover',
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'center',
         minHeight: '100vh',
