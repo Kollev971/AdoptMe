@@ -12,7 +12,7 @@ export default function Home() {
       className="bg-cover bg-center w-full min-h-screen relative"
       style={{ 
         backgroundImage: `url("/main-web-photo.png?t=${Date.now()}")`,
-        backgroundSize: 'contain',
+        backgroundSize: 'cover',
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'center',
         minHeight: '100vh',
@@ -20,9 +20,8 @@ export default function Home() {
         height: '100%',
         padding: '0 1rem',
         '@media (max-width: 768px)': {
-          backgroundSize: '90%',
-          backgroundPosition: 'top center',
-          paddingTop: '2rem'
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
         }
       }}
     >
