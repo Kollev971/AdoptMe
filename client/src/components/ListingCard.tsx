@@ -34,6 +34,7 @@ interface ListingCardProps {
   listing: Listing;
   showActions?: boolean;
   onDelete?: () => void;
+  hideConnect?: boolean;
 }
 
 export function ListingCard({ listing, showActions, onDelete }: ListingCardProps) {
@@ -256,7 +257,7 @@ export function ListingCard({ listing, showActions, onDelete }: ListingCardProps
             >
               <Share2 className="h-4 w-4 text-[#004AAD]" />
             </Button>
-            {listing.status !== 'adopted' && (
+            {!hideConnect && listing.status !== 'adopted' && (
               <Button 
                 variant="default" 
                 size="sm" 

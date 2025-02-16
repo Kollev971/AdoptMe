@@ -1,12 +1,14 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
-import { PawPrint } from "lucide-react";
+import { PawPrint, Archive } from "lucide-react";
 import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc } from "firebase/firestore";
 import { ListingCard } from "@/components/ListingCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,12 +19,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
 
 export default function MyListings() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [listings, setListings] = useState<any[]>([]);
+  const [activeListings, setActiveListings] = useState<any[]>([]);
+  const [archivedListings, setArchivedListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [listingToDelete, setListingToDelete] = useState<string | null>(null);
@@ -31,25 +35,34 @@ export default function MyListings() {
   useEffect(() => {
     if (!user) return;
 
-    const q = query(
+    const activeQuery = query(
       collection(db, "listings"),
       where("userId", "==", user.uid),
+      where("status", "!=", "archived"),
+      orderBy("status"),
       orderBy("createdAt", "desc")
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setListings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      setLoading(false);
-    }, (error) => {
-      toast({ 
-        title: "Грешка", 
-        description: "Проблем при зареждането на обявите", 
-        variant: "destructive" 
-      });
+    const archivedQuery = query(
+      collection(db, "listings"),
+      where("userId", "==", user.uid),
+      where("status", "==", "archived"),
+      orderBy("createdAt", "desc")
+    );
+
+    const unsubscribeActive = onSnapshot(activeQuery, (snapshot) => {
+      setActiveListings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    const unsubscribeArchived = onSnapshot(archivedQuery, (snapshot) => {
+      setArchivedListings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    return () => {
+      unsubscribeActive();
+      unsubscribeArchived();
+    };
   }, [user]);
 
   const handleDeleteClick = (listingId: string) => {
@@ -104,24 +117,65 @@ export default function MyListings() {
             Моите обяви
           </CardTitle>
         </CardHeader>
-        <ScrollArea className="h-[calc(100vh-200px)] px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-6">
-            {listings.length > 0 ? (
-              listings.map(listing => (
-                <ListingCard 
-                  key={listing.id} 
-                  listing={listing} 
-                  onDelete={() => handleDeleteClick(listing.id)}
-                  showActions 
-                />
-              ))
-            ) : (
-              <div className="col-span-full text-center text-muted-foreground">
-                Нямате създадени обяви
+
+        <Alert className="m-6">
+          <Archive className="h-4 w-4" />
+          <AlertDescription>
+            Обявите автоматично се архивират след 30 дни от публикуването им. 
+            Архивираните обяви не са видими за други потребители, но вие можете да ги преглеждате тук.
+          </AlertDescription>
+        </Alert>
+
+        <Tabs defaultValue="active" className="p-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="active">Активни обяви</TabsTrigger>
+            <TabsTrigger value="archived">Архивирани обяви</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="active">
+            <ScrollArea className="h-[calc(100vh-400px)]">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {activeListings.length > 0 ? (
+                  activeListings.map(listing => (
+                    <ListingCard 
+                      key={listing.id} 
+                      listing={listing} 
+                      onDelete={() => handleDeleteClick(listing.id)}
+                      showActions
+                      hideConnect
+                    />
+                  ))
+                ) : (
+                  <div className="col-span-full text-center text-muted-foreground">
+                    Нямате активни обяви
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </ScrollArea>
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="archived">
+            <ScrollArea className="h-[calc(100vh-400px)]">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {archivedListings.length > 0 ? (
+                  archivedListings.map(listing => (
+                    <ListingCard 
+                      key={listing.id} 
+                      listing={listing} 
+                      onDelete={() => handleDeleteClick(listing.id)}
+                      showActions
+                      hideConnect
+                    />
+                  ))
+                ) : (
+                  <div className="col-span-full text-center text-muted-foreground">
+                    Нямате архивирани обяви
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          </TabsContent>
+        </Tabs>
       </Card>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
