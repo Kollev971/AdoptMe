@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +23,17 @@ export default function Settings() {
   const [pushNotifications, setPushNotifications] = useState(true);
 
   const handlePasswordChange = async () => {
+    const isGoogleUser = user?.providerData[0]?.providerId === 'google.com';
+
+    if (isGoogleUser) {
+      toast({
+        title: "Невъзможна промяна",
+        description: "Google акаунтите не могат да променят паролата си тук",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!user || !oldPassword || !newPassword || newPassword !== confirmPassword) {
       toast({ 
         title: "Грешка", 
@@ -38,7 +48,7 @@ export default function Settings() {
       const credential = EmailAuthProvider.credential(user.email!, oldPassword);
       await reauthenticateWithCredential(user, credential);
       await updatePassword(user, newPassword);
-      
+
       toast({ title: "Успешно", description: "Паролата е променена успешно" });
       setOldPassword("");
       setNewPassword("");
@@ -58,11 +68,11 @@ export default function Settings() {
     try {
       if (type === 'email') setEmailNotifications(value);
       if (type === 'push') setPushNotifications(value);
-      
+
       await updateDoc(doc(db, "users", user!.uid), {
         [`notifications.${type}`]: value
       });
-      
+
       toast({ title: "Успешно", description: "Настройките са запазени" });
     } catch (error: any) {
       toast({ 
@@ -76,7 +86,7 @@ export default function Settings() {
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">Настройки</h1>
-      
+
       <Tabs defaultValue="security" className="w-full max-w-2xl mx-auto">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="security" className="flex items-center gap-2">
