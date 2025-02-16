@@ -12,7 +12,7 @@ export default function Home() {
       className="bg-cover bg-center w-full min-h-screen relative"
       style={{ 
         backgroundImage: `url("/main-web-photo.png?t=${Date.now()}")`,
-        backgroundSize: 'cover',
+        backgroundSize: 'contain',
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'center',
         minHeight: '100vh',
@@ -20,7 +20,9 @@ export default function Home() {
         height: '100%',
         padding: '0 1rem',
         '@media (max-width: 768px)': {
-          backgroundSize: '70%'
+          backgroundSize: '90%',
+          backgroundPosition: 'top center',
+          paddingTop: '2rem'
         }
       }}
     >
@@ -29,12 +31,12 @@ export default function Home() {
       <div className="relative z-10 w-full h-full flex flex-col justify-between px-6 lg:px-12 pt-32 pb-20">
         <div className="flex flex-col md:flex-row justify-between items-start max-w-7xl mx-auto w-full">
           {/* Left side with text */}
-          <div className="md:w-1/2 text-left">
+          <div className="md:w-1/2 text-left w-full md:mt-0 mt-[45vh]">
             <motion.h1 
               initial={{ opacity: 0, y: -20 }} 
               animate={{ opacity: 1, y: 0 }} 
               transition={{ duration: 0.8 }}
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6"
+              className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6"
             >
               Осинови любов
             </motion.h1>
