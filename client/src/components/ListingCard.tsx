@@ -98,12 +98,15 @@ export function ListingCard({ listing, showActions, onDelete, hideConnect }: Lis
 
   const handleStatusChange = async () => {
     try {
-      const newStatus = listing.status === 'adopted' ? 'available' : 'adopted';
+      const newStatus = listing.status === 'adopted' ? 'available' : 'archived';
       const listingRef = doc(db, "listings", listing.id);
-      await updateDoc(listingRef, { status: newStatus });
+      await updateDoc(listingRef, { 
+        status: newStatus,
+        adoptedAt: newStatus === 'archived' ? new Date().toISOString() : null
+      });
 
       const adoptionRef = collection(db, "adoptionRequests");
-      if (newStatus === 'adopted') {
+      if (newStatus === 'archived') {
         await addDoc(adoptionRef, {
           listingId: listing.id,
           userId: user.uid,
