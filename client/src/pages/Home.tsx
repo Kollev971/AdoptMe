@@ -11,7 +11,7 @@ export default function Home() {
     <div 
       className="bg-cover bg-center w-full min-h-screen relative"
       style={{ 
-        backgroundImage: `url("/main-web-photo.png")`,
+        backgroundImage: `url("/main-web-photo.png?t=${Date.now()}")`,
         backgroundSize: 'cover',
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'center',
