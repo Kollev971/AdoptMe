@@ -150,6 +150,14 @@ export default function Login() {
                         <FormControl>
                           <Input type="password" placeholder="Въведете вашата парола" {...field} />
                         </FormControl>
+                        <Button
+                          type="button"
+                          variant="link"
+                          className="px-0 text-sm"
+                          onClick={() => setIsResetMode(true)}
+                        >
+                          Забравена парола?
+                        </Button>
                         <FormMessage />
                       </FormItem>
                     )}
