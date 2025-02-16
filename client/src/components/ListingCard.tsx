@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -6,7 +6,6 @@ import type { Listing } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
-import { db } from "@/lib/firebase";
 import { 
   doc, 
   getDoc, 
@@ -20,6 +19,7 @@ import {
 } from "firebase/firestore";
 import { Edit, MapPin, Share2, Trash2, PawPrint } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { db } from "@/lib/firebase";
 
 const tagLabels: Record<string, string> = {
   vaccinated: 'Ваксиниран',
@@ -40,6 +40,7 @@ export function ListingCard({ listing, showActions, onDelete }: ListingCardProps
   const { user } = useAuth();
   const { toast } = useToast();
   const [listingUser, setListingUser] = useState<any>(null);
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     const fetchListingUser = async () => {
@@ -111,14 +112,12 @@ export function ListingCard({ listing, showActions, onDelete }: ListingCardProps
           createdAt: new Date().toISOString()
         });
       } else {
-        // Find and delete completed adoption requests for this listing
         const adoptionsQuery = query(
           adoptionRef,
           where("listingId", "==", listing.id),
           where("status", "==", "completed")
         );
         const adoptionsSnap = await getDocs(adoptionsQuery);
-        // Delete all completed adoption requests for this listing
         const deletePromises = adoptionsSnap.docs.map(doc => deleteDoc(doc.ref));
         await Promise.all(deletePromises);
       }
@@ -134,6 +133,19 @@ export function ListingCard({ listing, showActions, onDelete }: ListingCardProps
         description: "Възникна грешка при промяна на статуса"
       });
     }
+  };
+
+  const handleConnect = () => {
+    if (!user) {
+      toast({ 
+        title: "Необходима е регистрация",
+        description: "Трябва да влезете в профила си, за да се свържете със стопанина",
+        variant: "destructive"
+      });
+      setLocation("/auth");
+      return;
+    }
+    setLocation(`/listings/${listing.id}`);
   };
 
   return (
@@ -244,11 +256,16 @@ export function ListingCard({ listing, showActions, onDelete }: ListingCardProps
             >
               <Share2 className="h-4 w-4 text-[#004AAD]" />
             </Button>
-            <Link href={`/listings/${listing.id}`}>
-              <Button variant="default" size="sm" className="rounded-full bg-[#DBC63F] hover:bg-[#D89EAA] text-white px-4">
-                Разгледай →
+            {listing.status !== 'adopted' && (
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={handleConnect}
+                className="rounded-full bg-[#DBC63F] hover:bg-[#D89EAA] text-white px-4"
+              >
+                Свържи се
               </Button>
-            </Link>
+            )}
           </div>
         </div>
       </CardFooter>
