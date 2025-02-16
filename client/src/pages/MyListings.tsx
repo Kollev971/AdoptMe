@@ -38,7 +38,8 @@ export default function MyListings() {
       collection(db, "listings"),
       where("userId", "==", user.uid),
       where("status", "==", "available"),
-      where("archived", "==", false)
+      where("archived", "==", false),
+      orderBy("createdAt", "desc")
     );
 
     const archivedQuery = query(

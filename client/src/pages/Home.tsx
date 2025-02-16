@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { useState, useEffect } from 'react';
+import AdoptionCounter from "@/components/AdoptionCounter"; // Assuming this component exists
 
 export default function Home() {
   const { user } = useAuth();
@@ -45,7 +46,7 @@ export default function Home() {
                 <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-2">
                   Осинови любов
                 </h1>
-                <div className="h-1 w-24 bg-yellow-400 rounded-full mb-6"></div>
+                <div className="h-1 w-24 bg-[#DBC63F] rounded-full mb-6"></div>
               </motion.div>
 
               <motion.p 
@@ -59,12 +60,15 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="md:w-1/3 mt-8 md:mt-0 flex flex-col items-center">
-            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-20 h-20">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-              <text x="50%" y="50%" textAnchor="middle" fill="white" fontSize="7" fontWeight="normal" dy=".3em">{adoptions}</text>
-            </svg>
-            <span className="text-white text-sm mt-2">Осиновени животни</span>
+          <div className="md:w-1/3 mt-8 md:mt-0">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.8 }} 
+              animate={{ opacity: 1, scale: 1 }} 
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="flex flex-col items-center justify-center"
+            >
+              <AdoptionCounter />
+            </motion.div>
           </div>
         </div>
 

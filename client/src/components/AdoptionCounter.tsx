@@ -10,8 +10,8 @@ export default function AdoptionCounter() {
     const fetchAdoptions = async () => {
       try {
         const adoptionsQuery = query(
-          collection(db, "adoptionRequests"),
-          where("status", "==", "completed")
+          collection(db, "listings"),
+          where("status", "==", "adopted")
         );
         const adoptionsSnap = await getDocs(adoptionsQuery);
         setAdoptions(adoptionsSnap.size);
@@ -37,7 +37,7 @@ export default function AdoptionCounter() {
           viewBox="0 0 24 24" 
           fill="none" 
           stroke="white" 
-          strokeWidth="1" 
+          strokeWidth="0.5" 
           strokeLinecap="round" 
           strokeLinejoin="round" 
           className="w-20 h-20"
@@ -48,8 +48,8 @@ export default function AdoptionCounter() {
             y="50%" 
             textAnchor="middle" 
             fill="white" 
-            fontSize="6" 
-            fontWeight="300" 
+            fontSize="5" 
+            fontWeight="200" 
             dy=".3em"
             style={{ fontFamily: 'Arial' }}
           >
