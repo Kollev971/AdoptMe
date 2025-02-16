@@ -38,15 +38,14 @@ export default function MyListings() {
     const activeQuery = query(
       collection(db, "listings"),
       where("userId", "==", user.uid),
-      where("isActive", "==", true),
+      where("status", "==", "available"),
       orderBy("createdAt", "desc")
     );
 
     const archivedQuery = query(
       collection(db, "listings"),
       where("userId", "==", user.uid),
-      where("archived", "==", true),
-      where("isActive", "==", false),
+      where("status", "==", "adopted"),
       orderBy("createdAt", "desc")
     );
 
