@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
@@ -30,12 +29,21 @@ export default function AdoptionCounter() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.2 }}
-      className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full"
+      className="bg-[#DBC63F]/20 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20"
     >
-      <PawPrint className="w-5 h-5 text-primary" />
-      <span className="text-lg font-semibold">
-        {adoptions} успешни осиновявания
-      </span>
+      <div className="flex flex-col items-center gap-3">
+        <div className="bg-[#DBC63F] rounded-full p-3">
+          <PawPrint className="w-8 h-8 text-black" />
+        </div>
+        <div className="text-center">
+          <span className="block text-4xl font-bold text-white mb-2">
+            {adoptions}
+          </span>
+          <span className="block text-lg text-white/90">
+            Успешни осиновявания
+          </span>
+        </div>
+      </div>
     </motion.div>
   );
 }
