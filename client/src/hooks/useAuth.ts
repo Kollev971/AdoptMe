@@ -1,10 +1,9 @@
-import React from 'react';
+
 import { User as FirebaseUser } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 import type { User } from "@shared/schema";
-
-const { useState, useEffect } = React;
+import { useEffect, useState } from 'react';
 
 export function useAuth() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -14,7 +13,7 @@ export function useAuth() {
   useEffect(() => {
     const unsubscribeAuth = auth.onAuthStateChanged(async (firebaseUser) => {
       setUser(firebaseUser);
-
+      
       if (!firebaseUser) {
         setUserData(null);
         setLoading(false);
