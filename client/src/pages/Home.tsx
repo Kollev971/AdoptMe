@@ -12,10 +12,12 @@ export default function Home() {
       className="bg-cover bg-center w-full min-h-screen relative"
       style={{ 
         backgroundImage: `url("/main-web-photo.png?t=${Date.now()}")`,
-backgroundSize: 'cover',
-backgroundRepeat: 'no-repeat',
-        backgroundPosition: '50% 35%', 
-        minHeight: '100vh'
+        backgroundSize: 'cover',
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'center',
+        minHeight: '100vh',
+        width: '100%',
+        height: '100%'
       }}
     >
       <div className="absolute inset-0 bg-black/30" /> {/* Darker overlay for better contrast */}
