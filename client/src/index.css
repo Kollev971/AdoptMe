@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
@@ -18,22 +17,22 @@
 
 @layer components {
   .hero-gradient {
-    @apply bg-gradient-to-r from-[#004AAD] to-[#01BFFF];
+    @apply bg-gradient-to-r from-[#DBC63F] to-[#D89EAA];
   }
-  
+
   .card-hover {
-    @apply transition-all duration-300 hover:shadow-lg hover:transform hover:-translate-y-1 hover:shadow-[#01BFFF]/10;
+    @apply transition-all duration-300 hover:shadow-lg hover:transform hover:-translate-y-1 hover:shadow-[#D89EAA]/10;
   }
-  
+
   .input-focus {
-    @apply focus:ring-2 focus:ring-[#004AAD]/50 focus:border-[#004AAD];
+    @apply focus:ring-2 focus:ring-[#DBC63F]/50 focus:border-[#DBC63F];
   }
-  
+
   .button-gradient {
-    @apply bg-gradient-to-r from-[#004AAD] to-[#01BFFF] hover:from-[#01BFFF] hover:to-[#004AAD] text-white;
+    @apply bg-gradient-to-r from-[#DBC63F] to-[#D89EAA] hover:from-[#D89EAA] hover:to-[#DBC63F] text-white;
   }
 
   .button-outline {
-    @apply border-2 border-[#004AAD] text-[#004AAD] hover:bg-[#004AAD] hover:text-white transition-colors;
+    @apply border-2 border-[#DBC63F] text-[#DBC63F] hover:bg-[#DBC63F] hover:text-white transition-colors;
   }
 }
