@@ -9,12 +9,12 @@ export default function Home() {
 
   if (user) {
     return (
-      <div 
-        className="min-h-screen bg-cover bg-center bg-no-repeat" 
-        style={{ backgroundImage: 'url("/main-web-photo.png")' }}
-      >
+      <div className="min-h-screen bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-          <div className="text-center">
+          <div 
+            className="text-center p-8 rounded-2xl bg-cover bg-center bg-no-repeat mb-12"
+            style={{ backgroundImage: 'url("/main-web-photo.png")' }}
+          >
             <motion.h1 
               initial={{ opacity: 0, y: -20 }} 
               animate={{ opacity: 1, y: 0 }} 
