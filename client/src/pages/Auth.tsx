@@ -13,6 +13,7 @@ import { registerUser, loginUser, signInWithGoogle } from "@/lib/firebase";
 import { db } from "@/lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { userSchema } from "@shared/schema";
+import { Check, X } from "lucide-react";
 
 // First omit the auto-generated fields, then extend with password fields, then add refinement
 const registerFormSchema = userSchema
@@ -35,6 +36,34 @@ const loginSchema = z.object({
   email: z.string().email("Невалиден имейл адрес"),
   password: z.string().min(6, "Паролата трябва да е поне 6 символа"),
 });
+
+// Add password validation helper
+const PasswordRequirements = ({ password }: { password: string }) => {
+  const requirements = [
+    { text: "Поне 8 символа", test: (p: string) => p.length >= 8 },
+    { text: "Поне една главна буква", test: (p: string) => /[A-Z]/.test(p) },
+    { text: "Поне една малка буква", test: (p: string) => /[a-z]/.test(p) },
+    { text: "Поне една цифра", test: (p: string) => /[0-9]/.test(p) },
+    { text: "Поне един специален символ", test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+  ];
+
+  return (
+    <div className="space-y-2 text-sm">
+      {requirements.map((req, index) => (
+        <div key={index} className="flex items-center gap-2">
+          {req.test(password) ? (
+            <Check className="h-4 w-4 text-green-500" />
+          ) : (
+            <X className="h-4 w-4 text-destructive" />
+          )}
+          <span className={req.test(password) ? "text-green-500" : "text-destructive"}>
+            {req.text}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
@@ -308,6 +337,7 @@ export default function Auth() {
                         <FormControl>
                           <Input type="password" placeholder="Изберете парола" {...field} />
                         </FormControl>
+                        <PasswordRequirements password={field.value} />
                         <FormMessage />
                       </FormItem>
                     )}

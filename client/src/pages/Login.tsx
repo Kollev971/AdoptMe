@@ -1,20 +1,24 @@
-
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { auth, loginUser, signInWithGoogle } from "@/lib/firebase";
 import { sendPasswordResetEmail } from "firebase/auth";
+import { Loader2, ArrowLeft } from "lucide-react";
 
 const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
+  email: z.string().email("Невалиден имейл адрес"),
+  password: z.string().min(6, "Паролата трябва да е поне 6 символа"),
+});
+
+const resetSchema = z.object({
+  email: z.string().email("Невалиден имейл адрес"),
 });
 
 export default function Login() {
@@ -22,9 +26,8 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isResetMode, setIsResetMode] = useState(false);
-  const [resetEmail, setResetEmail] = useState("");
 
-  const form = useForm<z.infer<typeof loginSchema>>({
+  const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
@@ -32,24 +35,23 @@ export default function Login() {
     },
   });
 
-  const handlePasswordReset = async () => {
-    if (!resetEmail) {
-      toast({
-        title: "Грешка",
-        description: "Моля, въведете имейл адрес",
-        variant: "destructive",
-      });
-      return;
-    }
+  const resetForm = useForm<z.infer<typeof resetSchema>>({
+    resolver: zodResolver(resetSchema),
+    defaultValues: {
+      email: "",
+    },
+  });
 
+  const handlePasswordReset = async (data: z.infer<typeof resetSchema>) => {
     try {
       setLoading(true);
-      await sendPasswordResetEmail(auth, resetEmail);
+      await sendPasswordResetEmail(auth, data.email);
       toast({
-        title: "Успешно",
-        description: "Изпратихме ви имейл за възстановяване на паролата",
+        title: "Успешно изпратен имейл",
+        description: "Проверете пощата си за инструкции за възстановяване на паролата",
       });
       setIsResetMode(false);
+      resetForm.reset();
     } catch (error: any) {
       toast({
         title: "Грешка",
@@ -88,48 +90,72 @@ export default function Login() {
   };
 
   return (
-    <div className="flex justify-center items-center">
+    <div className="flex justify-center items-center min-h-[calc(100vh-4rem)]">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>{isResetMode ? "Възстановяване на парола" : "Вход"}</CardTitle>
+          {isResetMode && (
+            <CardDescription>
+              Въведете имейл адреса си, за да получите линк за възстановяване на паролата
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent>
           {isResetMode ? (
             <div className="space-y-4">
-              <FormItem>
-                <FormLabel>Имейл</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="email" 
-                    placeholder="Въведете вашия имейл"
-                    value={resetEmail}
-                    onChange={(e) => setResetEmail(e.target.value)}
+              <Form {...resetForm}>
+                <form onSubmit={resetForm.handleSubmit(handlePasswordReset)} className="space-y-4">
+                  <FormField
+                    control={resetForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Имейл</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="email" 
+                            placeholder="Въведете вашия имейл"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </FormControl>
-              </FormItem>
-              <Button 
-                type="button" 
-                className="w-full" 
-                disabled={loading}
-                onClick={handlePasswordReset}
-              >
-                {loading ? "Изпращане..." : "Изпрати"}
-              </Button>
-              <Button 
-                type="button" 
-                variant="link" 
-                className="w-full"
-                onClick={() => setIsResetMode(false)}
-              >
-                Обратно към вход
-              </Button>
+                  <div className="space-y-2">
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Изпращане...
+                        </>
+                      ) : (
+                        "Изпрати линк за възстановяване"
+                      )}
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => setIsResetMode(false)}
+                    >
+                      <ArrowLeft className="mr-2 h-4 w-4" />
+                      Обратно към вход
+                    </Button>
+                  </div>
+                </form>
+              </Form>
             </div>
           ) : (
             <>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <Form {...loginForm}>
+                <form onSubmit={loginForm.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField
-                    control={form.control}
+                    control={loginForm.control}
                     name="email"
                     render={({ field }) => (
                       <FormItem>
@@ -142,7 +168,7 @@ export default function Login() {
                     )}
                   />
                   <FormField
-                    control={form.control}
+                    control={loginForm.control}
                     name="password"
                     render={({ field }) => (
                       <FormItem>
@@ -163,18 +189,18 @@ export default function Login() {
                     )}
                   />
                   <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Влизане..." : "Влез"}
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Влизане...
+                      </>
+                    ) : (
+                      "Влез"
+                    )}
                   </Button>
                 </form>
               </Form>
-              <Button
-                type="button"
-                variant="link"
-                className="w-full mt-2"
-                onClick={() => setIsResetMode(true)}
-              >
-                Забравена парола?
-              </Button>
+
               <div className="mt-4 relative">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t" />
@@ -185,6 +211,7 @@ export default function Login() {
                   </span>
                 </div>
               </div>
+
               <Button
                 variant="outline"
                 className="w-full mt-4"
@@ -193,7 +220,6 @@ export default function Login() {
                   signInWithGoogle()
                     .then(() => {
                       setLocation("/");
-                      window.location.reload();
                     })
                     .catch((error) => {
                       toast({
