@@ -65,15 +65,6 @@ export default function MyListings() {
       console.error("Error fetching archived listings:", error);
     });
 
-    const unsubscribeActive = onSnapshot(activeQuery, (snapshot) => {
-      setActiveListings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      setLoading(false);
-    });
-
-    const unsubscribeArchived = onSnapshot(archivedQuery, (snapshot) => {
-      setArchivedListings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-
     return () => {
       unsubscribeActive();
       unsubscribeArchived();
