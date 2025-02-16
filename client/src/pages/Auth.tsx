@@ -15,6 +15,7 @@ import { doc, setDoc } from "firebase/firestore";
 import { userSchema } from "@shared/schema";
 import { Check, X } from "lucide-react";
 import { sendPasswordResetEmail } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 // First omit the auto-generated fields, then extend with password fields, then add refinement
 const registerFormSchema = userSchema
@@ -174,13 +175,30 @@ export default function Auth() {
   };
 
   const onPasswordReset = async (email: string) => {
+    if (!email) {
+      toast({
+        title: "Грешка",
+        description: "Моля, въведете имейл адрес",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setLoading(true);
+      
+      // Check if user exists and is verified
+      const users = await auth.fetchSignInMethodsForEmail(email);
+      if (users.length === 0) {
+        throw new Error("Не съществува потребител с този имейл адрес");
+      }
+
       await sendPasswordResetEmail(auth, email);
       toast({
         title: "Имейл за възстановяване на паролата е изпратен",
-        description: "Моля, проверете пощата си.",
+        description: "Проверете пощата си за инструкции за възстановяване на паролата",
       });
+      
     } catch (error: any) {
       toast({
         title: "Грешка при изпращане на имейл",
