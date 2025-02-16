@@ -43,11 +43,9 @@ export function Navbar() {
             lastMessage.senderId !== user.uid &&
             (!readBy[user.uid] || readBy[user.uid].seconds * 1000 < messageTime)
           ) {
-            // Only count messages from chats we're not currently viewing
             if (docSnap.id !== currentChatId) {
               count += 1;
-              
-              // Play sound only for new messages in other chats
+
               if (messageTime > lastPlayedRef.current && document.hasFocus()) {
                 audioRef.current?.play().catch(err => {
                   console.warn('Failed to play notification sound:', err);
@@ -96,9 +94,9 @@ export function Navbar() {
   if (loading) {
     return (
       <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center">
+        <div className="container flex h-16 items-center">
           <Link href="/">
-            <div className="mr-6 flex items-center space-x-2">
+            <div className="flex items-center space-x-2">
               <span className="font-bold">AdoptMe</span>
             </div>
           </Link>
@@ -112,16 +110,16 @@ export function Navbar() {
 
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center justify-between">
+      <div className="container flex h-16 items-center justify-between">
         <Link href="/">
-          <div className="flex items-center space-x-0 hover:opacity-90 transition-opacity">
+          <div className="flex items-center gap-2 hover:opacity-90 transition-opacity">
             <img 
               src="/paw-house-logo.png.png" 
               alt="AdoptMe" 
-              className="h-9 w-9" 
+              className="h-8 w-8" 
             />
             <div className="flex items-center">
-              <span className="font-bold text-lg">
+              <span className="text-lg font-bold" style={{ lineHeight: '1' }}>
                 <span style={{ color: '#DBC63F' }}>Adopt</span>
                 <span style={{ color: '#D89EAA' }}>Me</span>
               </span>
