@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { MapPin, Calendar, User } from "lucide-react";
+import { MapPin, Calendar, User, Phone, Mail } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Link } from 'wouter';
 
@@ -104,8 +104,8 @@ export default function ListingDetail() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 p-6 bg-[#F0F7FF] min-h-screen">
-      <Card className="overflow-hidden border border-[#D89EAA] shadow-xl">
-        <CardHeader className="bg-[#D89EAA] text-white p-6">
+      <Card className="overflow-hidden border border-[#004AAD] shadow-xl">
+        <CardHeader className="bg-[#004AAD] text-white p-6">
           <h1 className="text-4xl font-extrabold text-center">{listing.title}</h1>
           <div className="flex justify-center gap-2 mt-4">
             <Badge variant="secondary" className="text-lg px-4 py-1">
@@ -142,10 +142,10 @@ export default function ListingDetail() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
-              <h2 className="text-2xl font-semibold text-[#D89EAA]">Информация за любимеца</h2>
+              <h2 className="text-2xl font-semibold text-[#004AAD]">Информация за любимеца</h2>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-[#D89EAA]" />
+                  <Calendar className="h-5 w-5 text-[#004AAD]" />
                   <span>
                     Възраст:
                     {listing.ageYears > 0 && ` ${listing.ageYears} ${listing.ageYears === 1 ? 'година' : 'години'}`}
@@ -155,7 +155,7 @@ export default function ListingDetail() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-[#D89EAA]" />
+                  <MapPin className="h-5 w-5 text-[#004AAD]" />
                   <span>Локация: {listing.location}</span>
                 </div>
                 {listing.tags && listing.tags.length > 0 && (
@@ -172,13 +172,13 @@ export default function ListingDetail() {
 
             {ownerDetails && (
               <div className="space-y-4">
-                <h2 className="text-2xl font-semibold text-[#D89EAA]">Информация за стопанина</h2>
+                <h2 className="text-2xl font-semibold text-[#004AAD]">Информация за стопанина</h2>
                 <div>
                   <Link href={`/user/${listing.userId}`}>
                     <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                       <CardContent className="p-4">
                         <div className="flex items-center gap-4">
-                          <div className="w-16 h-16 rounded-full bg-[#D89EAA] text-white flex items-center justify-center text-2xl font-bold">
+                          <div className="w-16 h-16 rounded-full bg-[#004AAD] text-white flex items-center justify-center text-2xl font-bold">
                             {ownerDetails.username?.[0]?.toUpperCase() || 'A'}
                           </div>
                           <div className="space-y-1">
@@ -209,7 +209,7 @@ export default function ListingDetail() {
           </div>
 
           <div className="border-t border-gray-200 pt-6">
-            <h2 className="text-2xl font-semibold text-[#D89EAA] mb-4">Описание</h2>
+            <h2 className="text-2xl font-semibold text-[#004AAD] mb-4">Описание</h2>
             <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{listing.description}</p>
           </div>
 
