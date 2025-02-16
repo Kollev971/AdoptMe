@@ -64,7 +64,7 @@ export function Navbar() {
 
   if (loading) {
     return (
-      <nav className="fixed top-0 left-0 right-0 h-16 border-b bg-white z-50">
+      <nav className="fixed top-0 left-0 right-0 h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
         <div className="container flex h-16 items-center">
           <Link href="/">
             <div className="flex items-center space-x-2">
@@ -80,7 +80,7 @@ export function Navbar() {
   }
 
   return (
-    <nav className="fixed top-0 left-0 right-0 h-16 border-b bg-white z-50">
+    <nav className="fixed top-0 left-0 right-0 h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
       <div className="container flex h-16 items-center justify-between">
         <Link href="/">
           <div className="flex items-center gap-1 hover:opacity-90 transition-opacity">
