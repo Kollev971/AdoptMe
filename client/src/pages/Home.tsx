@@ -2,22 +2,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { useState, useEffect } from 'react';
-import AdoptionCounter from "@/components/AdoptionCounter"; // Assuming this component exists
+import AdoptionCounter from "@/components/AdoptionCounter";
 
 export default function Home() {
   const { user } = useAuth();
-  const [adoptions, setAdoptions] = useState(0);
-
-  useEffect(() => {
-    const fetchAdoptions = async () => {
-      const response = await fetch("/api/getAdoptions");
-      const data = await response.json();
-      setAdoptions(data.count);
-    };
-
-    fetchAdoptions();
-  }, []);
 
   const MainContent = () => (
     <div 

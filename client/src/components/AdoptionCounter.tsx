@@ -9,12 +9,20 @@ export default function AdoptionCounter() {
   useEffect(() => {
     const fetchAdoptions = async () => {
       try {
-        const adoptionsQuery = query(
+        const listingsQuery = query(
           collection(db, "listings"),
           where("status", "==", "adopted")
         );
+        const listingsSnap = await getDocs(listingsQuery);
+
+        const adoptionsQuery = query(
+          collection(db, "adoptionRequests"),
+          where("status", "==", "completed")
+        );
         const adoptionsSnap = await getDocs(adoptionsQuery);
-        setAdoptions(adoptionsSnap.size);
+
+        // Use the higher number between listings and adoptionRequests
+        setAdoptions(Math.max(listingsSnap.size, adoptionsSnap.size));
       } catch (error) {
         console.error("Error fetching adoptions:", error);
       }
