@@ -20,11 +20,13 @@ export default function Profile() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [newUsername, setNewUsername] = useState("");
+  const [newFullName, setNewFullName] = useState("");
   const [newBio, setNewBio] = useState("");
   const [userData, setUserData] = useState<any>(null);
   const [profileImages, setProfileImages] = useState<string[]>([]);
   const [averageRating, setAverageRating] = useState<number>(0);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -49,6 +51,7 @@ export default function Profile() {
           const data = userDoc.data();
           setUserData(data);
           setNewUsername(data.username || "");
+          setNewFullName(data.fullName || "");
           setNewBio(data.bio || "");
           if (data.photoURL) {
             setProfileImages([data.photoURL]);
@@ -76,6 +79,7 @@ export default function Profile() {
       setLoading(true);
       const updates: any = {
         username: newUsername,
+        fullName: newFullName,
         bio: newBio,
       };
 
@@ -96,6 +100,8 @@ export default function Profile() {
         ...prev,
         ...updates
       }));
+
+      setIsUploadingPhoto(false);
     } catch (error: any) {
       toast({ 
         title: "Грешка", 
@@ -165,21 +171,22 @@ export default function Profile() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Профилна снимка</Label>
-              <FileUpload
-                images={profileImages}
-                setImages={setProfileImages}
-                className="mt-2"
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="username">Потребителско име</Label>
               <Input
                 id="username"
                 value={newUsername}
                 onChange={(e) => setNewUsername(e.target.value)}
                 placeholder="Въведете ново потребителско име"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Име и фамилия</Label>
+              <Input
+                id="fullName"
+                value={newFullName}
+                onChange={(e) => setNewFullName(e.target.value)}
+                placeholder="Въведете вашето име и фамилия"
               />
             </div>
 
@@ -193,6 +200,26 @@ export default function Profile() {
                 className="resize-none"
                 rows={4}
               />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Профилна снимка</Label>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setIsUploadingPhoto(!isUploadingPhoto)}
+                >
+                  {isUploadingPhoto ? "Отказ" : "Промяна на снимка"}
+                </Button>
+              </div>
+              {isUploadingPhoto && (
+                <FileUpload
+                  images={profileImages}
+                  setImages={setProfileImages}
+                  className="mt-2"
+                />
+              )}
             </div>
 
             <Button 
