@@ -179,18 +179,22 @@ export default function Login() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Парола</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="Въведете вашата парола" {...field} />
-                        </FormControl>
-                        <Button
-                          type="button"
-                          variant="link"
-                          className="px-0 text-sm"
-                          onClick={() => setIsResetMode(true)}
-                        >
-                          Забравена парола?
-                        </Button>
-                        <FormMessage />
+                        <div className="space-y-2">
+                          <FormControl>
+                            <Input type="password" placeholder="Въведете вашата парола" {...field} />
+                          </FormControl>
+                          <div className="flex justify-end">
+                            <Button
+                              type="button"
+                              variant="link"
+                              className="h-auto p-0 text-sm"
+                              onClick={() => setIsResetMode(true)}
+                            >
+                              Забравена парола?
+                            </Button>
+                          </div>
+                          <FormMessage />
+                        </div>
                       </FormItem>
                     )}
                   />
