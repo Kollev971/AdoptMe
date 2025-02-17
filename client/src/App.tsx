@@ -36,7 +36,7 @@ function App() {
             <Route path="/my-listings" component={MyListings} />
             <Route path="/settings" component={Settings} />
             <Route path="/user/:id" component={UserProfile} />
-            <Route component={NotFound} />
+            <Route path="/:rest*" component={NotFound} />
           </Switch>
         </main>
       </div>
