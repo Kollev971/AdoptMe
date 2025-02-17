@@ -176,10 +176,7 @@ export default function Profile() {
                 )}
               </CardTitle>
               <div className="flex flex-col items-center gap-2">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  <span>Регистриран на {formatDate(userData.createdAt)}</span>
-                </div>
+                
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Mail className="h-4 w-4" />
                   <span>{userData.email}</span>

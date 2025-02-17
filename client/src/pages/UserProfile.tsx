@@ -1,18 +1,16 @@
 import { useEffect, useState } from "react";
 import { useRoute } from "wouter";
-import { doc, getDoc, collection, query, where, getDocs, addDoc } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Star, MessageCircle } from "lucide-react";
+import { Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ListingCard } from "@/components/ListingCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
-import { serverTimestamp } from "firebase/firestore";
 import { Badge } from "@/components/ui/badge";
+
 
 export default function UserProfile() {
   const [, params] = useRoute("/user/:id");
@@ -24,7 +22,6 @@ export default function UserProfile() {
   const [userRating, setUserRating] = useState<number | null>(null);
   const [averageRating, setAverageRating] = useState<number>(0);
   const [loading, setLoading] = useState(true);
-  const [location, setLocation] = useState("/");
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -32,63 +29,47 @@ export default function UserProfile() {
 
       try {
         setLoading(true);
-        let hasError = false;
-
         const userDoc = await getDoc(doc(db, "users", params.id));
         if (userDoc.exists()) {
           setUserProfile(userDoc.data());
-        } else {
-          hasError = true;
         }
 
-        if (!hasError) {
-          const listingsQuery = query(
-            collection(db, "listings"),
-            where("userId", "==", params.id)
-          );
-          const listingsSnap = await getDocs(listingsQuery);
-          setListings(listingsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const listingsQuery = query(
+          collection(db, "listings"),
+          where("userId", "==", params.id)
+        );
+        const listingsSnap = await getDocs(listingsQuery);
+        setListings(listingsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
-          const ratingsQuery = query(
+        const ratingsQuery = query(
+          collection(db, "ratings"),
+          where("targetUserId", "==", params.id)
+        );
+        const ratingsSnap = await getDocs(ratingsQuery);
+
+        if (!ratingsSnap.empty) {
+          let total = 0;
+          ratingsSnap.forEach(doc => total += doc.data().rating);
+          setAverageRating(total / ratingsSnap.size);
+        }
+
+        if (user?.uid) {
+          const userRatingQuery = query(
             collection(db, "ratings"),
-            where("targetUserId", "==", params.id)
+            where("targetUserId", "==", params.id),
+            where("ratingUserId", "==", user.uid)
           );
-          const ratingsSnap = await getDocs(ratingsQuery);
-
-          if (!ratingsSnap.empty) {
-            let total = 0;
-            ratingsSnap.forEach(doc => total += doc.data().rating);
-            setAverageRating(total / ratingsSnap.size);
+          const userRatingSnap = await getDocs(userRatingQuery);
+          if (!userRatingSnap.empty) {
+            setUserRating(userRatingSnap.docs[0].data().rating);
           }
-
-          if (user?.uid) {
-            const userRatingQuery = query(
-              collection(db, "ratings"),
-              where("targetUserId", "==", params.id),
-              where("ratingUserId", "==", user.uid)
-            );
-            const userRatingSnap = await getDocs(userRatingQuery);
-            if (!userRatingSnap.empty) {
-              setUserRating(userRatingSnap.docs[0].data().rating);
-            }
-          }
-        }
-
-        if (hasError) {
-          toast({
-            title: "Грешка",
-            description: "Потребителят не беше намерен",
-            variant: "destructive",
-          });
         }
       } catch (error: any) {
-        if (error.code !== 'permission-denied') {
-          toast({
-            title: "Грешка",
-            description: "Проблем при зареждането на профила",
-            variant: "destructive",
-          });
-        }
+        toast({
+          title: "Грешка",
+          description: "Проблем при зареждането на профила",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
@@ -106,7 +87,7 @@ export default function UserProfile() {
         targetUserId: params.id,
         ratingUserId: user.uid,
         rating,
-        timestamp: new Date()
+        timestamp: serverTimestamp()
       });
 
       setUserRating(rating);
@@ -122,7 +103,7 @@ export default function UserProfile() {
       const ratingsSnap = await getDocs(ratingsQuery);
       let total = 0;
       ratingsSnap.forEach(doc => total += doc.data().rating);
-      setAverageRating(ratingsSnap.size > 0 ? total / ratingsSnap.size : 0);
+      setAverageRating(total / ratingsSnap.size);
     } catch (error) {
       toast({
         title: "Грешка",
@@ -135,13 +116,9 @@ export default function UserProfile() {
   if (loading) {
     return (
       <div className="container max-w-7xl py-8">
-        <Card className="border-2 border-primary/20">
-          <CardContent className="p-8">
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
       </div>
     );
   }
@@ -149,92 +126,79 @@ export default function UserProfile() {
   if (!userProfile) return null;
 
   return (
-    <div className="container max-w-7xl py-8 space-y-8">
-      <Card className="border-2 border-primary/20">
-        <CardHeader className="text-center space-y-4">
-          <div className="flex justify-center">
-            <Avatar className="h-32 w-32 border-4 border-primary/20">
-              <AvatarImage src={userProfile.photoURL} />
-              <AvatarFallback className="text-4xl bg-primary/10 text-primary">
-                {userProfile.username?.[0]?.toUpperCase() || '?'}
-              </AvatarFallback>
-            </Avatar>
-          </div>
-          <div className="space-y-4">
-            <CardTitle className="text-3xl font-bold">{userProfile.username}</CardTitle>
-            <div className="flex gap-2 justify-center">
-              <Badge variant="outline">
-                {userProfile.isAdmin ? 'Администратор' : 'Потребител'}
-              </Badge>
-              {userProfile.emailVerified && (
-                <Badge variant="outline" className="bg-green-50">
-                  Потвърден профил
-                </Badge>
-              )}
+    <div className="container mx-auto p-6">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <Card className="border-2 border-primary/20">
+          <CardHeader className="text-center space-y-4">
+            <div className="flex justify-center">
+              <Avatar className="h-32 w-32 border-4 border-primary/20">
+                <AvatarImage src={userProfile.photoURL} />
+                <AvatarFallback className="text-4xl bg-primary/10 text-primary">
+                  {userProfile.username?.[0]?.toUpperCase() || '?'}
+                </AvatarFallback>
+              </Avatar>
             </div>
-            <div className="flex flex-col items-center gap-2">
-              <p className="text-muted-foreground">
-                Регистриран от {new Date(userProfile.createdAt instanceof Date ? userProfile.createdAt : new Date(userProfile.createdAt)).toLocaleDateString('bg-BG')}
-              </p>
-              {userProfile.successfulAdoptions > 0 && (
-                <Badge variant="outline" className="bg-green-50">
-                  {userProfile.successfulAdoptions} Успешни осиновявания
-                </Badge>
-              )}
-            </div>
-            <div className="flex items-center justify-center gap-2 mt-4">
-              <span className="text-lg font-medium">Рейтинг: {averageRating.toFixed(1)}</span>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    onClick={() => handleRate(star)}
-                    disabled={userRating !== null || user?.uid === params?.id}
-                    className={`p-1 ${
-                      (userRating || rating) >= star 
-                        ? "text-yellow-400" 
-                        : "text-gray-300"
-                    } transition-colors hover:scale-110`}
-                    onMouseEnter={() => !userRating && setRating(star)}
-                    onMouseLeave={() => !userRating && setRating(0)}
-                  >
-                    <Star className="h-6 w-6" fill={(userRating || rating) >= star ? "currentColor" : "none"} />
-                  </button>
-                ))}
+            <div className="space-y-2">
+              <CardTitle className="text-3xl font-bold flex items-center gap-2 justify-center">
+                {userProfile.username}
+                {userProfile.isAdmin && (
+                  <Badge variant="secondary" className="bg-primary/10">
+                    Администратор
+                  </Badge>
+                )}
+              </CardTitle>
+              <div className="flex items-center justify-center gap-2 mt-2">
+                <span className="text-lg font-medium">Рейтинг: {averageRating.toFixed(1)}</span>
+                <div className="flex">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      onClick={() => handleRate(star)}
+                      disabled={userRating !== null || user?.uid === params?.id}
+                      className={`p-1 ${
+                        (userRating || rating) >= star 
+                          ? "text-yellow-400" 
+                          : "text-gray-300"
+                      } transition-colors hover:scale-110`}
+                      onMouseEnter={() => !userRating && setRating(star)}
+                      onMouseLeave={() => !userRating && setRating(0)}
+                    >
+                      <Star className="h-6 w-6" fill={(userRating || rating) >= star ? "currentColor" : "none"} />
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-            {userProfile.bio && (
-              <p className="mt-4 text-muted-foreground max-w-lg mx-auto">{userProfile.bio}</p>
-            )}
-          </div>
-        </CardHeader>
-      </Card>
-
-      <Card className="border-2 border-primary/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Обяви на потребителя
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[600px] pr-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {listings.length > 0 ? (
-                listings.map(listing => (
-                  <ListingCard 
-                    key={listing.id}
-                    listing={listing}
-                  />
-                ))
-              ) : (
-                <p className="col-span-full text-center text-muted-foreground py-8">
-                  Този потребител все още няма обяви
-                </p>
+              {userProfile.bio && (
+                <p className="mt-4 text-muted-foreground max-w-lg mx-auto">{userProfile.bio}</p>
               )}
             </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
+          </CardHeader>
+        </Card>
+
+        <Card className="border-2 border-primary/20">
+          <CardHeader>
+            <CardTitle>Обяви на потребителя</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[600px] pr-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {listings.length > 0 ? (
+                  listings.map(listing => (
+                    <ListingCard 
+                      key={listing.id}
+                      listing={listing}
+                    />
+                  ))
+                ) : (
+                  <p className="col-span-full text-center text-muted-foreground py-8">
+                    Този потребител все още няма обяви
+                  </p>
+                )}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
