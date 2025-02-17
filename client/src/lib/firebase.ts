@@ -9,10 +9,10 @@ import {
   getRedirectResult
 } from "firebase/auth";
 import { getStorage } from "firebase/storage";
-import { getFirestore, serverTimestamp, setDoc, updateDoc, doc, getDoc } from "firebase/firestore";
+import { getFirestore, serverTimestamp, setDoc, updateDoc, doc, getDoc, collection, addDoc } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 import type { FirebaseError } from "firebase/app";
-import { collection, query, where, getDocs, addDoc, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection as firestoreCollection, query, where, getDocs, onSnapshot, orderBy } from 'firebase/firestore';
 
 // Validate required environment variables
 const requiredEnvVars = [
@@ -27,38 +27,50 @@ const requiredEnvVars = [
 
 for (const envVar of requiredEnvVars) {
   if (!import.meta.env[envVar]) {
-    throw new Error(`Липсва задължителна променлива: ${envVar}`);
+    throw new Error(`Missing required environment variable: ${envVar}`);
   }
 }
 
+// Firebase configuration
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
+console.log('Initializing Firebase with config:', {
+  ...firebaseConfig,
+  apiKey: '***' // Hide API key in logs
+});
+
 // Initialize Firebase only if not already initialized
 let app;
 try {
-  app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+  if (!getApps().length) {
+    app = initializeApp(firebaseConfig);
+    console.log('Firebase initialized successfully');
+  } else {
+    app = getApps()[0];
+    console.log('Using existing Firebase instance');
+  }
 } catch (error) {
-  console.error("Грешка при инициализиране на Firebase:", error);
-  throw new Error("Неуспешно инициализиране на Firebase. Моля, проверете конфигурацията.");
+  console.error("Error initializing Firebase:", error);
+  throw new Error("Failed to initialize Firebase. Please check configuration.");
 }
 
-// Initialize services
+// Initialize Firebase services
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 export const db = getFirestore(app);
 export const analytics = getAnalytics(app);
 
-// Enhanced error handling with Bulgarian translations
+// Error handling with Bulgarian translations
 const handleFirebaseError = (error: FirebaseError): string => {
-  console.error("Firebase операцията не бе успешна:", error);
+  console.error("Firebase operation failed:", error);
 
   const errorMessages: Record<string, string> = {
     'auth/email-already-in-use': 'Този имейл вече е регистриран',
@@ -69,29 +81,31 @@ const handleFirebaseError = (error: FirebaseError): string => {
     'auth/user-not-found': 'Няма намерен потребител с този имейл',
     'auth/wrong-password': 'Грешна парола',
     'auth/too-many-requests': 'Твърде много опити. Моля, опитайте по-късно',
-    'permission-denied': 'Нямате права за тази операция',
     'auth/popup-closed-by-user': 'Прозорецът за вход беше затворен',
     'auth/cancelled-popup-request': 'Заявката за вход беше отказана',
     'auth/popup-blocked': 'Изскачащият прозорец беше блокиран от браузъра',
     'auth/unauthorized-domain': 'Този домейн не е оторизиран за Firebase Authentication',
+    'permission-denied': 'Нямате права за тази операция',
   };
 
-  return errorMessages[error.code] || 'Възникна неочаквана грешка. Моля, опитайте отново';
+  return errorMessages[error.code] || `Възникна неочаквана грешка: ${error.message}`;
 };
 
 // Google Sign In
 export const signInWithGoogle = async () => {
   try {
-    console.log('Започване на Google вход...');
+    console.log('Starting Google sign-in process...');
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({
+      prompt: 'select_account'
+    });
 
-    // Use redirect instead of popup
+    // Use redirect for better mobile experience
     await signInWithRedirect(auth, provider);
-
-    // The result will be handled in App.tsx with getRedirectResult
+    console.log('Redirect initiated');
     return null;
   } catch (error: any) {
-    console.error('Грешка при Google вход:', error);
+    console.error('Google sign-in error:', error);
     throw new Error(handleFirebaseError(error));
   }
 };
@@ -99,23 +113,22 @@ export const signInWithGoogle = async () => {
 // Handle redirect result
 export const handleGoogleRedirect = async () => {
   try {
-    console.log('Обработка на Google redirect...');
+    console.log('Processing Google redirect result...');
     const result = await getRedirectResult(auth);
 
     if (!result) {
-      console.log('Няма redirect резултат');
+      console.log('No redirect result available');
       return null;
     }
 
     const user = result.user;
-    console.log('Успешен Google вход:', user.email);
+    console.log('Google sign-in successful for:', user.email);
 
-    // Check if user exists in Firestore
     const userDoc = doc(db, 'users', user.uid);
     const userSnapshot = await getDoc(userDoc);
 
     if (!userSnapshot.exists()) {
-      console.log('Създаване на нов потребителски профил...');
+      console.log('Creating new user profile...');
       const userData = {
         email: user.email,
         fullName: user.displayName || '',
@@ -130,7 +143,7 @@ export const handleGoogleRedirect = async () => {
       };
 
       await setDoc(userDoc, userData);
-      console.log('Потребителският профил е създаден успешно');
+      console.log('User profile created');
 
       if (user.email === import.meta.env.VITE_ADMIN_EMAIL) {
         try {
@@ -143,16 +156,15 @@ export const handleGoogleRedirect = async () => {
           });
 
           if (!response.ok) {
-            console.error('Грешка при задаване на админ роля');
+            console.error('Failed to set admin role');
           } else {
-            console.log('Админ ролята е зададена успешно');
+            console.log('Admin role set successfully');
           }
         } catch (error) {
-          console.error('Грешка при задаване на админ роля:', error);
+          console.error('Error setting admin role:', error);
         }
       }
     } else {
-      console.log('Обновяване на съществуващ потребител...');
       await updateDoc(userDoc, {
         lastSeen: serverTimestamp(),
         photoURL: user.photoURL
@@ -161,102 +173,43 @@ export const handleGoogleRedirect = async () => {
 
     return user;
   } catch (error: any) {
-    console.error('Грешка при обработка на Google redirect:', error);
+    console.error('Error processing Google redirect:', error);
     throw new Error(handleFirebaseError(error));
   }
 };
 
-// Rate limiting configuration
-const rateLimits = {
-  messageLimit: 50, // messages per minute
-  requestLimit: 100, // requests per minute
-  lastMessageTimestamp: 0,
-  messageCount: 0,
-  requestCount: 0,
-  lastRequestTimestamp: 0,
-  loginAttempts: new Map<string, { count: number; timestamp: number }>()
-};
-
-// Rate limiting function
-const checkRateLimit = (type: 'message' | 'request' | 'login', identifier?: string): boolean => {
-  const now = Date.now();
-  const oneMinute = 60 * 1000;
-
-  if (type === 'login' && identifier) {
-    const attempts = rateLimits.loginAttempts.get(identifier) || { count: 0, timestamp: now };
-
-    // Reset attempts after 15 minutes
-    if (now - attempts.timestamp > 15 * oneMinute) {
-      attempts.count = 0;
-      attempts.timestamp = now;
-    }
-
-    // Block after 5 failed attempts
-    if (attempts.count >= 5) {
-      const remainingTime = Math.ceil((attempts.timestamp + 15 * oneMinute - now) / 60000);
-      throw new Error(`Твърде много неуспешни опити. Моля, опитайте отново след ${remainingTime} минути.`);
-    }
-
-    attempts.count++;
-    attempts.timestamp = now;
-    rateLimits.loginAttempts.set(identifier, attempts);
-    return true;
-  }
-
-  if (type === 'message') {
-    if (now - rateLimits.lastMessageTimestamp > oneMinute) {
-      rateLimits.messageCount = 0;
-      rateLimits.lastMessageTimestamp = now;
-    }
-    if (rateLimits.messageCount >= rateLimits.messageLimit) {
-      return false;
-    }
-    rateLimits.messageCount++;
-    return true;
-  }
-
-  if (now - rateLimits.lastRequestTimestamp > oneMinute) {
-    rateLimits.requestCount = 0;
-    rateLimits.lastRequestTimestamp = now;
-  }
-  if (rateLimits.requestCount >= rateLimits.requestLimit) {
-    return false;
-  }
-  rateLimits.requestCount++;
-  return true;
-};
-
-
+// User registration
 export const registerUser = async (email: string, password: string) => {
   try {
-    if (!checkRateLimit('request')) {
-      throw new Error('Твърде много опити за регистрация. Моля, опитайте по-късно.');
-    }
-
+    console.log('Starting user registration...');
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
     if (userCredential.user) {
       await sendEmailVerification(userCredential.user);
 
-      // Create user document in Firestore using setDoc instead of updateDoc
       const userDoc = doc(db, 'users', userCredential.user.uid);
       await setDoc(userDoc, {
         email: userCredential.user.email,
         createdAt: serverTimestamp(),
-        isAdmin: email === import.meta.env.VITE_ADMIN_EMAIL, // Set admin flag based on email
+        isAdmin: email === import.meta.env.VITE_ADMIN_EMAIL,
         role: email === import.meta.env.VITE_ADMIN_EMAIL ? 'admin' : 'user',
-        lastSeen: serverTimestamp()
+        lastSeen: serverTimestamp(),
+        emailVerified: false
       });
 
-      // If this is the admin email, set custom claims
       if (email === import.meta.env.VITE_ADMIN_EMAIL) {
-        // Make an API call to set admin role
         try {
-          await fetch('/api/admin/setup', {
+          const response = await fetch('/api/admin/setup', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-            }
+            },
+            body: JSON.stringify({ email })
           });
+
+          if (!response.ok) {
+            console.error('Failed to set admin role');
+          }
         } catch (error) {
           console.error('Error setting admin role:', error);
         }
@@ -264,65 +217,59 @@ export const registerUser = async (email: string, password: string) => {
     }
     return userCredential.user;
   } catch (error: any) {
+    console.error('Registration error:', error);
     throw new Error(handleFirebaseError(error));
   }
 };
 
+// User login
 export const loginUser = async (email: string, password: string) => {
   try {
-    if (!checkRateLimit('login', email)) {
-      throw new Error('Твърде много опити за влизане. Моля, опитайте по-късно.');
-    }
-
+    console.log('Attempting login...');
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    if (userCredential.user) {
-      // Reset login attempts on successful login
-      rateLimits.loginAttempts.delete(email);
 
-      // Update last seen
+    if (userCredential.user) {
       const userDoc = doc(db, 'users', userCredential.user.uid);
       await updateDoc(userDoc, {
         lastSeen: serverTimestamp()
       });
     }
+
     return userCredential.user;
   } catch (error: any) {
-    // Increment failed attempts
-    const attempts = rateLimits.loginAttempts.get(email) || { count: 0, timestamp: Date.now() };
-    rateLimits.loginAttempts.set(email, {
-      count: attempts.count + 1,
-      timestamp: Date.now()
-    });
-
+    console.error('Login error:', error);
     throw new Error(handleFirebaseError(error));
   }
 };
 
-// Utility function to verify admin status
-export const isUserAdmin = async (uid: string): Promise<boolean> => {
+// Audio notification for messages
+const notificationSound = new Audio('/notification.mp3');
+
+export const playMessageNotification = () => {
+  notificationSound.play().catch(error => {
+    console.error('Error playing notification sound:', error);
+  });
+};
+
+// Chat functionality
+export const markMessagesAsRead = async (chatId: string, userId: string) => {
   try {
-    const userDoc = await getDoc(doc(db, "users", uid));
-    // Check both isAdmin flag and email
-    return userDoc.exists() && (
-      userDoc.data()?.isAdmin === true ||
-      userDoc.data()?.email === import.meta.env.VITE_ADMIN_EMAIL
-    );
+    const chatRef = doc(db, 'chats', chatId);
+    await updateDoc(chatRef, {
+      [`readBy.${userId}`]: serverTimestamp()
+    });
+    return true;
   } catch (error) {
-    console.error("Error checking admin status:", error);
-    return false;
+    console.error('Error marking messages as read:', error);
+    throw error;
   }
 };
 
 export const sendMessage = async (chatId: string, userId: string, message: string) => {
   try {
-    if (!checkRateLimit('message')) {
-      throw new Error('Message rate limit exceeded. Please wait before sending more messages.');
-    }
-
-    // Sanitize message input
     const sanitizedMessage = message.trim().slice(0, 1000); // Limit message length
 
-    // Update chat metadata in Firestore
+    // Update chat metadata
     const chatRef = doc(db, 'chats', chatId);
     await updateDoc(chatRef, {
       lastMessage: {
@@ -333,7 +280,7 @@ export const sendMessage = async (chatId: string, userId: string, message: strin
       updatedAt: serverTimestamp()
     });
 
-    // Store message in Firestore subcollection
+    // Add message to subcollection
     const messageCollection = collection(db, 'chats', chatId, 'messages');
     await addDoc(messageCollection, {
       text: sanitizedMessage,
@@ -343,30 +290,7 @@ export const sendMessage = async (chatId: string, userId: string, message: strin
 
     return true;
   } catch (error) {
-    console.error("Error sending message:", error);
-    throw error;
-  }
-};
-
-// Function to play notification sound
-const notificationSound = new Audio('/notification.mp3');
-
-export const playMessageNotification = () => {
-  notificationSound.play().catch(error => {
-    console.error('Error playing notification sound:', error);
-  });
-};
-
-// Function to mark messages as read
-export const markMessagesAsRead = async (chatId: string, userId: string) => {
-  try {
-    const chatRef = doc(db, 'chats', chatId);
-    await updateDoc(chatRef, {
-      [`readBy.${userId}`]: serverTimestamp()
-    });
-    return true;
-  } catch (error) {
-    console.error('Error marking messages as read:', error);
+    console.error('Error sending message:', error);
     throw error;
   }
 };
@@ -381,13 +305,9 @@ export const getUnreadMessagesCount = async (userId: string) => {
     let unreadCount = 0;
     querySnapshot.forEach((doc) => {
       const data = doc.data();
-      if (
-        data.lastMessage &&
-        data.lastMessage.senderId !== userId &&
-        (!data.readBy?.[userId] ||
-          (data.readBy[userId] &&
-            data.lastMessage.createdAt?.toDate() > data.readBy[userId]?.toDate()))
-      ) {
+      if (data.lastMessage &&
+          data.lastMessage.senderId !== userId &&
+          (!data.readBy?.[userId] || data.lastMessage.createdAt > data.readBy[userId])) {
         unreadCount++;
       }
     });
@@ -399,18 +319,17 @@ export const getUnreadMessagesCount = async (userId: string) => {
   }
 };
 
-// Re-export all necessary Firestore functions
+// Re-export necessary Firestore functions
 export {
-  getFirestore,
-  collection,
+  firestoreCollection,
   query,
+  where,
   getDocs,
   doc,
   getDoc,
+  addDoc,
   onSnapshot,
   orderBy,
   serverTimestamp,
-  updateDoc,
-  where,
-  addDoc
-} from 'firebase/firestore';
+  updateDoc
+};

@@ -84,7 +84,7 @@ export default function Auth() {
             title: "Успешен вход",
             description: "Добре дошли!",
           });
-          setLocation("/profile");
+          setLocation("/profile"); // Consistent redirect after login
         }
       })
       .catch((error) => {
