@@ -58,7 +58,7 @@ app.use((req, res, next) => {
 
   const tryPort = (port: number): Promise<number> => {
     return new Promise((resolve, reject) => {
-      server.listen(port, "0.0.0.0")
+      server.listen(process.env.PORT || port, "0.0.0.0")
         .once('listening', () => {
           log(`Server listening on port ${port}`);
           resolve(port);
