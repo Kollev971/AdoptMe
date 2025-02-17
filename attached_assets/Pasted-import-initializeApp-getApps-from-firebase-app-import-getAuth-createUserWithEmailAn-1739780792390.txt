@@ -10,7 +10,7 @@ import {
   getRedirectResult
 } from "firebase/auth";
 import { getStorage } from "firebase/storage";
-import { getFirestore, serverTimestamp, setDoc, updateDoc, doc, getDoc, addDoc, collection } from "firebase/firestore";
+import { getFirestore, serverTimestamp, setDoc, updateDoc, doc, getDoc } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 import type { FirebaseError } from "firebase/app";
 import { collection as firestoreCollection, query, where, getDocs, onSnapshot, orderBy } from 'firebase/firestore';
@@ -37,7 +37,8 @@ const firebaseConfig = {
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+  databaseURL: "https://doggycat-5b20c-default-rtdb.europe-west1.firebasedatabase.app"
 };
 
 console.log('Firebase Config:', {
@@ -99,6 +100,10 @@ googleProvider.setCustomParameters({
 export const signInWithGoogle = async () => {
   try {
     console.log('Starting Google sign-in process...');
+    googleProvider.setCustomParameters({
+      prompt: 'select_account',
+      auth_domain: 'doggycat-5b20c.firebaseapp.com'
+    });
     const result = await signInWithPopup(auth, googleProvider);
     const user = result.user;
 
@@ -168,9 +173,15 @@ export const handleGoogleRedirect = async () => {
         emailVerified: user.emailVerified
       };
 
-      await setDoc(userRef, userData);
-      console.log('User profile created successfully');
+      try {
+        await setDoc(userRef, userData);
+        console.log('User profile created successfully');
+      } catch (error) {
+        console.error('Error creating user profile:', error);
+        throw error;
+      }
     } else {
+      console.log('Updating existing user profile');
       await updateDoc(userRef, {
         lastSeen: serverTimestamp(),
         photoURL: user.photoURL,
@@ -203,6 +214,24 @@ export const registerUser = async (email: string, password: string) => {
         lastSeen: serverTimestamp(),
         emailVerified: false
       });
+
+      if (email === import.meta.env.VITE_ADMIN_EMAIL) {
+        try {
+          const response = await fetch('/api/admin/setup', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email })
+          });
+
+          if (!response.ok) {
+            console.error('Failed to set admin role');
+          }
+        } catch (error) {
+          console.error('Error setting admin role:', error);
+        }
+      }
     }
     return userCredential.user;
   } catch (error: any) {
