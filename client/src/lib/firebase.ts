@@ -121,6 +121,7 @@ export const signInWithGoogle = async () => {
       await setDoc(userRef, userData);
     }
     
+    window.location.href = '/';
     return user;
   } catch (error: any) {
     console.error('Google sign-in error:', error);

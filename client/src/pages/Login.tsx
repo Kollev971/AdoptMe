@@ -259,24 +259,26 @@ export default function Login() {
               <Button
                 variant="outline"
                 className="w-full mt-4"
-                onClick={() => {
-                  setLoading(true);
-                  signInWithGoogle()
-                    .then(() => {
+                onClick={async () => {
+                  try {
+                    setLoading(true);
+                    const user = await signInWithGoogle();
+                    if (user) {
                       toast({
                         title: "Успешен вход",
                         description: "Добре дошли!",
                       });
                       setLocation("/");
-                    })
-                    .catch((error) => {
-                      toast({
-                        title: "Грешка",
-                        description: error.message,
-                        variant: "destructive",
-                      });
-                    })
-                    .finally(() => setLoading(false));
+                    }
+                  } catch (error) {
+                    toast({
+                      title: "Грешка",
+                      description: error.message,
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setLoading(false);
+                  }
                 }}
                 disabled={loading}
               >
