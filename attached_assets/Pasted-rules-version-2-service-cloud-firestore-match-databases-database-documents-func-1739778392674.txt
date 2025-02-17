@@ -1,0 +1,110 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.admin == true || 
+        request.auth.token.email == get(/databases/$(database)/documents/env/admin).data.adminEmail
+      );
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Listings collection
+    match /listings/{listingId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+
+      // Comments subcollection
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if isSignedIn();
+        allow update, delete: if isSignedIn() && (
+          resource.data.userId == request.auth.uid || isAdmin()
+        );
+      }
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && (isOwner(userId) || isAdmin());
+
+      match /private/{document=**} {
+        allow read, write: if isSignedIn() && (isOwner(userId) || isAdmin());
+      }
+    }
+
+    // Chat collection
+    match /chats/{chatId} {
+      allow read: if isSignedIn() && (
+        resource.data.participants[request.auth.uid] == true || isAdmin()
+      );
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (
+        resource.data.participants[request.auth.uid] == true || isAdmin()
+      );
+
+      match /messages/{messageId} {
+        allow read: if isSignedIn() && (
+          get(/databases/$(database)/documents/chats/$(chatId)).data.participants[request.auth.uid] == true || 
+          isAdmin()
+        );
+        allow create: if isSignedIn() && (
+          get(/databases/$(database)/documents/chats/$(chatId)).data.participants[request.auth.uid] == true
+        );
+        allow update, delete: if isSignedIn() && (
+          resource.data.senderId == request.auth.uid || isAdmin()
+        );
+      }
+      match /typing/{userId} {
+        allow read, write: if isSignedIn() && (
+          get(/databases/$(database)/documents/chats/$(chatId)).data.participants[request.auth.uid] == true || isAdmin()
+        );
+      }
+    }
+
+    // Admin settings
+    match /env/admin {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /ratings/{ratingId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && (
+        resource.data.ratingUserId == request.auth.uid || isAdmin()
+      );
+    }
+    
+    match /adoptionRequests/{requestId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid| 
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+    }
+    
+    match /sentRequests/{requestId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid || 
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+    }
+  }
+}

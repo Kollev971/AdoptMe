@@ -56,8 +56,29 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  const PORT = 5000;
-  server.listen(PORT, "0.0.0.0", () => {
-    log(`serving on port ${PORT}`);
-  });
+  const tryPort = (port: number): Promise<number> => {
+    return new Promise((resolve, reject) => {
+      server.listen(port, "0.0.0.0")
+        .once('listening', () => {
+          log(`Server listening on port ${port}`);
+          resolve(port);
+        })
+        .once('error', (err: any) => {
+          if (err.code === 'EADDRINUSE') {
+            log(`Port ${port} is busy, trying ${port + 1}`);
+            tryPort(port + 1).then(resolve).catch(reject);
+          } else {
+            reject(err);
+          }
+        });
+    });
+  };
+
+  try {
+    const port = await tryPort(5000);
+    log(`serving on port ${port}`);
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
 })();
