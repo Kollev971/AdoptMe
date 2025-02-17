@@ -1,5 +1,13 @@
 import { initializeApp, getApps } from "firebase/app";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { 
+  getAuth, 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  sendEmailVerification, 
+  GoogleAuthProvider, 
+  signInWithRedirect,
+  getRedirectResult
+} from "firebase/auth";
 import { getStorage } from "firebase/storage";
 import { getFirestore, serverTimestamp, setDoc, updateDoc, doc, getDoc } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
@@ -14,7 +22,7 @@ const requiredEnvVars = [
   'VITE_FIREBASE_STORAGE_BUCKET',
   'VITE_FIREBASE_MESSAGING_SENDER_ID',
   'VITE_FIREBASE_APP_ID',
-  'VITE_ADMIN_EMAIL' // Added admin email environment variable
+  'VITE_ADMIN_EMAIL'
 ] as const;
 
 for (const envVar of requiredEnvVars) {
@@ -65,6 +73,7 @@ const handleFirebaseError = (error: FirebaseError): string => {
     'auth/popup-closed-by-user': 'Прозорецът за вход беше затворен',
     'auth/cancelled-popup-request': 'Заявката за вход беше отказана',
     'auth/popup-blocked': 'Изскачащият прозорец беше блокиран от браузъра',
+    'auth/unauthorized-domain': 'Този домейн не е оторизиран за Firebase Authentication',
   };
 
   return errorMessages[error.code] || 'Възникна неочаквана грешка. Моля, опитайте отново';
@@ -73,21 +82,40 @@ const handleFirebaseError = (error: FirebaseError): string => {
 // Google Sign In
 export const signInWithGoogle = async () => {
   try {
+    console.log('Започване на Google вход...');
     const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({
-      prompt: 'select_account'
-    });
 
-    const result = await signInWithPopup(auth, provider);
+    // Use redirect instead of popup
+    await signInWithRedirect(auth, provider);
+
+    // The result will be handled in App.tsx with getRedirectResult
+    return null;
+  } catch (error: any) {
+    console.error('Грешка при Google вход:', error);
+    throw new Error(handleFirebaseError(error));
+  }
+};
+
+// Handle redirect result
+export const handleGoogleRedirect = async () => {
+  try {
+    console.log('Обработка на Google redirect...');
+    const result = await getRedirectResult(auth);
+
+    if (!result) {
+      console.log('Няма redirect резултат');
+      return null;
+    }
+
     const user = result.user;
+    console.log('Успешен Google вход:', user.email);
 
-    // Check if user exists
+    // Check if user exists in Firestore
     const userDoc = doc(db, 'users', user.uid);
     const userSnapshot = await getDoc(userDoc);
 
     if (!userSnapshot.exists()) {
-      console.log('Creating new user profile for Google sign-in');
-      // Create new user profile with default values
+      console.log('Създаване на нов потребителски профил...');
       const userData = {
         email: user.email,
         fullName: user.displayName || '',
@@ -102,45 +130,38 @@ export const signInWithGoogle = async () => {
       };
 
       await setDoc(userDoc, userData);
-      console.log('User profile created successfully');
+      console.log('Потребителският профил е създаден успешно');
 
-      // Set admin role if needed
       if (user.email === import.meta.env.VITE_ADMIN_EMAIL) {
         try {
           const response = await fetch('/api/admin/setup', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+            },
             body: JSON.stringify({ email: user.email })
           });
 
           if (!response.ok) {
-            throw new Error('Failed to set admin role');
+            console.error('Грешка при задаване на админ роля');
+          } else {
+            console.log('Админ ролята е зададена успешно');
           }
-          console.log('Admin role set successfully');
         } catch (error) {
-          console.error('Error setting admin role:', error);
+          console.error('Грешка при задаване на админ роля:', error);
         }
       }
     } else {
-      // Update last seen for existing user
+      console.log('Обновяване на съществуващ потребител...');
       await updateDoc(userDoc, {
         lastSeen: serverTimestamp(),
-        photoURL: user.photoURL // Update photo URL in case it changed
+        photoURL: user.photoURL
       });
-      console.log('User profile updated successfully');
     }
 
     return user;
   } catch (error: any) {
-    console.error('Google sign-in error:', error);
-    // Enhanced error handling
-    if (error.code === 'auth/popup-blocked') {
-      throw new Error('Моля, разрешете изскачащи прозорци за този сайт и опитайте отново');
-    } else if (error.code === 'auth/popup-closed-by-user') {
-      throw new Error('Входът беше прекъснат. Моля, опитайте отново');
-    } else if (error.code === 'auth/unauthorized-domain') {
-      throw new Error('Този домейн не е оторизиран за Firebase Authentication. Моля, свържете се с администратор');
-    }
+    console.error('Грешка при обработка на Google redirect:', error);
     throw new Error(handleFirebaseError(error));
   }
 };

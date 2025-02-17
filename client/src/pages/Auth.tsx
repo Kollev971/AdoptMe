@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { registerUser, loginUser, signInWithGoogle } from "@/lib/firebase";
+import { registerUser, loginUser, signInWithGoogle, handleGoogleRedirect } from "@/lib/firebase";
 import { db } from "@/lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { userSchema } from "@shared/schema";
@@ -74,6 +74,27 @@ export default function Auth() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("login");
+
+  // Handle Google redirect result
+  useEffect(() => {
+    handleGoogleRedirect()
+      .then((user) => {
+        if (user) {
+          toast({
+            title: "Успешен вход",
+            description: "Добре дошли!",
+          });
+          setLocation("/profile");
+        }
+      })
+      .catch((error) => {
+        toast({
+          title: "Грешка при вход",
+          description: error.message,
+          variant: "destructive",
+        });
+      });
+  }, [setLocation, toast]);
 
   const registerForm = useForm<z.infer<typeof registerFormSchema>>({
     resolver: zodResolver(registerFormSchema),
