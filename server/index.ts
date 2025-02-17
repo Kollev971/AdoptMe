@@ -58,14 +58,15 @@ app.use((req, res, next) => {
 
   const tryPort = (port: number): Promise<number> => {
     return new Promise((resolve, reject) => {
-      server.listen(process.env.PORT || port, "0.0.0.0")
+      const portToUse = process.env.PORT ? parseInt(process.env.PORT, 10) : port;
+      server.listen(portToUse, "0.0.0.0")
         .once('listening', () => {
-          log(`Server listening on port ${port}`);
-          resolve(port);
+          log(`Server listening on port ${portToUse}`);
+          resolve(portToUse);
         })
         .once('error', (err: any) => {
           if (err.code === 'EADDRINUSE') {
-            log(`Port ${port} is busy, trying ${port + 1}`);
+            log(`Port ${portToUse} is busy, trying ${port + 1}`);
             tryPort(port + 1).then(resolve).catch(reject);
           } else {
             reject(err);
