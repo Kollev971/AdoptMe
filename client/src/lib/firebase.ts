@@ -35,7 +35,7 @@ const firebaseConfig = {
   storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
-  redirectUri: "https://f709002c-9339-4183-8207-5ad19b1155a8-00-boryd7x4qzpy.janeway.replit.dev"
+  databaseURL: "https://doggycat-5b20c-default-rtdb.europe-west1.firebasedatabase.app"
 };
 
 console.log('Firebase Config:', {
