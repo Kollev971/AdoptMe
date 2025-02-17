@@ -10,31 +10,54 @@
           "$messageId": {
             ".validate": "newData.hasChildren(['userId', 'message', 'timestamp'])"
           }
-        },
-        "participants": {
-          ".read": "auth != null",
-          ".write": "auth != null && (data.parent().child('participants').val().indexOf(auth.uid) > -1 || root.child('users').child(auth.uid).child('isAdmin').val() == true)"
-        },
-        "lastMessage": {
-          ".read": "auth != null",
-          ".write": "auth != null && (data.parent().child('participants').val().indexOf(auth.uid) > -1 || root.child('users').child(auth.uid).child('isAdmin').val() == true)"
         }
       }
     },
     "users": {
       ".read": "auth != null",
       "$uid": {
+        ".read": "auth != null",
         ".write": "auth != null && ($uid === auth.uid || root.child('users').child(auth.uid).child('isAdmin').val() == true)",
+        "profile": {
+          ".write": "auth != null && $uid === auth.uid"
+        },
         "isAdmin": {
           ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() == true"
         }
       }
     },
     "listings": {
-      ".read": "auth != null",
+      ".read": true,
       ".write": "auth != null",
       "$listingId": {
-        ".validate": "newData.hasChildren(['title', 'description', 'userId', 'createdAt'])"
+        ".read": true,
+        ".write": "auth != null && (data.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('isAdmin').val() == true)",
+        ".validate": "newData.hasChildren(['title', 'description', 'userId', 'createdAt', 'status'])",
+        "status": {
+          ".validate": "newData.val().matches(/^(available|adopted|archived)$/)"
+        },
+        "comments": {
+          "$commentId": {
+            ".read": true,
+            ".write": "auth != null",
+            ".validate": "newData.hasChildren(['userId', 'text', 'timestamp'])"
+          }
+        },
+        "likes": {
+          "$userId": {
+            ".read": true,
+            ".write": "auth != null && $userId === auth.uid"
+          }
+        }
+      }
+    },
+    "notifications": {
+      "$uid": {
+        ".read": "auth != null && $uid === auth.uid",
+        ".write": "auth != null && (data.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('isAdmin').val() == true)",
+        "$notificationId": {
+          ".validate": "newData.hasChildren(['type', 'message', 'timestamp', 'read'])"
+        }
       }
     }
   }

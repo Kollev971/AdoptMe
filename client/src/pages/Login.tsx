@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { auth, loginUser, signInWithGoogle } from "@/lib/firebase";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { Loader2, ArrowLeft } from "lucide-react";
+import { Check, X } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email("Невалиден имейл адрес"),
@@ -20,6 +21,34 @@ const loginSchema = z.object({
 const resetSchema = z.object({
   email: z.string().email("Невалиден имейл адрес"),
 });
+
+// Password requirements component
+const PasswordRequirements = ({ password }: { password: string }) => {
+  const requirements = [
+    { text: "Поне 8 символа", test: (p: string) => p.length >= 8 },
+    { text: "Поне една главна буква", test: (p: string) => /[A-Z]/.test(p) },
+    { text: "Поне една малка буква", test: (p: string) => /[a-z]/.test(p) },
+    { text: "Поне една цифра", test: (p: string) => /[0-9]/.test(p) },
+    { text: "Поне един специален символ", test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+  ];
+
+  return (
+    <div className="space-y-2 text-sm">
+      {requirements.map((req, index) => (
+        <div key={index} className="flex items-center gap-2">
+          {req.test(password) ? (
+            <Check className="h-4 w-4 text-green-500" />
+          ) : (
+            <X className="h-4 w-4 text-destructive" />
+          )}
+          <span className={req.test(password) ? "text-green-500" : "text-destructive"}>
+            {req.text}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export default function Login() {
   const [loading, setLoading] = useState(false);
@@ -42,21 +71,15 @@ export default function Login() {
     },
   });
 
-  const [resetSuccess, setResetSuccess] = useState(false);
-
   const handlePasswordReset = async (data: z.infer<typeof resetSchema>) => {
     try {
       setLoading(true);
       await sendPasswordResetEmail(auth, data.email);
-      setResetSuccess(true);
       toast({
         title: "Успешно изпратен имейл",
         description: "Проверете пощата си за инструкции за възстановяване на паролата",
       });
-      setTimeout(() => {
-        setIsResetMode(false);
-        setResetSuccess(false);
-      }, 3000);
+      setTimeout(() => setIsResetMode(false), 3000);
       resetForm.reset();
     } catch (error: any) {
       toast({
@@ -83,10 +106,14 @@ export default function Login() {
         return;
       }
 
+      toast({
+        title: "Успешен вход",
+        description: "Добре дошли отново!",
+      });
       setLocation("/");
     } catch (error: any) {
       toast({
-        title: "Грешка",
+        title: "Грешка при вход",
         description: error.message,
         variant: "destructive",
       });
@@ -96,7 +123,7 @@ export default function Login() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-[calc(100vh-4rem)]">
+    <div className="flex justify-center items-center min-h-[calc(100vh-4rem)] p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>{isResetMode ? "Възстановяване на парола" : "Вход"}</CardTitle>
@@ -108,54 +135,52 @@ export default function Login() {
         </CardHeader>
         <CardContent>
           {isResetMode ? (
-            <div className="space-y-4">
-              <Form {...resetForm}>
-                <form onSubmit={resetForm.handleSubmit(handlePasswordReset)} className="space-y-4">
-                  <FormField
-                    control={resetForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Имейл</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="email" 
-                            placeholder="Въведете вашия имейл"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+            <Form {...resetForm}>
+              <form onSubmit={resetForm.handleSubmit(handlePasswordReset)} className="space-y-4">
+                <FormField
+                  control={resetForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Имейл</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="email" 
+                          placeholder="Въведете вашия имейл"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="space-y-2">
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Изпращане...
+                      </>
+                    ) : (
+                      "Изпрати линк за възстановяване"
                     )}
-                  />
-                  <div className="space-y-2">
-                    <Button 
-                      type="submit" 
-                      className="w-full" 
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Изпращане...
-                        </>
-                      ) : (
-                        "Изпрати линк за възстановяване"
-                      )}
-                    </Button>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      className="w-full"
-                      onClick={() => setIsResetMode(false)}
-                    >
-                      <ArrowLeft className="mr-2 h-4 w-4" />
-                      Обратно към вход
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </div>
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => setIsResetMode(false)}
+                  >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Обратно към вход
+                  </Button>
+                </div>
+              </form>
+            </Form>
           ) : (
             <>
               <Form {...loginForm}>
@@ -167,7 +192,11 @@ export default function Login() {
                       <FormItem>
                         <FormLabel>Имейл</FormLabel>
                         <FormControl>
-                          <Input placeholder="Въведете вашия имейл" {...field} />
+                          <Input 
+                            type="email"
+                            placeholder="Въведете вашия имейл" 
+                            {...field} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -181,8 +210,13 @@ export default function Login() {
                         <FormLabel>Парола</FormLabel>
                         <div className="space-y-2">
                           <FormControl>
-                            <Input type="password" placeholder="Въведете вашата парола" {...field} />
+                            <Input 
+                              type="password" 
+                              placeholder="Въведете вашата парола" 
+                              {...field} 
+                            />
                           </FormControl>
+                          <PasswordRequirements password={field.value} />
                           <div className="flex justify-end">
                             <Button
                               type="button"
@@ -211,7 +245,7 @@ export default function Login() {
                 </form>
               </Form>
 
-              <div className="mt-4 relative">
+              <div className="mt-6 relative">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t" />
                 </div>
@@ -229,6 +263,10 @@ export default function Login() {
                   setLoading(true);
                   signInWithGoogle()
                     .then(() => {
+                      toast({
+                        title: "Успешен вход",
+                        description: "Добре дошли!",
+                      });
                       setLocation("/");
                     })
                     .catch((error) => {

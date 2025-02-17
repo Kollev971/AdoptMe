@@ -1,10 +1,10 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { getStorage } from "firebase/storage";
-import { getFirestore, serverTimestamp, setDoc } from "firebase/firestore";
+import { getFirestore, serverTimestamp, setDoc, updateDoc, doc, getDoc } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 import type { FirebaseError } from "firebase/app";
-import { getDoc, doc, updateDoc, collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, onSnapshot, orderBy } from 'firebase/firestore';
 
 // Validate required environment variables
 const requiredEnvVars = [
@@ -13,12 +13,13 @@ const requiredEnvVars = [
   'VITE_FIREBASE_PROJECT_ID',
   'VITE_FIREBASE_STORAGE_BUCKET',
   'VITE_FIREBASE_MESSAGING_SENDER_ID',
-  'VITE_FIREBASE_APP_ID'
+  'VITE_FIREBASE_APP_ID',
+  'VITE_ADMIN_EMAIL' // Added admin email environment variable
 ] as const;
 
 for (const envVar of requiredEnvVars) {
   if (!import.meta.env[envVar]) {
-    throw new Error(`Missing required environment variable: ${envVar}`);
+    throw new Error(`Липсва задължителна променлива: ${envVar}`);
   }
 }
 
@@ -32,19 +33,44 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
+// Initialize Firebase only if not already initialized
 let app;
 try {
   app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 } catch (error) {
-  console.error("Error initializing Firebase:", error);
-  throw new Error("Failed to initialize Firebase. Please check your configuration.");
+  console.error("Грешка при инициализиране на Firebase:", error);
+  throw new Error("Неуспешно инициализиране на Firebase. Моля, проверете конфигурацията.");
 }
 
+// Initialize services
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 export const db = getFirestore(app);
 export const analytics = getAnalytics(app);
 
+// Enhanced error handling with Bulgarian translations
+const handleFirebaseError = (error: FirebaseError): string => {
+  console.error("Firebase операцията не бе успешна:", error);
+
+  const errorMessages: Record<string, string> = {
+    'auth/email-already-in-use': 'Този имейл вече е регистриран',
+    'auth/invalid-email': 'Невалиден имейл адрес',
+    'auth/operation-not-allowed': 'Операцията не е разрешена',
+    'auth/weak-password': 'Паролата трябва да е поне 6 символа',
+    'auth/user-disabled': 'Този акаунт е деактивиран',
+    'auth/user-not-found': 'Няма намерен потребител с този имейл',
+    'auth/wrong-password': 'Грешна парола',
+    'auth/too-many-requests': 'Твърде много опити. Моля, опитайте по-късно',
+    'permission-denied': 'Нямате права за тази операция',
+    'auth/popup-closed-by-user': 'Прозорецът за вход беше затворен',
+    'auth/cancelled-popup-request': 'Заявката за вход беше отказана',
+    'auth/popup-blocked': 'Изскачащият прозорец беше блокиран от браузъра',
+  };
+
+  return errorMessages[error.code] || 'Възникна неочаквана грешка. Моля, опитайте отново';
+};
+
+// Google Sign In
 export const signInWithGoogle = async () => {
   try {
     const provider = new GoogleAuthProvider();
@@ -56,7 +82,7 @@ export const signInWithGoogle = async () => {
     const userSnapshot = await getDoc(userDoc);
 
     if (!userSnapshot.exists()) {
-      // New user - create profile
+      // Create new user profile
       await setDoc(userDoc, {
         email: user.email,
         fullName: user.displayName || '',
@@ -64,12 +90,30 @@ export const signInWithGoogle = async () => {
         photoURL: user.photoURL,
         phone: '',
         createdAt: serverTimestamp(),
-        isAdmin: user.email === 'delyank97@gmail.com',
-        role: user.email === 'delyank97@gmail.com' ? 'admin' : 'user',
+        isAdmin: false, // Default to regular user
+        role: 'user',
         lastSeen: serverTimestamp()
       });
+
+      // Check if this is an admin email and set admin role if needed
+      if (user.email === import.meta.env.VITE_ADMIN_EMAIL) {
+        await updateDoc(userDoc, {
+          isAdmin: true,
+          role: 'admin'
+        });
+
+        // Make API call to set admin role
+        try {
+          await fetch('/api/admin/setup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+        } catch (error) {
+          console.error('Грешка при задаване на администраторска роля:', error);
+        }
+      }
     } else {
-      // Existing user - update lastSeen
+      // Update last seen for existing user
       await updateDoc(userDoc, {
         lastSeen: serverTimestamp()
       });
@@ -89,7 +133,7 @@ const rateLimits = {
   messageCount: 0,
   requestCount: 0,
   lastRequestTimestamp: 0,
-  loginAttempts: new Map<string, { count: number, timestamp: number }>()
+  loginAttempts: new Map<string, { count: number; timestamp: number }>()
 };
 
 // Rate limiting function
@@ -141,31 +185,90 @@ const checkRateLimit = (type: 'message' | 'request' | 'login', identifier?: stri
   return true;
 };
 
-// Enhanced error handling
-const handleFirebaseError = (error: FirebaseError): string => {
-  console.error("Firebase operation failed:", error);
 
-  switch (error.code) {
-    case 'auth/email-already-in-use':
-      return 'Този имейл вече е регистриран';
-    case 'auth/invalid-email':
-      return 'Невалиден имейл адрес';
-    case 'auth/operation-not-allowed':
-      return 'Операцията не е разрешена';
-    case 'auth/weak-password':
-      return 'Паролата трябва да е поне 6 символа';
-    case 'auth/user-disabled':
-      return 'Този акаунт е деактивиран';
-    case 'auth/user-not-found':
-      return 'Няма намерен потребител с този имейл';
-    case 'auth/wrong-password':
-      return 'Грешна парола';
-    case 'auth/too-many-requests':
-      return 'Твърде много опити. Моля, опитайте по-късно';
-    case 'permission-denied':
-      return 'Нямате права за тази операция';
-    default:
-      return 'Възникна грешка. Моля, опитайте отново';
+export const registerUser = async (email: string, password: string) => {
+  try {
+    if (!checkRateLimit('request')) {
+      throw new Error('Твърде много опити за регистрация. Моля, опитайте по-късно.');
+    }
+
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    if (userCredential.user) {
+      await sendEmailVerification(userCredential.user);
+
+      // Create user document in Firestore using setDoc instead of updateDoc
+      const userDoc = doc(db, 'users', userCredential.user.uid);
+      await setDoc(userDoc, {
+        email: userCredential.user.email,
+        createdAt: serverTimestamp(),
+        isAdmin: email === import.meta.env.VITE_ADMIN_EMAIL, // Set admin flag based on email
+        role: email === import.meta.env.VITE_ADMIN_EMAIL ? 'admin' : 'user',
+        lastSeen: serverTimestamp()
+      });
+
+      // If this is the admin email, set custom claims
+      if (email === import.meta.env.VITE_ADMIN_EMAIL) {
+        // Make an API call to set admin role
+        try {
+          await fetch('/api/admin/setup', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
+        } catch (error) {
+          console.error('Error setting admin role:', error);
+        }
+      }
+    }
+    return userCredential.user;
+  } catch (error: any) {
+    throw new Error(handleFirebaseError(error));
+  }
+};
+
+export const loginUser = async (email: string, password: string) => {
+  try {
+    if (!checkRateLimit('login', email)) {
+      throw new Error('Твърде много опити за влизане. Моля, опитайте по-късно.');
+    }
+
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    if (userCredential.user) {
+      // Reset login attempts on successful login
+      rateLimits.loginAttempts.delete(email);
+
+      // Update last seen
+      const userDoc = doc(db, 'users', userCredential.user.uid);
+      await updateDoc(userDoc, {
+        lastSeen: serverTimestamp()
+      });
+    }
+    return userCredential.user;
+  } catch (error: any) {
+    // Increment failed attempts
+    const attempts = rateLimits.loginAttempts.get(email) || { count: 0, timestamp: Date.now() };
+    rateLimits.loginAttempts.set(email, {
+      count: attempts.count + 1,
+      timestamp: Date.now()
+    });
+
+    throw new Error(handleFirebaseError(error));
+  }
+};
+
+// Utility function to verify admin status
+export const isUserAdmin = async (uid: string): Promise<boolean> => {
+  try {
+    const userDoc = await getDoc(doc(db, "users", uid));
+    // Check both isAdmin flag and email
+    return userDoc.exists() && (
+      userDoc.data()?.isAdmin === true ||
+      userDoc.data()?.email === import.meta.env.VITE_ADMIN_EMAIL
+    );
+  } catch (error) {
+    console.error("Error checking admin status:", error);
+    return false;
   }
 };
 
@@ -270,89 +373,3 @@ export {
   where,
   addDoc
 } from 'firebase/firestore';
-
-export const registerUser = async (email: string, password: string) => {
-  try {
-    if (!checkRateLimit('request')) {
-      throw new Error('Too many registration attempts. Please try again later.');
-    }
-
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    if (userCredential.user) {
-      await sendEmailVerification(userCredential.user);
-
-      // Create user document in Firestore using setDoc instead of updateDoc
-      const userDoc = doc(db, 'users', userCredential.user.uid);
-      await setDoc(userDoc, {
-        email: userCredential.user.email,
-        createdAt: serverTimestamp(),
-        isAdmin: email === 'delyank97@gmail.com', // Set admin flag based on email
-        role: email === 'delyank97@gmail.com' ? 'admin' : 'user',
-        lastSeen: serverTimestamp()
-      });
-
-      // If this is the admin email, set custom claims
-      if (email === 'delyank97@gmail.com') {
-        // Make an API call to set admin role
-        try {
-          await fetch('/api/admin/setup', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            }
-          });
-        } catch (error) {
-          console.error('Error setting admin role:', error);
-        }
-      }
-    }
-    return userCredential.user;
-  } catch (error: any) {
-    throw new Error(handleFirebaseError(error));
-  }
-};
-
-export const loginUser = async (email: string, password: string) => {
-  try {
-    if (!checkRateLimit('login', email)) {
-      throw new Error('Твърде много опити за влизане. Моля, опитайте по-късно.');
-    }
-
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    if (userCredential.user) {
-      // Reset login attempts on successful login
-      rateLimits.loginAttempts.delete(email);
-
-      // Update last seen
-      const userDoc = doc(db, 'users', userCredential.user.uid);
-      await updateDoc(userDoc, {
-        lastSeen: serverTimestamp()
-      });
-    }
-    return userCredential.user;
-  } catch (error: any) {
-    // Increment failed attempts
-    const attempts = rateLimits.loginAttempts.get(email) || { count: 0, timestamp: Date.now() };
-    rateLimits.loginAttempts.set(email, {
-      count: attempts.count + 1,
-      timestamp: Date.now()
-    });
-
-    throw new Error(handleFirebaseError(error));
-  }
-};
-
-// Utility function to verify admin status
-export const isUserAdmin = async (uid: string): Promise<boolean> => {
-  try {
-    const userDoc = await getDoc(doc(db, "users", uid));
-    // Check both isAdmin flag and email
-    return userDoc.exists() && (
-      userDoc.data()?.isAdmin === true ||
-      userDoc.data()?.email === 'delyank97@gmail.com'
-    );
-  } catch (error) {
-    console.error("Error checking admin status:", error);
-    return false;
-  }
-};

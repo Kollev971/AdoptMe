@@ -2,7 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function isAdmin() {
-      return request.auth.token.email == 'delyank97@gmail.com' || request.auth.token.isAdmin == true;
+      return request.auth.token.email == string(get(/databases/$(database)/documents/env/admin).data.adminEmail) || request.auth.token.isAdmin == true;
     }
 
     function isSignedIn() {
@@ -60,6 +60,7 @@ service cloud.firestore {
         resource.data.ratingUserId == request.auth.uid || isAdmin()
       );
     }
+    
     match /adoptionRequests/{requestId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
@@ -78,6 +79,11 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid ||
         isAdmin()
       );
+    }
+
+    match /env/admin {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
   }
 }
