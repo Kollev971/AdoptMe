@@ -6,10 +6,11 @@ import {
   sendEmailVerification,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
   getRedirectResult
 } from "firebase/auth";
 import { getStorage } from "firebase/storage";
-import { getFirestore, serverTimestamp, setDoc, updateDoc, doc, getDoc, collection, addDoc } from "firebase/firestore";
+import { getFirestore, serverTimestamp, setDoc, updateDoc, doc, getDoc } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 import type { FirebaseError } from "firebase/app";
 import { collection as firestoreCollection, query, where, getDocs, onSnapshot, orderBy } from 'firebase/firestore';
@@ -28,10 +29,10 @@ for (const envVar of requiredEnvVars) {
   }
 }
 
-// Update the Firebase configuration section
+// Firebase configuration
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: "doggycat-5b20c.firebaseapp.com",
+  authDomain: "f709002c-9339-4183-8207-5ad19b1155a8-00-boryd7x4qzpy.janeway.replit.dev",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
@@ -44,7 +45,7 @@ console.log('Firebase Config:', {
   apiKey: '***'
 });
 
-// Initialize Firebase with error handling
+// Initialize Firebase
 let app;
 try {
   if (!getApps().length) {
@@ -77,6 +78,7 @@ const handleFirebaseError = (error: FirebaseError): string => {
     'auth/user-disabled': 'Този акаунт е деактивиран',
     'auth/user-not-found': 'Няма намерен потребител с този имейл',
     'auth/wrong-password': 'Грешна парола',
+    'auth/invalid-credential': 'Невалидни данни за вход. Моля, проверете имейла и паролата си.',
     'auth/too-many-requests': 'Твърде много опити. Моля, опитайте по-късно',
     'auth/popup-closed-by-user': 'Прозорецът за вход беше затворен',
     'auth/cancelled-popup-request': 'Заявката за вход беше отказана',
@@ -93,8 +95,6 @@ const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
-
-// Make sure to add the domain to Firebase Console -> Authentication -> Settings -> Authorized domains
 
 export const signInWithGoogle = async () => {
   try {
@@ -119,10 +119,16 @@ export const signInWithGoogle = async () => {
         role: user.email === import.meta.env.VITE_ADMIN_EMAIL ? 'admin' : 'user',
         emailVerified: user.emailVerified
       };
+
       await setDoc(userRef, userData);
+    } else {
+      await updateDoc(userRef, {
+        lastSeen: serverTimestamp(),
+        photoURL: user.photoURL,
+        emailVerified: user.emailVerified
+      });
     }
 
-    window.location.href = '/';
     return user;
   } catch (error: any) {
     console.error('Google sign-in error:', error);
@@ -326,7 +332,7 @@ export const getUnreadMessagesCount = async (userId: string) => {
   }
 };
 
-// Re-export necessary Firestore functions
+// Re-export necessary functions
 export {
   firestoreCollection,
   query,
@@ -334,11 +340,10 @@ export {
   getDocs,
   doc,
   getDoc,
-  addDoc,
+  updateDoc,
   onSnapshot,
   orderBy,
   serverTimestamp,
-  updateDoc,
   type FirebaseError,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,

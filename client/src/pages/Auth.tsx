@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { registerUser, loginUser, signInWithGoogle, handleGoogleRedirect } from "@/lib/firebase";
+import { registerUser, loginUser, signInWithGoogle, } from "@/lib/firebase";
 import { db } from "@/lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { userSchema } from "@shared/schema";
@@ -78,54 +78,18 @@ export default function Auth() {
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
 
-  useEffect(() => {
-    console.log("Auth component mounted");
-    let mounted = true;
-
-    const handleRedirectResult = async () => {
-      try {
-        console.log("Checking for redirect result...");
-        setGoogleLoading(true);
-        const user = await handleGoogleRedirect();
-
-        if (!mounted) return;
-
-        if (user) {
-          console.log("Successfully got user after redirect:", user.email);
-          toast({
-            title: "Успешен вход",
-            description: "Добре дошли!",
-          });
-          setLocation("/");
-        }
-      } catch (error: any) {
-        console.error("Google redirect error:", error);
-        if (mounted) {
-          toast({
-            title: "Грешка при вход",
-            description: error.message,
-            variant: "destructive",
-          });
-        }
-      } finally {
-        if (mounted) {
-          setGoogleLoading(false);
-        }
-      }
-    };
-
-    handleRedirectResult();
-
-    return () => {
-      mounted = false;
-    };
-  }, [setLocation, toast]);
-
   const handleGoogleSignIn = async () => {
     try {
       console.log("Starting Google sign in process");
       setGoogleLoading(true);
-      await signInWithGoogle();
+      const user = await signInWithGoogle();
+      if (user) {
+        toast({
+          title: "Успешен вход",
+          description: "Добре дошли!",
+        });
+        setLocation("/");
+      }
     } catch (error: any) {
       console.error("Google sign-in error:", error);
       toast({
@@ -133,6 +97,7 @@ export default function Auth() {
         description: error.message,
         variant: "destructive",
       });
+    } finally {
       setGoogleLoading(false);
     }
   };
@@ -211,6 +176,7 @@ export default function Auth() {
           title: "Имейлът не е потвърден",
           description: "Моля, потвърдете регистрацията си чрез линка, който изпратихме на имейла ви.",
           variant: "destructive",
+          duration: 5000,
         });
         return;
       }
@@ -222,10 +188,12 @@ export default function Auth() {
 
       setLocation("/");
     } catch (error: any) {
+      console.error("Login error:", error);
       toast({
         title: "Грешка при вход",
         description: error.message,
         variant: "destructive",
+        duration: 5000,
       });
     } finally {
       setLoading(false);
