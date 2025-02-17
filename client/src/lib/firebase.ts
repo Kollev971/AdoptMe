@@ -74,6 +74,10 @@ const handleFirebaseError = (error: FirebaseError): string => {
 export const signInWithGoogle = async () => {
   try {
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({
+      prompt: 'select_account'
+    });
+
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
 
@@ -82,45 +86,61 @@ export const signInWithGoogle = async () => {
     const userSnapshot = await getDoc(userDoc);
 
     if (!userSnapshot.exists()) {
-      // Create new user profile
-      await setDoc(userDoc, {
+      console.log('Creating new user profile for Google sign-in');
+      // Create new user profile with default values
+      const userData = {
         email: user.email,
         fullName: user.displayName || '',
         username: user.email?.split('@')[0] || '',
         photoURL: user.photoURL,
         phone: '',
         createdAt: serverTimestamp(),
-        isAdmin: false, // Default to regular user
-        role: 'user',
-        lastSeen: serverTimestamp()
-      });
+        isAdmin: user.email === import.meta.env.VITE_ADMIN_EMAIL,
+        role: user.email === import.meta.env.VITE_ADMIN_EMAIL ? 'admin' : 'user',
+        lastSeen: serverTimestamp(),
+        emailVerified: user.emailVerified
+      };
 
-      // Check if this is an admin email and set admin role if needed
+      await setDoc(userDoc, userData);
+      console.log('User profile created successfully');
+
+      // Set admin role if needed
       if (user.email === import.meta.env.VITE_ADMIN_EMAIL) {
-        await updateDoc(userDoc, {
-          isAdmin: true,
-          role: 'admin'
-        });
-
-        // Make API call to set admin role
         try {
-          await fetch('/api/admin/setup', {
+          const response = await fetch('/api/admin/setup', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: user.email })
           });
+
+          if (!response.ok) {
+            throw new Error('Failed to set admin role');
+          }
+          console.log('Admin role set successfully');
         } catch (error) {
-          console.error('Грешка при задаване на администраторска роля:', error);
+          console.error('Error setting admin role:', error);
         }
       }
     } else {
       // Update last seen for existing user
       await updateDoc(userDoc, {
-        lastSeen: serverTimestamp()
+        lastSeen: serverTimestamp(),
+        photoURL: user.photoURL // Update photo URL in case it changed
       });
+      console.log('User profile updated successfully');
     }
 
     return user;
   } catch (error: any) {
+    console.error('Google sign-in error:', error);
+    // Enhanced error handling
+    if (error.code === 'auth/popup-blocked') {
+      throw new Error('Моля, разрешете изскачащи прозорци за този сайт и опитайте отново');
+    } else if (error.code === 'auth/popup-closed-by-user') {
+      throw new Error('Входът беше прекъснат. Моля, опитайте отново');
+    } else if (error.code === 'auth/unauthorized-domain') {
+      throw new Error('Този домейн не е оторизиран за Firebase Authentication. Моля, свържете се с администратор');
+    }
     throw new Error(handleFirebaseError(error));
   }
 };
