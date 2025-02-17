@@ -1,16 +1,13 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
-import { doc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { Loader2, User, Bell, Shield } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
+import { Shield, Loader2 } from "lucide-react";
+
 
 export default function Settings() {
   const { user } = useAuth();
@@ -19,16 +16,14 @@ export default function Settings() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(true);
 
   const handlePasswordChange = async () => {
     const isGoogleUser = user?.providerData[0]?.providerId === 'google.com';
 
     if (isGoogleUser) {
       toast({
-        title: "Невъзможна промяна",
-        description: "Google акаунтите не могат да променят паролата си тук",
+        title: "Промяна на парола не е възможна",
+        description: "Влезли сте с Google акаунт. Моля, използвайте настройките на вашия Google акаунт за промяна на паролата.",
         variant: "destructive"
       });
       return;
@@ -64,147 +59,84 @@ export default function Settings() {
     }
   };
 
-  const handleNotificationChange = async (type: string, value: boolean) => {
-    try {
-      if (type === 'email') setEmailNotifications(value);
-      if (type === 'push') setPushNotifications(value);
-
-      await updateDoc(doc(db, "users", user!.uid), {
-        [`notifications.${type}`]: value
-      });
-
-      toast({ title: "Успешно", description: "Настройките са запазени" });
-    } catch (error: any) {
-      toast({ 
-        title: "Грешка", 
-        description: error.message, 
-        variant: "destructive" 
-      });
-    }
-  };
+  const isGoogleUser = user?.providerData[0]?.providerId === 'google.com';
 
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">Настройки</h1>
 
-      <Tabs defaultValue="security" className="w-full max-w-2xl mx-auto">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="security" className="flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            Сигурност
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
-            <Bell className="w-4 h-4" />
-            Известия
-          </TabsTrigger>
-          <TabsTrigger value="profile" className="flex items-center gap-2">
-            <User className="w-4 h-4" />
-            Профил
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="security">
-          <Card>
-            <CardHeader>
+      <div className="max-w-2xl mx-auto">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Shield className="w-5 h-5" />
               <CardTitle>Промяна на парола</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="old-password">Стара парола</Label>
-                <Input
-                  id="old-password"
-                  type="password"
-                  value={oldPassword}
-                  onChange={(e) => setOldPassword(e.target.value)}
-                  placeholder="Въведете текущата парола"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="new-password">Нова парола</Label>
-                <Input
-                  id="new-password"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Въведете нова парола"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirm-password">Потвърдете паролата</Label>
-                <Input
-                  id="confirm-password"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Потвърдете новата парола"
-                />
-              </div>
-              <Button 
-                onClick={handlePasswordChange} 
-                disabled={loading}
+            </div>
+            <CardDescription>
+              {isGoogleUser 
+                ? "Тъй като използвате Google акаунт, промяната на парола трябва да се извърши през настройките на вашия Google акаунт." 
+                : "Променете паролата си като въведете текущата и новата парола"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isGoogleUser ? (
+              <Button
                 className="w-full"
+                onClick={() => window.open('https://myaccount.google.com/signinoptions/password', '_blank')}
               >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Промяна...
-                  </>
-                ) : (
-                  "Промени парола"
-                )}
+                Отворете настройките на Google акаунта
               </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="notifications">
-          <Card>
-            <CardHeader>
-              <CardTitle>Известия</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Имейл известия</Label>
-                  <div className="text-sm text-muted-foreground">
-                    Получавайте известия на имейл
-                  </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="old-password">Текуща парола</Label>
+                  <Input
+                    id="old-password"
+                    type="password"
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                    placeholder="Въведете текущата парола"
+                  />
                 </div>
-                <Switch
-                  checked={emailNotifications}
-                  onCheckedChange={(checked) => handleNotificationChange('email', checked)}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Push известия</Label>
-                  <div className="text-sm text-muted-foreground">
-                    Получавайте известия в браузъра
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">Нова парола</Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Въведете нова парола"
+                  />
                 </div>
-                <Switch
-                  checked={pushNotifications}
-                  onCheckedChange={(checked) => handleNotificationChange('push', checked)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="profile">
-          <Card>
-            <CardHeader>
-              <CardTitle>Профилна информация</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Имейл</Label>
-                <Input value={user?.email || ''} disabled />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">Потвърдете паролата</Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Потвърдете новата парола"
+                  />
+                </div>
+                <Button 
+                  onClick={handlePasswordChange} 
+                  disabled={loading}
+                  className="w-full"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Промяна...
+                    </>
+                  ) : (
+                    "Промени парола"
+                  )}
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
