@@ -33,6 +33,7 @@ for (const envVar of requiredEnvVars) {
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: "doggycat-5b20c.firebaseapp.com",
+  databaseURL: "https://doggycat-5b20c-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
@@ -99,6 +100,10 @@ googleProvider.setCustomParameters({
 export const signInWithGoogle = async () => {
   try {
     console.log('Starting Google sign-in process...');
+    googleProvider.setCustomParameters({
+      prompt: 'select_account',
+      auth_domain: 'doggycat-5b20c.firebaseapp.com'
+    });
     const result = await signInWithPopup(auth, googleProvider);
     const user = result.user;
 
