@@ -30,7 +30,7 @@ for (const envVar of requiredEnvVars) {
 // Update the Firebase configuration section
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: "f709002c-9339-4183-8207-5ad19b1155a8-00-boryd7x4qzpy.janeway.replit.dev",
+  authDomain: "doggycat-5b20c.firebaseapp.com",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
@@ -89,8 +89,11 @@ const handleFirebaseError = (error: FirebaseError): string => {
 // Google Sign In
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
-  prompt: 'select_account'
+  prompt: 'select_account',
+  redirect_uri: `https://f709002c-9339-4183-8207-5ad19b1155a8-00-boryd7x4qzpy.janeway.replit.dev`
 });
+
+// Make sure to add the domain to Firebase Console -> Authentication -> Settings -> Authorized domains
 
 export const signInWithGoogle = async () => {
   try {
