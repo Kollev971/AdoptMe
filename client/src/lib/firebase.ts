@@ -2,10 +2,11 @@ import { initializeApp, getApps } from "firebase/app";
 import { 
   getAuth, 
   createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
+  signInWithEmailAndPassword,
   sendEmailVerification,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  getRedirectResult
 } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 import { getFirestore, serverTimestamp, setDoc, updateDoc, doc, getDoc, collection, addDoc } from "firebase/firestore";
@@ -100,7 +101,7 @@ export const signInWithGoogle = async () => {
     console.log('Starting Google sign-in process...');
     const result = await signInWithPopup(auth, googleProvider);
     const user = result.user;
-    
+
     // Update user data in Firestore
     const userRef = doc(db, 'users', user.uid);
     const userSnap = await getDoc(userRef);
@@ -120,7 +121,7 @@ export const signInWithGoogle = async () => {
       };
       await setDoc(userRef, userData);
     }
-    
+
     window.location.href = '/';
     return user;
   } catch (error: any) {
