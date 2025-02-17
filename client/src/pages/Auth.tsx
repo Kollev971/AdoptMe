@@ -220,7 +220,7 @@ export default function Auth() {
         description: "Добре дошли отново!",
       });
 
-      setLocation("/profile");
+      setLocation("/");
     } catch (error: any) {
       toast({
         title: "Грешка при вход",
