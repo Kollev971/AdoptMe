@@ -29,17 +29,17 @@ export default function Home() {
             transition={{ duration: 0.8 }}
             className="flex flex-col items-center md:items-start"
           >
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-2">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-2">
               Осинови любов 
             </h1>
-            <div className="h-1 w-20 sm:w-24 bg-[#DBC63F] rounded-full mb-6"></div>
+            <div className="h-1 w-24 bg-[#DBC63F] rounded-full mb-6"></div>
           </motion.div>
 
           <motion.p 
             initial={{ opacity: 0, y: 20 }} 
             animate={{ opacity: 1, y: 0 }} 
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-base sm:text-lg md:text-xl text-white/90 max-w-xl font-normal md:text-left text-mobile"
+            className="text-lg md:text-xl text-white/90 max-w-xl font-normal"
           > 
             AdoptMe свързва бездомни животни с хора търсещи домашен любимец. Помогни на животно да получи дом, като осиновиш или намериш осиновител.
           </motion.p>
@@ -49,7 +49,7 @@ export default function Home() {
           initial={{ opacity: 0, scale: 0.8 }} 
           animate={{ opacity: 1, scale: 1 }} 
           transition={{ duration: 0.5, delay: 0.4 }}
-          className="flex flex-col md:flex-row items-center justify-center md:justify-start mt-16 sm:mt-20 md:mt-8 gap-4 heart-mobile heart-web"
+          className="flex items-center justify-center md:justify-start mt-8"
         >
           <AdoptionCounter />
         </motion.div>
@@ -58,12 +58,12 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }} 
           animate={{ opacity: 1, y: 0 }} 
           transition={{ duration: 0.5, delay: 0.6 }}
-          className="flex flex-col sm:flex-row items-center justify-center md:justify-center mt-0 sm:mt-0 md:mt-40 gap-4"
+          className="flex items-center justify-center md:justify-start mt-10 ml-4 sm:mt-16 md:mt-8"
         >
           <Link href="/listings">
             <Button 
               size="lg" 
-              className="w-full sm:w-auto px-8 sm:px-12 py-4 text-lg sm:text-xl rounded-full shadow-lg hover:scale-110 transition"
+              className="w-full sm:w-auto px-12 py-4 text-xl rounded-full shadow-lg hover:scale-110 transition"
               style={{ backgroundColor: "#DBC63F", color: "#FFF", fontWeight: "normal" }}
             >
               Разгледай обявите
@@ -72,7 +72,7 @@ export default function Home() {
           <Link href={user ? "/create-listing" : "/auth"}>
             <Button 
               size="lg" 
-              className="w-full sm:w-auto px-8 sm:px-12 py-4 text-lg sm:text-xl rounded-full shadow-lg hover:scale-110 transition"
+              className="w-full sm:w-auto px-12 py-4 text-xl rounded-full shadow-lg hover:scale-110 transition"
               style={{ backgroundColor: "#D89EAA", color: "#FFF", fontWeight: "normal" }}
             >
               Добави обява

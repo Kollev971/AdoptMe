@@ -120,11 +120,8 @@ export function ListingCard({ listing, showActions, onDelete, hideConnect, onArc
         status: newStatus,
         adoptedAt: newStatus === 'adopted' ? new Date().toISOString() : null,
         archived: newStatus === 'adopted' ? true : false, // Set archived to true when adopted
-        isActive: newStatus !== 'adopted' // Set isActive to false when adopted, true when available
+        isActive: newStatus !== 'adopted'
       });
-
-      // Access the updated listing data after the update operation
-      const updatedListing = (await getDoc(listingRef)).data(); 
 
       const adoptionRef = collection(db, "adoptionRequests");
       if (newStatus === 'adopted') {
@@ -146,25 +143,17 @@ export function ListingCard({ listing, showActions, onDelete, hideConnect, onArc
         const deletePromises = adoptionsSnap.docs.map(doc => deleteDoc(doc.ref));
         await Promise.all(deletePromises);
       }
-
-      if (newStatus === 'adopted') {
-        // Move the listing to the 'archived' collection instead of deleting it
-        await addDoc(collection(db, "archived"), updatedListing);
-        await deleteDoc(listingRef);
-      }
-
       toast({
         description: newStatus === 'adopted'
           ? "Обявата е маркирана като осиновена"
           : "Обявата е маркирана като налична"
       });
     } catch (error) {
-      console.error("Error updating status:", error); // Log the error to the console
-      // Remove the toast call here
-      // toast({
-      //   variant: "destructive",
-      //   description: "Възникна грешка при промяна на статуса"
-      // });
+      console.error("Error updating status:", error);
+      toast({
+        variant: "destructive",
+        description: "Възникна грешка при промяна на статуса"
+      });
     } finally {
       setIsChangingStatus(false);
     }

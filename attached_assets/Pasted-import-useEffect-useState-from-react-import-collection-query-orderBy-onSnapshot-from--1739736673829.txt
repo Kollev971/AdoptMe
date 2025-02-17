@@ -19,35 +19,22 @@ export default function Listings() {
     const listingsRef = collection(db, "listings");
     const q = query(listingsRef, orderBy("createdAt", "desc"));
 
-    const unsubscribeListings = onSnapshot(q, (snapshot) => {
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       const listingsData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })) as Listing[];
-
-      // Filter out adopted listings
-      const filteredListings = listingsData.filter((listing) => listing.status !== 'adopted'); 
-      setListings(filteredListings);
-      setLoading(false);
-    }, (error) => {
-      // Remove the toast call here
-      // toast({ 
-      //   title: "Грешка", 
-      //   description: "Проблем при зареждането на обявите", 
-      //   variant: "destructive" 
-      // });
+      setListings(listingsData);
       setLoading(false);
     });
 
-    return () => {
-      unsubscribeListings();
-    };
+    return () => unsubscribe();
   }, []);
 
   const filteredListings = listings.filter((listing) => {
     const matchesType = animalType === "all" ? true : listing.type === animalType;
     const matchesLocation = !location ? true : listing.location?.toLowerCase().includes(location.toLowerCase());
-
+    
     let matchesAge = true;
     if (ageRange !== "all") {
       const totalMonths = (listing.ageYears * 12) + listing.ageMonths;
@@ -66,10 +53,10 @@ export default function Listings() {
           break;
       }
     }
-
+    
     return matchesType && matchesLocation && matchesAge;
   });
-
+  
   const totalPages = Math.ceil(filteredListings.length / itemsPerPage);
   const paginatedListings = filteredListings.slice(
     (currentPage - 1) * itemsPerPage,
@@ -81,7 +68,7 @@ export default function Listings() {
       {/* Филтър и заглавие */}
       <div className="space-y-4">
         <h1 className="text-3xl font-bold text-gray-800">🏡 Намери своя бъдещ любимец</h1>
-
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Select value={animalType} onValueChange={setAnimalType}>
             <SelectTrigger className="w-full bg-white border border-gray-300 shadow-md rounded-lg">
@@ -136,7 +123,7 @@ export default function Listings() {
                   <ListingCard key={listing.id} listing={listing} />
                 ))}
               </div>
-
+              
               {totalPages > 1 && (
                 <div className="flex justify-center mt-8">
                   <nav className="flex items-center gap-2">

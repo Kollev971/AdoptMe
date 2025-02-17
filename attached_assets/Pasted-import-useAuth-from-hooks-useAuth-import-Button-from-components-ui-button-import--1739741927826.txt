@@ -39,7 +39,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }} 
             animate={{ opacity: 1, y: 0 }} 
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-base sm:text-lg md:text-xl text-white/90 max-w-xl font-normal md:text-left text-mobile"
+            className="text-base sm:text-lg md:text-xl text-white/90 max-w-xl font-normal md:text-left"
           > 
             AdoptMe свързва бездомни животни с хора търсещи домашен любимец. Помогни на животно да получи дом, като осиновиш или намериш осиновител.
           </motion.p>
@@ -49,7 +49,7 @@ export default function Home() {
           initial={{ opacity: 0, scale: 0.8 }} 
           animate={{ opacity: 1, scale: 1 }} 
           transition={{ duration: 0.5, delay: 0.4 }}
-          className="flex flex-col md:flex-row items-center justify-center md:justify-start mt-16 sm:mt-20 md:mt-8 gap-4 heart-mobile heart-web"
+          className="flex flex-col md:flex-row items-center justify-center md:justify-start mt-16 sm:mt-20 md:mt-8 gap-4"
         >
           <AdoptionCounter />
         </motion.div>
@@ -58,7 +58,7 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }} 
           animate={{ opacity: 1, y: 0 }} 
           transition={{ duration: 0.5, delay: 0.6 }}
-          className="flex flex-col sm:flex-row items-center justify-center md:justify-center mt-0 sm:mt-0 md:mt-40 gap-4"
+          className="flex flex-col sm:flex-row items-center justify-center md:justify-center mt-8 sm:mt-12 md:mt-8 gap-4"
         >
           <Link href="/listings">
             <Button 

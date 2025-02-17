@@ -19,6 +19,26 @@
   #__next {
     @apply h-full; /* Ако използваш Next.js, увери се, че контейнерът __next също заема целия екран */
   }
+
+  /* Mobile styling */
+  @media (max-width: 768px) {
+    .heart-mobile {
+      /* Adjust position as needed */
+      margin-top: 150px; /* Example: Move down 100px */
+    }
+    .text-mobile {
+      text-align: left; /* Align text to the left */
+    }
+  }
+
+  /* Web styling */
+  @media (min-width: 768px) {
+    .heart-web {
+      /* Adjust position as needed */
+      margin-top: 0px; /* Example: Move up 50px */
+      margin-right: 150px; /* Example: Move right 100px */
+    }
+  }
 }
 
 @layer components {

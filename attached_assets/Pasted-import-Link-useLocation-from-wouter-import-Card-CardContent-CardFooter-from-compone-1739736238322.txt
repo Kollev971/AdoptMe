@@ -17,7 +17,7 @@ import {
   getDocs,
   deleteDoc
 } from "firebase/firestore";
-import { Edit, MapPin, Share2, Trash2, PawPrint, Archive } from "lucide-react";
+import { Edit, MapPin, Share2, Trash2, PawPrint } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
 
@@ -35,10 +35,9 @@ interface ListingCardProps {
   showActions?: boolean;
   onDelete?: () => void;
   hideConnect?: boolean;
-  onArchive?: () => void;
 }
 
-export function ListingCard({ listing, showActions, onDelete, hideConnect, onArchive }: ListingCardProps) {
+export function ListingCard({ listing, showActions, onDelete, hideConnect }: ListingCardProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [listingUser, setListingUser] = useState<any>(null);
@@ -119,12 +118,9 @@ export function ListingCard({ listing, showActions, onDelete, hideConnect, onArc
       await updateDoc(listingRef, {
         status: newStatus,
         adoptedAt: newStatus === 'adopted' ? new Date().toISOString() : null,
-        archived: newStatus === 'adopted' ? true : false, // Set archived to true when adopted
-        isActive: newStatus !== 'adopted' // Set isActive to false when adopted, true when available
+        archived: newStatus === 'adopted' ? true : false,
+        isActive: newStatus !== 'adopted'
       });
-
-      // Access the updated listing data after the update operation
-      const updatedListing = (await getDoc(listingRef)).data(); 
 
       const adoptionRef = collection(db, "adoptionRequests");
       if (newStatus === 'adopted') {
@@ -146,25 +142,17 @@ export function ListingCard({ listing, showActions, onDelete, hideConnect, onArc
         const deletePromises = adoptionsSnap.docs.map(doc => deleteDoc(doc.ref));
         await Promise.all(deletePromises);
       }
-
-      if (newStatus === 'adopted') {
-        // Move the listing to the 'archived' collection instead of deleting it
-        await addDoc(collection(db, "archived"), updatedListing);
-        await deleteDoc(listingRef);
-      }
-
       toast({
         description: newStatus === 'adopted'
           ? "Обявата е маркирана като осиновена"
           : "Обявата е маркирана като налична"
       });
     } catch (error) {
-      console.error("Error updating status:", error); // Log the error to the console
-      // Remove the toast call here
-      // toast({
-      //   variant: "destructive",
-      //   description: "Възникна грешка при промяна на статуса"
-      // });
+      console.error("Error updating status:", error);
+      toast({
+        variant: "destructive",
+        description: "Възникна грешка при промяна на статуса"
+      });
     } finally {
       setIsChangingStatus(false);
     }
@@ -237,14 +225,6 @@ export function ListingCard({ listing, showActions, onDelete, hideConnect, onArc
                 className="bg-white/90 hover:bg-red-500 hover:text-white text-red-500"
               >
                 <Trash2 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="secondary"
-                size="icon"
-                onClick={onArchive}
-                className="bg-white/90 hover:bg-gray-500 hover:text-white text-gray-500"
-              >
-                <Archive className="h-4 w-4" />
               </Button>
             </div>
           )}

@@ -21,7 +21,6 @@ export default function AdoptionCounter() {
         );
         const adoptionsSnap = await getDocs(adoptionsQuery);
 
-        // Use the higher number between listings and adoptionRequests
         setAdoptions(Math.max(listingsSnap.size, adoptionsSnap.size));
       } catch (error) {
         console.error("Error fetching adoptions:", error);
@@ -38,33 +37,27 @@ export default function AdoptionCounter() {
       transition={{ duration: 0.5, delay: 0.2 }}
       className="p-8"
     >
-      <div className="flex flex-col items-center gap-4">
-        <div className="relative">
+      <div className="flex flex-col items-center gap-2">
+        <div className="relative w-16 h-16 flex items-center justify-center">
           <svg 
-            width="80" 
-            height="80" 
+            width="60" 
+            height="60" 
             viewBox="0 0 24 24" 
             fill="none"
-            className="w-20 h-20"
+            className="w-16 h-16"
           >
             <path 
               d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" 
               stroke="white"
               strokeWidth="0.5"
             />
-            <text 
-              x="50%" 
-              y="50%" 
-              textAnchor="middle" 
-              fill="white" 
-              fontSize="5" 
-              fontWeight="200" 
-              dy=".3em"
-              style={{ fontFamily: 'Arial' }}
-            >
-              {adoptions}
-            </text>
           </svg>
+          <span 
+            className="absolute text-white text-lg font-bold"
+            style={{ fontFamily: 'Noah' }}
+          >
+            {adoptions}
+          </span>
         </div>
         <span className="text-white text-sm">Осиновени животни</span>
       </div>

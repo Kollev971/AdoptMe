@@ -17,7 +17,9 @@ export default function Listings() {
 
   useEffect(() => {
     const listingsRef = collection(db, "listings");
+    const archivedRef = collection(db, "archived");
     const q = query(listingsRef, orderBy("createdAt", "desc"));
+    const archivedQ = query(archivedRef, orderBy("createdAt", "desc"));
 
     const unsubscribeListings = onSnapshot(q, (snapshot) => {
       const listingsData = snapshot.docs.map((doc) => ({
@@ -25,18 +27,18 @@ export default function Listings() {
         ...doc.data(),
       })) as Listing[];
 
-      // Filter out adopted listings
-      const filteredListings = listingsData.filter((listing) => listing.status !== 'adopted'); 
-      setListings(filteredListings);
-      setLoading(false);
-    }, (error) => {
-      // Remove the toast call here
-      // toast({ 
-      //   title: "Грешка", 
-      //   description: "Проблем при зареждането на обявите", 
-      //   variant: "destructive" 
-      // });
-      setLoading(false);
+      const unsubscribeArchived = onSnapshot(archivedQ, (snapshot) => {
+        const archivedData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Listing[];
+        setListings(listingsData.concat(archivedData));
+        setLoading(false);
+      });
+
+      return () => {
+        unsubscribeArchived();
+      };
     });
 
     return () => {
