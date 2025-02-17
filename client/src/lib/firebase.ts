@@ -99,7 +99,12 @@ googleProvider.setCustomParameters({
 export const signInWithGoogle = async () => {
   try {
     console.log('Starting Google sign-in process...');
-    const result = await signInWithPopup(auth, googleProvider);
+    await signInWithRedirect(auth, googleProvider);
+    const result = await getRedirectResult(auth);
+    if (!result) {
+      console.log('No redirect result');
+      return null;
+    }
     const user = result.user;
 
     // Update user data in Firestore
