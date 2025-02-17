@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "doggycat-5b20c",
     "public": "dist/public",
     "ignore": [
       "firebase.json",
