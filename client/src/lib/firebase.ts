@@ -17,10 +17,7 @@ import { collection as firestoreCollection, query, where, getDocs, onSnapshot, o
 // Validate required environment variables
 const requiredEnvVars = [
   'VITE_FIREBASE_API_KEY',
-  'VITE_FIREBASE_AUTH_DOMAIN',
   'VITE_FIREBASE_PROJECT_ID',
-  'VITE_FIREBASE_STORAGE_BUCKET',
-  'VITE_FIREBASE_MESSAGING_SENDER_ID',
   'VITE_FIREBASE_APP_ID',
   'VITE_ADMIN_EMAIL'
 ] as const;
@@ -31,18 +28,22 @@ for (const envVar of requiredEnvVars) {
   }
 }
 
-// Firebase configuration
+// Update the Firebase configuration section
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'doggycat-5b20c.firebaseapp.com',
+  authDomain: "f709002c-9339-4183-8207-5ad19b1155a8-00-boryd7x4qzpy.janeway.replit.dev",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-// Initialize Firebase
+console.log('Firebase Config:', {
+  ...firebaseConfig,
+  apiKey: '***'
+});
+
+// Initialize Firebase with error handling
 let app;
 try {
   if (!getApps().length) {
@@ -96,6 +97,7 @@ export const signInWithGoogle = async () => {
   try {
     console.log('Starting Google sign-in process...');
     await signInWithRedirect(auth, googleProvider);
+    console.log('Google sign-in redirect initiated');
     return true;
   } catch (error: any) {
     console.error('Google sign-in error:', error);
@@ -311,5 +313,9 @@ export {
   onSnapshot,
   orderBy,
   serverTimestamp,
-  updateDoc
+  updateDoc,
+  type FirebaseError,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendEmailVerification
 };

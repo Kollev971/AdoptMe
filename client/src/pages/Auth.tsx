@@ -79,16 +79,19 @@ export default function Auth() {
   const [resetEmail, setResetEmail] = useState("");
 
   useEffect(() => {
+    console.log("Auth component mounted");
     let mounted = true;
 
     const handleRedirectResult = async () => {
       try {
+        console.log("Checking for redirect result...");
         setGoogleLoading(true);
         const user = await handleGoogleRedirect();
 
         if (!mounted) return;
 
         if (user) {
+          console.log("Successfully got user after redirect:", user.email);
           toast({
             title: "Успешен вход",
             description: "Добре дошли!",
@@ -115,13 +118,12 @@ export default function Auth() {
 
     return () => {
       mounted = false;
-      setLoading(false);
-      setGoogleLoading(false);
     };
   }, [setLocation, toast]);
 
   const handleGoogleSignIn = async () => {
     try {
+      console.log("Starting Google sign in process");
       setGoogleLoading(true);
       await signInWithGoogle();
     } catch (error: any) {
@@ -161,12 +163,10 @@ export default function Auth() {
     try {
       setLoading(true);
 
-      // First create the Firebase auth user
       const userCredential = await registerUser(data.email, data.password);
 
-      // Prepare user data for Firestore
       const userData = {
-        uid: userCredential.uid,
+        uid: userCredential.user.uid,
         username: data.username,
         email: data.email,
         fullName: data.fullName,
@@ -175,20 +175,16 @@ export default function Auth() {
         emailVerified: false,
       };
 
-      // Save user data to Firestore
-      await setDoc(doc(db, "users", userCredential.uid), userData);
+      await setDoc(doc(db, "users", userCredential.user.uid), userData);
 
-      // Show success message and handle redirection
       toast({
         title: "Успешна регистрация! 🎉",
         description: "Изпратихме ви имейл за потвърждение. Моля, проверете пощата си.",
         duration: 5000,
       });
 
-      // Reset form
       registerForm.reset();
 
-      // Wait a bit to show the toast before switching tabs
       loginForm.setValue("email", data.email);
       setActiveTab("login");
 
@@ -266,12 +262,10 @@ export default function Auth() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-[calc(100vh-3.5rem)]">
+    <div className="flex justify-center items-center min-h-[calc(100vh-4rem)] p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl text-center">
-            {activeTab === "login" ? "Вход" : "Регистрация"}
-          </CardTitle>
+        <CardHeader>
+          <CardTitle>{activeTab === "login" ? "Вход" : "Регистрация"}</CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
