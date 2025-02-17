@@ -10,15 +10,26 @@ export default function AdoptionCounter() {
   useEffect(() => {
     const fetchAdoptions = async () => {
       try {
+        // Get listings with "adopted" status
         const listingsQuery = query(
           collection(db, "listings"),
           where("status", "==", "adopted")
         );
         const listingsSnap = await getDocs(listingsQuery);
-        setAdoptions(listingsSnap.size);
+        
+        // Get completed adoption requests
+        const adoptionsQuery = query(
+          collection(db, "adoptionRequests"),
+          where("status", "==", "completed")
+        );
+        const adoptionsSnap = await getDocs(adoptionsQuery);
+
+        // Set the total count as the larger of the two numbers
+        const totalAdoptions = Math.max(listingsSnap.size, adoptionsSnap.size);
+        setAdoptions(totalAdoptions);
       } catch (error) {
         console.error("Error fetching adoptions:", error);
-        setAdoptions(0);
+        // Keep the previous count on error instead of resetting to 0
       }
     };
 
