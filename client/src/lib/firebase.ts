@@ -103,14 +103,14 @@ export const signInWithGoogle = async () => {
     // Use redirect for better mobile experience
     await signInWithRedirect(auth, provider);
     console.log('Redirect initiated');
-    return null;
+    return true;
   } catch (error: any) {
     console.error('Google sign-in error:', error);
     throw new Error(handleFirebaseError(error));
   }
 };
 
-// Handle redirect result
+// Handle redirect result with better error handling
 export const handleGoogleRedirect = async () => {
   try {
     console.log('Processing Google redirect result...');
