@@ -78,13 +78,17 @@ export default function Auth() {
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
 
-  // Handle Google redirect result
   useEffect(() => {
+    let mounted = true;
+
     const handleRedirectResult = async () => {
       try {
         setGoogleLoading(true);
-        const result = await handleGoogleRedirect();
-        if (result) {
+        const user = await handleGoogleRedirect();
+
+        if (!mounted) return;
+
+        if (user) {
           toast({
             title: "Успешен вход",
             description: "Добре дошли!",
@@ -93,20 +97,24 @@ export default function Auth() {
         }
       } catch (error: any) {
         console.error("Google redirect error:", error);
-        toast({
-          title: "Грешка при вход",
-          description: error.message,
-          variant: "destructive",
-        });
+        if (mounted) {
+          toast({
+            title: "Грешка при вход",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
       } finally {
-        setGoogleLoading(false);
+        if (mounted) {
+          setGoogleLoading(false);
+        }
       }
     };
 
     handleRedirectResult();
 
-    // Cleanup function
     return () => {
+      mounted = false;
       setLoading(false);
       setGoogleLoading(false);
     };
@@ -116,15 +124,13 @@ export default function Auth() {
     try {
       setGoogleLoading(true);
       await signInWithGoogle();
-      setLocation("/");
     } catch (error: any) {
       console.error("Google sign-in error:", error);
       toast({
-        title: "Грешка",
+        title: "Грешка при вход с Google",
         description: error.message,
         variant: "destructive",
       });
-    } finally {
       setGoogleLoading(false);
     }
   };

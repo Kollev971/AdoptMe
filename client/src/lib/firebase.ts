@@ -3,8 +3,8 @@ import {
   getAuth, 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
-  sendEmailVerification, 
-  GoogleAuthProvider, 
+  sendEmailVerification,
+  GoogleAuthProvider,
   signInWithRedirect,
   getRedirectResult
 } from "firebase/auth";
@@ -42,12 +42,7 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-console.log('Initializing Firebase with config:', {
-  ...firebaseConfig,
-  apiKey: '***' // Hide API key in logs
-});
-
-// Initialize Firebase only if not already initialized
+// Initialize Firebase
 let app;
 try {
   if (!getApps().length) {
@@ -92,17 +87,15 @@ const handleFirebaseError = (error: FirebaseError): string => {
 };
 
 // Google Sign In
+const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});
+
 export const signInWithGoogle = async () => {
   try {
     console.log('Starting Google sign-in process...');
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({
-      prompt: 'select_account'
-    });
-
-    // Use redirect for better mobile experience
-    await signInWithRedirect(auth, provider);
-    console.log('Redirect initiated');
+    await signInWithRedirect(auth, googleProvider);
     return true;
   } catch (error: any) {
     console.error('Google sign-in error:', error);
@@ -110,7 +103,6 @@ export const signInWithGoogle = async () => {
   }
 };
 
-// Handle redirect result with better error handling
 export const handleGoogleRedirect = async () => {
   try {
     console.log('Processing Google redirect result...');
@@ -124,12 +116,14 @@ export const handleGoogleRedirect = async () => {
     const user = result.user;
     console.log('Google sign-in successful for:', user.email);
 
-    const userDoc = doc(db, 'users', user.uid);
-    const userSnapshot = await getDoc(userDoc);
+    // Update user data in Firestore
+    const userRef = doc(db, 'users', user.uid);
+    const userSnap = await getDoc(userRef);
 
-    if (!userSnapshot.exists()) {
+    if (!userSnap.exists()) {
       console.log('Creating new user profile...');
       const userData = {
+        uid: user.uid,
         email: user.email,
         fullName: user.displayName || '',
         username: user.email?.split('@')[0] || '',
@@ -138,36 +132,22 @@ export const handleGoogleRedirect = async () => {
         createdAt: serverTimestamp(),
         isAdmin: user.email === import.meta.env.VITE_ADMIN_EMAIL,
         role: user.email === import.meta.env.VITE_ADMIN_EMAIL ? 'admin' : 'user',
-        lastSeen: serverTimestamp(),
         emailVerified: user.emailVerified
       };
 
-      await setDoc(userDoc, userData);
-      console.log('User profile created');
-
-      if (user.email === import.meta.env.VITE_ADMIN_EMAIL) {
-        try {
-          const response = await fetch('/api/admin/setup', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ email: user.email })
-          });
-
-          if (!response.ok) {
-            console.error('Failed to set admin role');
-          } else {
-            console.log('Admin role set successfully');
-          }
-        } catch (error) {
-          console.error('Error setting admin role:', error);
-        }
+      try {
+        await setDoc(userRef, userData);
+        console.log('User profile created successfully');
+      } catch (error) {
+        console.error('Error creating user profile:', error);
+        throw error;
       }
     } else {
-      await updateDoc(userDoc, {
+      console.log('Updating existing user profile');
+      await updateDoc(userRef, {
         lastSeen: serverTimestamp(),
-        photoURL: user.photoURL
+        photoURL: user.photoURL,
+        emailVerified: user.emailVerified
       });
     }
 
