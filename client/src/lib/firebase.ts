@@ -5,8 +5,7 @@ import {
   signInWithEmailAndPassword, 
   sendEmailVerification,
   GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult
+  signInWithPopup
 } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 import { getFirestore, serverTimestamp, setDoc, updateDoc, doc, getDoc, collection, addDoc } from "firebase/firestore";
@@ -96,9 +95,30 @@ googleProvider.setCustomParameters({
 export const signInWithGoogle = async () => {
   try {
     console.log('Starting Google sign-in process...');
-    await signInWithRedirect(auth, googleProvider);
-    console.log('Google sign-in redirect initiated');
-    return true;
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+    
+    // Update user data in Firestore
+    const userRef = doc(db, 'users', user.uid);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      const userData = {
+        uid: user.uid,
+        email: user.email,
+        fullName: user.displayName || '',
+        username: user.email?.split('@')[0] || '',
+        photoURL: user.photoURL,
+        phone: '',
+        createdAt: serverTimestamp(),
+        isAdmin: user.email === import.meta.env.VITE_ADMIN_EMAIL,
+        role: user.email === import.meta.env.VITE_ADMIN_EMAIL ? 'admin' : 'user',
+        emailVerified: user.emailVerified
+      };
+      await setDoc(userRef, userData);
+    }
+    
+    return user;
   } catch (error: any) {
     console.error('Google sign-in error:', error);
     throw new Error(handleFirebaseError(error));
